@@ -216,18 +216,45 @@ def main():
         if 'severity_mild_prop' in mean_params_for_subgroup:
             mean_params_for_subgroup['severity_severe_prop'] = 1.0 - mean_params_for_subgroup['severity_mild_prop']
 
-        for sev_prop, label in [(1.0, 'Mild Only'), (0.0, 'Severe Only')]:
-            p_temp = mean_params_for_subgroup.copy()
-            p_temp['severity_mild_prop'] = sev_prop
-            p_temp['severity_severe_prop'] = 1.0 - sev_prop
-            dc, dq = run_sim(p_temp, pop_size=100) # Smaller population for testing
-            sg.append({'group': f"Severity: {label}", 'ICER': (dc / dq) if dq != 0 else 0})
+        # Load subgroup scenarios from YAML (or define here if not in YAML)
+        subgroup_scenarios_config = load_scenarios_from_yaml('config/scenarios.yaml')
 
-        for age in [0, 18, 30]:
-            p_temp = mean_params_for_subgroup.copy()
-            p_temp['min_test_age'] = age
-            dc, dq = run_sim(p_temp, pop_size=100) # Smaller population for testing
-            sg.append({'group': f"Min Test Age: {age}", 'ICER': (dc / dq) if dq != 0 else 0})
+        for name, overrides in subgroup_scenarios_config.items():
+            # Only run specific subgroup scenarios if desired, or all if not filtered
+            if name in ['targeted_age_25', 'high_coverage'] or 'severity' in name: # Example filter
+                p_temp = mean_params_for_subgroup.copy()
+                for param_name, value in overrides.items():
+                    if value is not None:
+                        if isinstance(value, (int, float)) and param_name in p_temp and isinstance(p_temp[param_name], (int, float)):
+                            if value < -0.5 or value > 0.5: # Heuristic for absolute vs relative
+                                p_temp[param_name] = value # Absolute value
+                            else:
+                                p_temp[param_name] = p_temp[param_name] + value # Relative adjustment
+                        else:
+                            p_temp[param_name] = value # Absolute value or non-numeric
+
+                # Special handling for severity subgroups if defined in YAML
+                if 'severity_mild_prop' in overrides:
+                    p_temp['severity_mild_prop'] = overrides['severity_mild_prop']
+                    p_temp['severity_severe_prop'] = 1.0 - overrides['severity_mild_prop']
+
+                dc, dq = run_sim(p_temp, pop_size=100) # Smaller population for testing
+                icer = (dc / dq) if dq != 0 else 0
+                sg.append({'group': name, 'ICER': icer})
+
+        # Original hardcoded subgroup analyses (can be removed if fully replaced by YAML)
+        # for sev_prop, label in [(1.0, 'Mild Only'), (0.0, 'Severe Only')]:
+        #     p_temp = mean_params_for_subgroup.copy()
+        #     p_temp['severity_mild_prop'] = sev_prop
+        #     p_temp['severity_severe_prop'] = 1.0 - sev_prop
+        #     dc, dq = run_sim(p_temp, pop_size=100) # Smaller population for testing
+        #     sg.append({'group': f"Severity: {label}", 'ICER': (dc / dq) if dq != 0 else 0})
+
+        # for age in [0, 18, 30]:
+        #     p_temp = mean_params_for_subgroup.copy()
+        #     p_temp['min_test_age'] = age
+        #     dc, dq = run_sim(p_temp, pop_size=100) # Smaller population for testing
+        #     sg.append({'group': f"Min Test Age: {age}", 'ICER': (dc / dq) if dq != 0 else 0})
 
         (_, int_full_df) = run_scenario(mean_params_for_subgroup, pop_size=100) # Smaller population for testing
         dfp = int_full_df[int_full_df['arm'] == 'prospective']
@@ -494,6 +521,12 @@ def main():
         # plt.show()
 
         print("Retrospective Cost Mix analysis complete.")
+
+        # Module 22: Calibration Analysis
+        run_calibration(base_mean_params, pop_size=10000) # Using a larger pop_size for calibration
+
+        # Module 23: Structural Uncertainty Analysis
+        run_structural_uncertainty(base_mean_params, num_runs=10, pop_size=10000)
 
     finally:
         client.close()

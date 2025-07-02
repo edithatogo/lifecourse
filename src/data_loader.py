@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
+import yaml
 
+def load_scenarios_from_yaml(file_path):
+    with open(file_path, 'r') as f:
+        config = yaml.safe_load(f)
+    return config['scenarios']
 
 def load_nz_population_distribution(url=None): # For New Zealand data
     """

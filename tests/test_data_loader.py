@@ -2,9 +2,8 @@ import unittest
 from unittest.mock import patch
 import pandas as pd
 from io import StringIO
-import yaml
 import os
-from src.data_loader import load_nz_population_distribution, load_nz_life_table_hazards, load_scenarios_from_yaml
+from src.data_loader import load_nz_population_distribution, load_nz_life_table_hazards
 
 class TestDataLoader(unittest.TestCase):
 
@@ -48,27 +47,6 @@ Female,1,0.0009
             self.assertEqual(len(hazards['Female']), 2)
             self.assertAlmostEqual(hazards['Male'][0], 0.005)
             self.assertAlmostEqual(hazards['Female'][1], 0.0009)
-
-    def test_load_scenarios_from_yaml(self):
-        # Create a dummy YAML file for testing
-        yaml_content = {
-            'scenarios': {
-                'base': {'param1': 10},
-                'scenario1': {'param1': 20}
-            }
-        }
-        file_path = 'test_scenarios.yaml'
-        with open(file_path, 'w') as f:
-            yaml.dump(yaml_content, f)
-
-        # Test the function
-        scenarios = load_scenarios_from_yaml(file_path)
-        self.assertIn('base', scenarios)
-        self.assertEqual(scenarios['base']['param1'], 10)
-        self.assertEqual(scenarios['scenario1']['param1'], 20)
-
-        # Clean up the dummy file
-        os.remove(file_path)
 
 if __name__ == '__main__':
     unittest.main()

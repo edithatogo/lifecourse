@@ -68,7 +68,7 @@ def main():
 
         # Module 7: Probabilistic Sensitivity Analysis (PSA)
         print("\n--- Running Module 7: Probabilistic Sensitivity Analysis ---")
-        psa_n = 300
+        psa_n = 10
         psa_out = []
 
         psa_args = []

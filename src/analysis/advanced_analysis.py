@@ -40,7 +40,8 @@ def run_structural_uncertainty(base_mean_params, num_runs=10, pop_size=POP_SIZE)
         # Example of structural variation: modify a parameter directly for this run
         # This is a placeholder. Real structural uncertainty would involve different model logic.
         temp_params = base_mean_params.copy()
-        temp_params['mort_hr_mild'] = DISTRIBUTIONS['mort_hr_mild']['scale'] * (1 + (np.random.rand() - 0.5) * 0.5) # Vary by +/- 25%
+        # Vary mortality hazard ratios by +/- 25% of their mean scale value
+        temp_params['mort_hr_mild'] = DISTRIBUTIONS['mort_hr_mild']['scale'] * (1 + (np.random.rand() - 0.5) * 0.5) 
         temp_params['mort_hr_severe'] = DISTRIBUTIONS['mort_hr_severe']['scale'] * (1 + (np.random.rand() - 0.5) * 0.5)
 
         dc, dq = run_sim(temp_params, pop_size=pop_size)

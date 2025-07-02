@@ -1,10 +1,16 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import yaml
 from dask.distributed import LocalCluster, Client
 
 from src.model.parameters import DISTRIBUTIONS, YEARS, START_YEAR, POP_SIZE, sample_params_from_dist
 from src.analysis.run_helpers import run_sim, run_scenario
+
+def load_scenarios_from_yaml(file_path):
+    with open(file_path, 'r') as f:
+        config = yaml.safe_load(f)
+    return config['scenarios']
 
 def main():
     print("--- Running LifeCourseID Simulation and Analysis ---")
@@ -36,19 +42,22 @@ def main():
         if 'severity_mild_prop' in base_mean_params:
             base_mean_params['severity_severe_prop'] = 1.0 - base_mean_params['severity_mild_prop']
 
-        scenarios = {
-            'low': {'familial_prop': base_mean_params['familial_prop'] - 0.05,
-                    'yield_wgs': base_mean_params['yield_wgs'] - 0.05},
-            'base': {'familial_prop': base_mean_params['familial_prop'],
-                     'yield_wgs': base_mean_params['yield_wgs']},
-            'high': {'familial_prop': base_mean_params['familial_prop'] + 0.05,
-                     'yield_wgs': base_mean_params['yield_wgs'] + 0.05}
-        }
+        # Load scenarios from YAML
+        scenarios_config = load_scenarios_from_yaml('config/scenarios.yaml')
 
         results = []
-        for name, specific_override_params in scenarios.items():
+        for name, overrides in scenarios_config.items():
             current_params_for_run = base_mean_params.copy()
-            current_params_for_run.update(specific_override_params)
+            for param_name, value in overrides.items():
+                if value is not None:
+                    if isinstance(value, (int, float)) and param_name in base_mean_params and isinstance(base_mean_params[param_name], (int, float)):
+                        # Check if it's a relative adjustment
+                        if value < -0.5 or value > 0.5: # Heuristic for absolute vs relative
+                            current_params_for_run[param_name] = value # Absolute value
+                        else:
+                            current_params_for_run[param_name] = base_mean_params[param_name] + value # Relative adjustment
+                    else:
+                        current_params_for_run[param_name] = value # Absolute value or non-numeric
 
             dc, dq = run_sim(current_params_for_run, pop_size=100) # Smaller population for testing
             icer = (dc / dq) if dq != 0 else 0

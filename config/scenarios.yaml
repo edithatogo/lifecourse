@@ -1,0 +1,26 @@
+
+# Policy Scenarios for LifeCourseID Microsimulation
+
+# Each top-level key represents a scenario name.
+# Values are parameter overrides for the base_mean_params.
+
+scenarios:
+  base:
+    familial_prop: null # Use base_mean_params value
+    yield_wgs: null     # Use base_mean_params value
+  low_familial_prop:
+    familial_prop: -0.05 # Relative adjustment to base_mean_params['familial_prop']
+    yield_wgs: null
+  high_familial_prop:
+    familial_prop: +0.05 # Relative adjustment to base_mean_params['familial_prop']
+    yield_wgs: null
+  low_yield_wgs:
+    familial_prop: null
+    yield_wgs: -0.05 # Relative adjustment to base_mean_params['yield_wgs']
+  high_yield_wgs:
+    familial_prop: null
+    yield_wgs: +0.05 # Relative adjustment to base_mean_params['yield_wgs']
+  targeted_age_25:
+    min_test_age: 25 # Absolute value for min_test_age
+  high_coverage:
+    yield_wgs: 0.70 # Absolute value for yield_wgs

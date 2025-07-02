@@ -9,7 +9,7 @@ LifeCourseID is a comprehensive microsimulation model designed to evaluate the c
 -   **Microsimulation Core:** Simulates individual life trajectories, including age progression, mortality, fertility, and diagnosis.
 -   **Economic Evaluation:** Calculates health, education, social care, and employment-related costs, as well as QALYs.
 -   **Parameter Uncertainty:** Incorporates probabilistic sampling of uncertain parameters from various statistical distributions (Beta, Gamma, Lognormal, Normal, Uniform).
--   **Scenario Analysis:** Supports running deterministic scenarios (e.g., base, low, high intervention yield) and subgroup analyses (e.g., by disease severity, age at intervention).
+-   **Scenario Analysis:** Supports running deterministic and subgroup scenarios defined in external YAML configuration files, allowing for flexible definition of intervention yields, familial prevalence, age-at-test, and time horizons.
 -   **Probabilistic Sensitivity Analysis (PSA):** Performs Monte Carlo simulations to quantify the impact of parameter uncertainty on outcomes, utilizing Dask for parallel execution.
 -   **Comprehensive Visualizations:** Generates a suite of plots for economic evaluation and sensitivity analysis:
     -   Cost-Effectiveness Plane

@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import beta, gamma, lognorm, norm, uniform
 import math
 import pandas as pd
+from ..data_loader import load_population_distribution, load_life_table_hazards
 
 # Global Parameters
 START_YEAR, END_YEAR = 2020, 2100
@@ -14,20 +15,23 @@ COST_REFERENCE_YEAR = 2017 # Fixed
 INFLATION_RATE = 0.03 # Fixed
 INFLATION_FACTOR = (1 + INFLATION_RATE)**(START_YEAR - COST_REFERENCE_YEAR) # Fixed
 
-# Demographics - mostly fixed or handled by sampling
-AGE_BREAKS = np.arange(0, 95, 5) # Fixed
-AGE_DIST = np.array([ # Fixed demographic distribution
-    0.064,0.067,0.069,0.069,0.071,0.076,0.080,0.077,0.080,
-    0.079,0.073,0.078,0.077,0.072,0.055,0.041,0.031,0.022,0.012
-])
-AGE_DIST /= AGE_DIST.sum()
+# Demographics - loaded from external data
+AGE_BREAKS = np.arange(0, 95, 5) # Fixed age breaks for distribution mapping
+# Load population distribution and derive AGE_DIST
+pop_dist_df = load_population_distribution()
+# Assuming AGE_DIST is based on 'All ages' or a specific sex for simplicity
+# You might need to refine this based on the actual structure of pop_dist_df
+AGE_DIST = pop_dist_df[pop_dist_df['sex'] == 'Total']['count'].values
+AGE_DIST = AGE_DIST / AGE_DIST.sum()
 
-# Mortality
+# Mortality - loaded from external data
+life_hazards_dict = load_life_table_hazards()
+# Assuming ABS_MORT is for 'Total' sex or an average. Adjust as needed.
+ABS_MORT = life_hazards_dict['Total'] # Or 'Male', 'Female'
+
+# LIFE_EXP_NP is currently fixed. If life tables provide this, it can be derived.
+# For now, keep fixed as derivation from raw life tables can be complex.
 LIFE_EXP_NP = np.array([74, 54]) # Fixed life expectancy for severe/mild
-ABS_MORT = np.array([ # Fixed baseline mortality rates
-    0.0002,0.0001,0.0001,0.0002,0.0003,0.0005,0.0007,0.0011,0.0019,
-    0.0035,0.0055,0.0085,0.0130,0.0200,0.0350,0.0600,0.0950,0.1500,0.2500
-])
 
 # Fertility bands - rates will be scaled by a sampled multiplier
 FERT_AGE_SPEC = { # Base fertility rates (fixed means, scaled in PSA)

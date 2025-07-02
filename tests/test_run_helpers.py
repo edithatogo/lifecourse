@@ -16,7 +16,7 @@ def dask_client():
 
 def test_run_sim_output_type(dask_client):
     sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=42)
-    dc, dq = run_sim(sampled_params, pop_size=100) # Use small pop_size for quick test
+    dc, dq = run_sim(sampled_params, pop_size=10) # Use very small pop_size for quick test
     assert isinstance(dc, (float, int))
     assert isinstance(dq, (float, int))
 

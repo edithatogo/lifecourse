@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def load_nz_population_distribution(url=None): # For New Zealand data
     """
     Load NZ population distribution by age and sex from Stats NZ public CSV.

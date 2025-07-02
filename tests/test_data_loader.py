@@ -1,0 +1,74 @@
+import unittest
+from unittest.mock import patch
+import pandas as pd
+from io import StringIO
+import yaml
+import os
+from src.data_loader import load_nz_population_distribution, load_nz_life_table_hazards, load_scenarios_from_yaml
+
+class TestDataLoader(unittest.TestCase):
+
+    def test_load_nz_population_distribution(self):
+        # Sample CSV data mimicking the real file structure
+        csv_data = """Geography,Age,Sex,Population
+New Zealand,"0 years",Male,100
+New Zealand,"1 year",Male,110
+New Zealand,"0 years",Female,90
+New Zealand,"1 year",Female,105
+Other,"0 years",Male,50
+"""
+        # Mock pd.read_csv to use our sample data
+        with patch('pandas.read_csv', return_value=pd.read_csv(StringIO(csv_data))):
+            pop_dist = load_nz_population_distribution(url="mock_url")
+            
+            # Assertions
+            self.assertIsInstance(pop_dist, pd.DataFrame)
+            self.assertEqual(list(pop_dist.columns), ['age', 'sex', 'count'])
+            self.assertEqual(len(pop_dist), 4) # Should filter out 'Other'
+            self.assertTrue(pd.api.types.is_integer_dtype(pop_dist['age']))
+            self.assertEqual(pop_dist['count'].sum(), 405)
+
+    def test_load_nz_life_table_hazards(self):
+        # Sample CSV data mimicking the real file structure
+        csv_data = """Sex,Age,nMx
+Male,0,0.005
+Male,1,0.001
+Female,0,0.004
+Female,1,0.0009
+"""
+        # Mock pd.read_csv to use our sample data
+        with patch('pandas.read_csv', return_value=pd.read_csv(StringIO(csv_data))):
+            hazards = load_nz_life_table_hazards(url="mock_url")
+
+            # Assertions
+            self.assertIsInstance(hazards, dict)
+            self.assertIn('Male', hazards)
+            self.assertIn('Female', hazards)
+            self.assertEqual(len(hazards['Male']), 2)
+            self.assertEqual(len(hazards['Female']), 2)
+            self.assertAlmostEqual(hazards['Male'][0], 0.005)
+            self.assertAlmostEqual(hazards['Female'][1], 0.0009)
+
+    def test_load_scenarios_from_yaml(self):
+        # Create a dummy YAML file for testing
+        yaml_content = {
+            'scenarios': {
+                'base': {'param1': 10},
+                'scenario1': {'param1': 20}
+            }
+        }
+        file_path = 'test_scenarios.yaml'
+        with open(file_path, 'w') as f:
+            yaml.dump(yaml_content, f)
+
+        # Test the function
+        scenarios = load_scenarios_from_yaml(file_path)
+        self.assertIn('base', scenarios)
+        self.assertEqual(scenarios['base']['param1'], 10)
+        self.assertEqual(scenarios['scenario1']['param1'], 20)
+
+        # Clean up the dummy file
+        os.remove(file_path)
+
+if __name__ == '__main__':
+    unittest.main()

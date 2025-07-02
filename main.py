@@ -6,11 +6,7 @@ from dask.distributed import LocalCluster, Client
 
 from src.model.parameters import DISTRIBUTIONS, YEARS, START_YEAR, POP_SIZE, sample_params_from_dist
 from src.analysis.run_helpers import run_sim, run_scenario
-
-def load_scenarios_from_yaml(file_path):
-    with open(file_path, 'r') as f:
-        config = yaml.safe_load(f)
-    return config['scenarios']
+from src.data_loader import load_scenarios_from_yaml
 
 def main():
     print("--- Running LifeCourseID Simulation and Analysis ---")
@@ -63,16 +59,12 @@ def main():
             icer = (dc / dq) if dq != 0 else 0
             results.append({'scenario': name, 'dCost': dc, 'dQALY': dq, 'ICER': icer})
 
+        from src.analysis.plotting import plot_deterministic_icers
         det_df = pd.DataFrame(results)
         det_df.to_csv('results/deterministic_summary.csv', index=False)
         print(det_df)
 
-        plt.figure()
-        plt.bar(det_df['scenario'], det_df['ICER'])
-        plt.title('Deterministic ICERs (£/QALY)')
-        plt.ylabel('ICER (£/QALY)')
-        plt.savefig('results/deterministic_icers.png')
-        # plt.show()
+        plot_deterministic_icers(det_df)
 
         # Module 7: Probabilistic Sensitivity Analysis (PSA)
         print("\n--- Running Module 7: Probabilistic Sensitivity Analysis ---")
@@ -99,6 +91,9 @@ def main():
         psa_df_pd.to_csv('results/psa_samples.csv', index=False)
         print("PSA results saved to results/psa_samples.csv")
 
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb
+)
         # Module 8: CE-Plane, CEAC, EVPI & ENMB
         print("\n--- Running Module 8: CE-Plane, CEAC, EVPI & ENMB ---")
         wtp = np.linspace(0, 150000, 40)
@@ -108,51 +103,10 @@ def main():
         valid_psa = dqaly > 0
         nb = dqaly[valid_psa, None] * wtp[None, :] - dcost[valid_psa, None]
 
-        plt.figure()
-        plt.scatter(dqaly, dcost, alpha=0.6)
-        plt.axvline(x=0, color='grey', linestyle='--', linewidth=0.8)
-        plt.axhline(y=0, color='grey', linestyle='--', linewidth=0.8)
-        plt.plot(wtp, wtp * 20000, color='green', linestyle=':', label='WTP £20,000/QALY')
-        plt.plot(wtp, wtp * 30000, color='red', linestyle=':', label='WTP £30,000/QALY')
-        plt.xlabel('Incremental QALYs (Delta QALY)')
-        plt.ylabel('Incremental Cost (Delta Cost)')
-        plt.title('Cost-Effectiveness Plane with WTP Thresholds')
-        plt.grid(True)
-        plt.legend()
-        plt.savefig('results/ce_plane.png')
-        # plt.show()
-
-        prob = (nb > 0).mean(axis=0)
-        plt.figure()
-        plt.plot(wtp, prob)
-        plt.title('Cost-Effectiveness Acceptability Curve (CEAC)')
-        plt.xlabel('Willingness-to-Pay per QALY')
-        plt.ylabel('Probability Cost-Effective')
-        plt.ylim(0, 1)
-        plt.grid(True)
-        plt.savefig('results/ceac.png')
-        # plt.show()
-
-        evpi = np.mean(np.maximum(0, nb), axis=0) - np.maximum(0, np.mean(nb, axis=0))
-        plt.figure()
-        plt.plot(wtp, evpi)
-        plt.title('Expected Value of Perfect Information (EVPI)')
-        plt.xlabel('Willingness-to-Pay per QALY')
-        plt.ylabel('EVPI')
-        plt.grid(True)
-        plt.savefig('results/evpi.png')
-        # plt.show()
-
-        enmb = np.mean(nb, axis=0)
-        plt.figure()
-        plt.plot(wtp, enmb)
-        plt.axhline(y=0, color='grey', linestyle='--', linewidth=0.8)
-        plt.title('Expected Net Monetary Benefit (ENMB) Curve')
-        plt.xlabel('Willingness-to-Pay per QALY')
-        plt.ylabel('Expected Net Monetary Benefit (£)')
-        plt.grid(True)
-        plt.savefig('results/enmb.png')
-        # plt.show()
+        plot_ce_plane(dcost, dqaly, wtp)
+        plot_ceac(wtp, nb)
+        plot_evpi(wtp, nb)
+        plot_enmb(wtp, nb)
 
         # Module 9: One-Way Sensitivity (Tornado)
         print("\n--- Running Module 9: One-Way Sensitivity (Tornado) ---")
@@ -192,21 +146,16 @@ def main():
                 change_type = 'Low' if val < mean_val else 'High'
                 tornado.append({'param': param_name, 'change_type': change_type, 'ICER': icer})
 
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado
+)
         tor_df = pd.DataFrame(tornado)
         tor_df['ICER_diff'] = tor_df['ICER'] - base_icer
         tor_df['abs_diff'] = tor_df['ICER_diff'].abs()
         tor_df = tor_df.sort_values(by='abs_diff', ascending=True)
 
-        plt.figure(figsize=(10, len(tornado_params_to_vary) * 0.8))
-        labels = [f"{row['param']} ({row['change_type']})" for idx, row in tor_df.iterrows()]
-        colors = ['red' if x < 0 else 'green' for x in tor_df['ICER_diff']]
-        plt.barh(labels, tor_df['ICER_diff'], color=colors)
-        plt.axvline(0, color='black', lw=0.8)
-        plt.xlabel('Change in ICER from base (£/QALY)')
-        plt.title('Tornado Sensitivity Analysis (Selected Parameters)')
-        plt.tight_layout()
-        plt.savefig('results/tornado_sensitivity.png')
-        # plt.show()
+        plot_tornado(tor_df)
 
         # Module 10: Sub-group Analyses
         print("\n--- Running Module 10: Sub-group Analyses ---")
@@ -269,36 +218,24 @@ def main():
                 dc, dq = (c1 - c0), (q1 - q0)
                 sg.append({'group': f"Horizon: {yrs_n} yrs", 'ICER': (dc / dq) if dq != 0 else 0})
 
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis
+)
         sg_df = pd.DataFrame(sg)
         base_dc_subgroup, base_dq_subgroup = run_sim(mean_params_for_subgroup, pop_size=10000) # Smaller population for testing
         base_icer_subgroup = base_dc_subgroup / base_dq_subgroup if base_dq_subgroup != 0 else 0
 
-        plt.figure()
-        plt.scatter(sg_df['ICER'], sg_df['group'], marker='o')
-        plt.axvline(base_icer_subgroup, color='grey', linestyle='--', label=f'Base Case ICER ({base_icer_subgroup:,.0f})')
-        plt.xlabel('ICER (£/QALY)')
-        plt.title('Sub-group Analyses')
-        plt.legend()
-        plt.tight_layout()
-        plt.grid(axis='x')
-        plt.savefig('results/subgroup_analysis.png')
-        # plt.show()
+        plot_subgroup_analysis(sg_df, base_icer_subgroup)
 
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area
+)
         # Module 11: Cost-Mix Stacked Area (Prospective)
         print("\n--- Running Module 11: Cost-Mix Stacked Area (Prospective) ---")
         (_, mix_data) = run_scenario(mean_params_for_subgroup, pop_size=100) # Smaller population for testing
-        pm = mix_data[mix_data['arm'] == 'prospective']
-        cost_cols = ['cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']
-        data = [pm[col] for col in cost_cols]
-
-        plt.figure(figsize=(10, 6))
-        plt.stackplot(pm['year'], *data, labels=[c.replace('cost_', '').capitalize() for c in cost_cols])
-        plt.legend(loc='upper left')
-        plt.title('Cost Mix Over Time (Prospective Arm - Discounted Annual Costs)')
-        plt.xlabel('Year')
-        plt.ylabel('Annual Cost')
-        plt.savefig('results/cost_mix_prospective.png')
-        # plt.show()
+        plot_cost_mix_stacked_area(mix_data, 'prospective', 'Cost Mix Over Time (Prospective Arm - Discounted Annual Costs)', 'results/cost_mix_prospective.png')
 
         # Module 12: 5-Year Budget Impact
         print("\n--- Running Module 12: 5-Year Budget Impact ---")
@@ -316,19 +253,19 @@ def main():
                     incremental_cost = c1 - c0
                     budg.append({'uptake': u, 'year': yr, 'budget_impact': incremental_cost * u})
 
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area,
+    plot_budget_impact
+)
         budg_df = pd.DataFrame(budg)
-        plt.figure()
-        for u in uptakes:
-            sub = budg_df[budg_df['uptake'] == u]
-            plt.plot(sub['year'], sub['budget'], label=f"Uptake {int(u*100)}%", marker='o')
-        plt.title('5-Year Budget Impact')
-        plt.xlabel('Year')
-        plt.ylabel('Incremental Budget Impact')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig('results/budget_impact.png')
-        # plt.show()
+        plot_budget_impact(budg_df)
 
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area,
+    plot_budget_impact, plot_ses_equity
+)
         # Module 13: Equity by SES Quintile
         print("\n--- Running Module 13: Equity by SES Quintile ---")
         bas = mix_data[mix_data['arm'] == 'prospective']
@@ -337,50 +274,28 @@ def main():
             ses_cols = [f'ses_q{i}_pct' for i in range(5)]
             ses_vals = [float(row_series[col]) for col in ses_cols]
             labels = [f'Quintile {i+1}' for i in range(5)]
+            plot_ses_equity(ses_vals, labels, YEARS[-1])
 
-            plt.figure()
-            plt.bar(labels, ses_vals)
-            plt.title(f'SES Distribution of Population in Final Year ({YEARS[-1]})')
-            plt.xlabel('SES Quintile')
-            plt.ylabel('Percentage of Population (%)')
-            plt.tight_layout()
-            plt.savefig('results/ses_equity.png')
-            # plt.show()
-
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area,
+    plot_budget_impact, plot_ses_equity, plot_psa_histograms
+)
         # Module 14: PSA Histograms
         print("\n--- Running Module 14: PSA Histograms (dCost, dQALY) ---")
         cost_list = psa_df_pd['dCost'].tolist()
         qaly_list = psa_df_pd['dQALY'].tolist()
+        plot_psa_histograms(cost_list, qaly_list)
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-        ax1.hist(cost_list, bins=30, color='skyblue', edgecolor='black')
-        ax1.set_title('PSA Distribution of Incremental Cost')
-        ax1.set_xlabel('Delta Cost')
-        ax1.set_ylabel('Frequency')
-
-        ax2.hist(qaly_list, bins=30, color='salmon', edgecolor='black')
-        ax2.set_title('PSA Distribution of Incremental QALYs')
-        ax2.set_xlabel('Delta QALY')
-        ax2.set_ylabel('Frequency')
-
-        plt.tight_layout()
-        plt.savefig('results/psa_histograms.png')
-        # plt.show()
-
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area,
+    plot_budget_impact, plot_ses_equity, plot_psa_histograms, plot_ceaf
+)
         # Module 15: CEAF (Cost-Effectiveness Acceptability Frontier)
         print("\n--- Running Module 15: CEAF ---")
-        ceaf = np.maximum.accumulate(prob)
-
-        plt.figure()
-        plt.plot(wtp, prob, label='CEAC')
-        plt.plot(wtp, ceaf, label='CEAF', linestyle='--')
-        plt.title('CEAC and CEAF')
-        plt.xlabel('Willingness-to-Pay per QALY')
-        plt.ylabel('Probability')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig('results/ceaf.png')
-        # plt.show()
+        prob = (nb > 0).mean(axis=0)
+        plot_ceaf(wtp, prob)
 
         # Module 16: Input Parameter Summary (Updated for Distributions)
         print("\n--- Running Module 16: Saving Input Parameter Summary ---")
@@ -430,18 +345,17 @@ def main():
             icer = (dc / dq) if dq != 0 else 0
             familial_sens_results.append({'familial_prop': f_prop, 'dCost': dc, 'dQALY': dq, 'ICER': icer})
 
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area,
+    plot_budget_impact, plot_ses_equity, plot_psa_histograms, plot_ceaf,
+    plot_familial_prevalence_sensitivity
+)
         familial_sens_df = pd.DataFrame(familial_sens_results)
         print("Familial ID Prevalence Sensitivity Results:")
         print(familial_sens_df.to_string())
 
-        plt.figure(figsize=(8, 6))
-        plt.plot(familial_sens_df['familial_prop'], familial_sens_df['ICER'], marker='o', linestyle='-')
-        plt.xlabel('Familial ID Prevalence')
-        plt.ylabel('ICER (£/QALY)')
-        plt.title('Sensitivity to Familial ID Prevalence')
-        plt.grid(True)
-        plt.savefig('results/familial_prevalence_sensitivity.png')
-        # plt.show()
+        plot_familial_prevalence_sensitivity(familial_sens_df)
 
         # Module 19: EVPPI Analysis
         print("\n--- Running Module 19: EVPPI Analysis ---")
@@ -462,6 +376,12 @@ def main():
             return np.array(evppi_values)
 
         parameters_for_evppi_new = ['familial_prop', 'yield_wgs', 'u_diag', 'cost_inp_severe']
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area,
+    plot_budget_impact, plot_ses_equity, plot_psa_histograms, plot_ceaf,
+    plot_familial_prevalence_sensitivity, plot_evppi_curves
+)
         evppi_results = {}
         print("Calculating EVPPI for key parameters...")
         for param in parameters_for_evppi_new:
@@ -469,56 +389,32 @@ def main():
                 evppi_curve = calculate_evppi_curve(psa_df_pd, param, wtp)
                 evppi_results[param] = evppi_curve
 
-        if evppi_results:
-            plt.figure(figsize=(10, 6))
-            for param, evppi_curve_host in evppi_results.items():
-                plt.plot(wtp, evppi_curve_host, label=f'EVPPI ({param.replace("_", " ").title()})')
-            plt.title('Expected Value of Partial Perfect Information (EVPPI) Curves')
-            plt.xlabel('Willingness-to-Pay per QALY')
-            plt.ylabel('EVPPI (£)')
-            plt.legend()
-            plt.grid(True)
-            plt.savefig('results/evppi_curves.png')
-            # plt.show()
+        plot_evppi_curves(evppi_results, wtp)
 
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area,
+    plot_budget_impact, plot_ses_equity, plot_psa_histograms, plot_ceaf,
+    plot_familial_prevalence_sensitivity, plot_evppi_curves,
+    plot_psa_icer_distribution
+)
         # Module 20: PSA ICER Distribution
         print("\n--- Running Module 20: PSA ICER Distribution ---")
         dc = psa_df_pd['dCost']
         dq = psa_df_pd['dQALY']
         psa_icers_np = (dc/dq).replace([np.inf, -np.inf], np.nan).dropna()
+        plot_psa_icer_distribution(psa_icers_np)
 
-        finite_icers = psa_icers_np[np.isfinite(psa_icers_np)]
-        if len(finite_icers) > 0:
-            lower_bound, upper_bound = np.percentile(finite_icers, [1, 99])
-            finite_icers_capped = finite_icers[(finite_icers >= lower_bound) & (finite_icers <= upper_bound)]
-        else:
-            finite_icers_capped = np.array([])
-
-        plt.figure(figsize=(8, 6))
-        if len(finite_icers_capped) > 0:
-            # sns.histplot(finite_icers_capped, bins=50, kde=True, color='purple', edgecolor='black')
-            plt.hist(finite_icers_capped, bins=50, color='purple', edgecolor='black') # Using plt.hist instead of sns.histplot to avoid seaborn dependency in main if not strictly needed
-            plt.title('PSA Distribution of ICERs (Capped at 1st and 99th Percentiles)')
-            plt.xlabel('ICER (£/QALY)')
-            plt.ylabel('Frequency')
-            plt.grid(True)
-        plt.savefig('results/psa_icer_distribution.png')
-        # plt.show()
-
+        from src.analysis.plotting import (
+    plot_deterministic_icers, plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+    plot_tornado, plot_subgroup_analysis, plot_cost_mix_stacked_area,
+    plot_budget_impact, plot_ses_equity, plot_psa_histograms, plot_ceaf,
+    plot_familial_prevalence_sensitivity, plot_evppi_curves,
+    plot_psa_icer_distribution
+)
         # Module 21: Cost-Mix Stacked Area (Retrospective)
         print("\n--- Running Module 21: Cost-Mix Stacked Area (Retrospective) ---")
-        rm = mix_data[mix_data['arm'] == 'retrospective']
-        cost_cols = ['cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']
-        data_r = [rm[col] for col in cost_cols]
-
-        plt.figure(figsize=(10, 6))
-        plt.stackplot(rm['year'], *data_r, labels=[c.replace('cost_', '').capitalize() for c in cost_cols])
-        plt.legend(loc='upper left')
-        plt.title('Cost Mix Over Time (Retrospective Arm - Discounted Annual Costs)')
-        plt.xlabel('Year')
-        plt.ylabel('Annual Cost')
-        plt.savefig('results/cost_mix_retrospective.png')
-        # plt.show()
+        plot_cost_mix_stacked_area(mix_data, 'retrospective', 'Cost Mix Over Time (Retrospective Arm - Discounted Annual Costs)', 'results/cost_mix_retrospective.png')
 
         print("Retrospective Cost Mix analysis complete.")
 

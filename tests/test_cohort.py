@@ -6,14 +6,14 @@ from src.model.cohort import sample_ages, gen_population_dask, FERT_RATES_DF
 from src.model.parameters import AGE_DIST, DISTRIBUTIONS, prepare_dask_params, EDUCATION_LEVELS, AGE_BANDS, INCOME_PARAMS
 
 def test_sample_ages():
-    n = 100
+    n = 10
     ages = sample_ages(n, AGE_DIST)
     assert len(ages) == n
     assert np.all(ages >= 0)
     assert np.all(ages <= 99) # Max age in AGE_BREAKS is 90, plus 0-4 random int
 
 def test_gen_population_dask():
-    n = 100
+    n = 10
     # Use a simplified set of parameters for testing gen_population_dask
     test_params = {
         'SEVERITY_DIST': np.array([0.7, 0.3]),

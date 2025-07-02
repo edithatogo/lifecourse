@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import dask.dataframe as dd
-from .parameters import AGE_BREAKS, AGE_DIST, FERT_AGE_SPEC, EDUCATION_LEVELS, AGE_BANDS, AGE_BAND_P
+from .parameters import AGE_BREAKS, AGE_DIST, FERT_AGE_SPEC, EDUCATION_LEVELS, AGE_BANDS, AGE_BAND_P, INCOME_PARAMS
 
 # Build lookup table for fertility rates (base rates) - moved here as it's used by gen_population_dask
 fert_data = []

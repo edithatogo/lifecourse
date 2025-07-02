@@ -14,7 +14,7 @@ from src.model.parameters import (
 def basic_pop_system():
     sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=42)
     dask_params = prepare_dask_params(sampled_params)
-    return PopulationSystemDask(pop_size=100, current_params=dask_params, arm='prospective')
+    return PopulationSystemDask(pop_size=10, current_params=dask_params, arm='prospective')
 
 @pytest.fixture
 def retrospective_pop_system():

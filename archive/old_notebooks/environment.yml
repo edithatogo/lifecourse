@@ -1,0 +1,19 @@
+name: idmod-lite
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - pandas
+  - jupyter
+  - scipy
+  - hdf5
+  - pytables
+  - numexpr
+  - ruamel.yaml
+  - pip
+  - pip:
+      - vivarium-core
+      - vivarium-public-health
+      - openfisca-core

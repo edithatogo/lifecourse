@@ -5,7 +5,8 @@ import dask.array as da
 from .cohort import gen_population_dask, FERT_RATES_DF
 from .parameters import (
     START_YEAR, ABS_MORT, LIFE_EXP_NP, EMP_NP, MORB_KEYS,
-    DISCOUNT
+    DISCOUNT, NDIS_COST, CARER_HOURS_NP, WAGE_HR, HOSP_COST, HOSP_RATE_NP,
+    MENTAL_HEALTH_COST, INFORMAL_CARE_COST
 )
 
 class PopulationSystemDask:
@@ -104,12 +105,13 @@ class PopulationSystemDask:
                 return df.assign(
                     cost_health=0.0, cost_edu=0.0, cost_respite=0.0, cost_mobility=0.0,
                     cost_welfare=0.0, cost_emp=0.0, cost_morbidity=0.0,
-                    annual_cost=0.0, annual_qaly=0.0
+                    annual_cost=0.0, annual_qaly=0.0, cost_ndis=0.0, cost_carer=0.0, cost_hospital=0.0, cost_common_other=0.0, income=0.0
                 )
 
             n = len(df)
             sev = df['severity'].values; ages = df['age'].values
 
+            # Existing costs
             hc = (params['COST_INP_NP'][sev] + params['COST_OUTP_NP'][sev] + params['COST_PHARM_NP'][sev]) * disc
             rc = df['uses_respite'].values.astype(int) * params['RESPITE'] * disc
             mc = -df['needs_mobility'].values.astype(int) * params['MOBILITY'] * disc
@@ -121,6 +123,17 @@ class PopulationSystemDask:
             m1 = df['school'] == 1
             if m0.any(): ec[m0] = params['EDU'][0, df.loc[m0, 'support'].values] * disc
             if m1.any(): ec[m1] = params['EDU'][1, df.loc[m1, 'support'].values] * disc
+
+            # New costs
+            cost_ndis = np.where(df['diagnosed'].values & (sev == 1), params['NDIS_COST'], 0) * disc # NDIS for diagnosed severe
+            cost_carer = params['CARER_HOURS_NP'][sev] * params['WAGE_HR'] * disc
+
+            # Hospitalization costs (poisson distributed events)
+            hosp_events = np.random.poisson(params['HOSP_RATE_NP'][sev], size=n)
+            cost_hospital = hosp_events * params['HOSP_COST'] * disc
+
+            # Other common costs
+            cost_common_other = (params['MENTAL_HEALTH_COST'] + params['INFORMAL_CARE_COST']) * disc
 
             morb_cost = np.zeros(n, dtype=np.float64)
             base_rand = np.random.random(n)
@@ -147,7 +160,8 @@ class PopulationSystemDask:
             return df.assign(
                 cost_health=hc, cost_edu=ec, cost_respite=rc, cost_mobility=mc,
                 cost_welfare=wc, cost_emp=emp, cost_morbidity=morb_cost,
-                annual_cost=hc + ec + rc + mc + wc + emp + morb_cost,
+                cost_ndis=cost_ndis, cost_carer=cost_carer, cost_hospital=cost_hospital, cost_common_other=cost_common_other,
+                annual_cost=hc + ec + rc + mc + wc + emp + morb_cost + cost_ndis + cost_carer + cost_hospital + cost_common_other,
                 annual_qaly=total_qaly
             )
 

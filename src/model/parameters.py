@@ -40,6 +40,32 @@ FERT_AGE_SPEC = { # Base fertility rates (fixed means, scaled in PSA)
 # Employment costs (assumed fixed structural values)
 EMP_NP = np.array([0, 10000, 0]) * INFLATION_FACTOR
 
+# NDIS Cost (fixed)
+NDIS_COST = 45000 * INFLATION_FACTOR
+
+# Carer costs (fixed)
+CARER_HOURS_NP = np.array([5, 15]) # Mild, Severe
+WAGE_HR = 38 * INFLATION_FACTOR
+
+# Hospitalization costs (fixed)
+HOSP_COST = 8500 * INFLATION_FACTOR
+HOSP_RATE_NP = np.array([0.5, 1.5, 3.0]) # Mild, Moderate, Severe (assuming 3 severity levels for rates)
+
+# Other common costs (fixed)
+MENTAL_HEALTH_COST = 30418 * INFLATION_FACTOR
+INFORMAL_CARE_COST = 25000 * INFLATION_FACTOR
+
+# Income parameters for log-normal distribution (mu, sigma) by severity and education
+INCOME_PARAMS = {
+    'mild':     {'primary':(10.5,0.5), 'secondary':(10.8,0.4), 'tertiary':(11.2,0.3)},
+    'severe': {'primary':(10.3,0.6), 'secondary':(10.6,0.5), 'tertiary':(10.9,0.4)}, # Using 'severe' for moderate/severe
+}
+
+# Education levels and age bands for demographic distributions
+EDUCATION_LEVELS = ['primary', 'secondary', 'tertiary']
+AGE_BANDS = [(0,14), (15,64), (65,100)]
+AGE_BAND_P = np.array([0.19, 0.65, 0.16]) # Distribution for age bands
+
 # Morbidity Keys (Globally defined and fixed list of categories)
 MORB_KEYS = ['epilepsy', 'asd', 'mental'] # Based on previous code, not the paper's full list of costs
 
@@ -195,6 +221,11 @@ def prepare_dask_params(sampled_params):
         'COST_PHARM_NP': COST_PHARM_NP_sampled, 'EDU': EDU_SAMPLED,
         'RESPITE': sampled_params['respite'], 'MOBILITY': sampled_params['mobility'],
         'WELFARE_NP': WELFARE_NP_sampled, 'EMP_NP': EMP_NP,
+        'NDIS_COST': NDIS_COST, 'CARER_HOURS_NP': CARER_HOURS_NP, 'WAGE_HR': WAGE_HR,
+        'HOSP_COST': HOSP_COST, 'HOSP_RATE_NP': HOSP_RATE_NP,
+        'MENTAL_HEALTH_COST': MENTAL_HEALTH_COST, 'INFORMAL_CARE_COST': INFORMAL_CARE_COST,
+        'INCOME_PARAMS': INCOME_PARAMS, 'EDUCATION_LEVELS': EDUCATION_LEVELS,
+        'AGE_BANDS': AGE_BANDS, 'AGE_BAND_P': AGE_BAND_P,
         'MORB_COST_NP': MORB_COST_NP_sampled, 'WGS_DIAG_COST_ADJUSTMENT': sampled_params['wgs_diag_cost_adjustment'],
         'U_BASE_NP': U_BASE_NP_sampled, 'U_DECAY': sampled_params['u_decay'],
         'U_DIAG': sampled_params['u_diag'], 'U_CARER': sampled_params['u_carer'],

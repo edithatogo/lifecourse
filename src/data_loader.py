@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def load_population_distribution(url=None):
+def load_nz_population_distribution(url=None): # For New Zealand data
     """
     Load NZ population distribution by age and sex from Stats NZ public CSV.
     Returns a DataFrame with columns ['age', 'sex', 'count'].
@@ -24,7 +24,7 @@ def load_population_distribution(url=None):
     return pop[['age', 'sex', 'count']]
 
 
-def load_life_table_hazards(url=None):
+def load_nz_life_table_hazards(url=None): # For New Zealand data
     """
     Load NZ life table hazards (central mortality rates) from Stats NZ CSV.
     Returns dict hazards[sex] = array of hazard per age index.
@@ -39,3 +39,5 @@ def load_life_table_hazards(url=None):
     hazards = {sex: group.sort_values('age')['hazard'].values
                for sex, group in lt.groupby('sex')}
     return hazards
+
+

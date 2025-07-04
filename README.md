@@ -92,6 +92,17 @@ python main.py
 
 Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
 
+## Running Tests
+
+The project uses [pytest](https://docs.pytest.org/) for its automated test suite. After installing the dependencies, run the tests with:
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
+All tests reside in the `tests/` directory. Please ensure they pass before submitting changes.
+
 ## Roadmap
 
 For future development plans and upcoming features, please refer to the [ROADMAP.md](ROADMAP.md) file.

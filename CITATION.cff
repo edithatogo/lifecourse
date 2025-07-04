@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "LifeCourseID Microsimulation Model"
+version: "0.1.0"
+date-released: "2025-07-04"
+authors:
+  - family-names: "Mordaunt"
+    given-names: "Dylan"
+repository-code: "https://github.com/edithatogo/LifeCourseID"
+url: "https://github.com/edithatogo/LifeCourseID"

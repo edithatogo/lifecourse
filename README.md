@@ -69,7 +69,7 @@ LifeCourseID/
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/LifeCourseID.git
+    git clone https://github.com/edithatogo/LifeCourseID.git
     cd LifeCourseID
     ```
 2.  **Create a virtual environment (recommended):**
@@ -103,3 +103,12 @@ For a detailed history of changes and updates, please refer to the [CHANGELOG.md
 ## License
 
 This project is licensed under the [LICENSE](LICENSE) file.
+## Citation
+
+If you use this model in your work, please cite it. Citation metadata is available in the [CITATION.cff](CITATION.cff) file.
+
+Example citation:
+
+```
+Mordaunt, D. (2025). LifeCourseID Microsimulation Model (Version 0.1.0) [Computer software]. https://github.com/edithatogo/LifeCourseID
+```

@@ -77,9 +77,14 @@ LifeCourseID/
     python -m venv venv
     source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
     ```
-3.  **Install dependencies:**
+3.  **Install the project in editable mode and development dependencies:**
     ```bash
+    pip install -e .
     pip install -r requirements.txt
+    ```
+4.  **Run the test suite:**
+    ```bash
+    pytest
     ```
 
 ## How to Run

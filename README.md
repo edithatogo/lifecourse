@@ -100,6 +100,12 @@ For future development plans and upcoming features, please refer to the [ROADMAP
 
 For a detailed history of changes and updates, please refer to the [CHANGELOG.md](CHANGELOG.md) file.
 
+## Disclaimer
+
+This simulation is provided for research and educational purposes only. It does
+not constitute medical or clinical guidance and should not be relied upon for
+diagnosis or treatment decisions.
+
 ## License
 
 This project is licensed under the [LICENSE](LICENSE) file.

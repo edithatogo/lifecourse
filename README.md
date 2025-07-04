@@ -1,5 +1,5 @@
 # LifeCourseID Microsimulation Model
-
+LifeCourse Dynamic Population Microsimulation of Intellectual Disability.
 ## Overview
 
 LifeCourseID is a comprehensive microsimulation model designed to evaluate the cost-effectiveness and budget impact of interventions related to a specific health condition. It simulates individual life courses over a defined time horizon, incorporating demographic events, disease progression, associated costs, and quality-adjusted life years (QALYs). The model is built with a modular Python package structure and leverages Dask for efficient parallel processing of simulations, particularly for probabilistic sensitivity analysis.

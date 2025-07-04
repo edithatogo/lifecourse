@@ -92,6 +92,16 @@ python main.py
 
 Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
 
+## Running Tests
+
+The test suite relies on `pytest` and additionally requires the `pyarrow` and
+`dask[distributed]` packages. Install all dependencies and run the tests with:
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
 ## Roadmap
 
 For future development plans and upcoming features, please refer to the [ROADMAP.md](ROADMAP.md) file.

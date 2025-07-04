@@ -92,6 +92,20 @@ python main.py
 
 Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
 
+## Running Tests
+
+Run the test suite from the project root so that relative imports resolve correctly:
+
+```bash
+pytest
+```
+
+If the tests still fail to locate the `src` package, prefix the command with `PYTHONPATH=.`:
+
+```bash
+PYTHONPATH=. pytest
+```
+
 ## Roadmap
 
 For future development plans and upcoming features, please refer to the [ROADMAP.md](ROADMAP.md) file.

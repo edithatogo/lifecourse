@@ -77,9 +77,10 @@ LifeCourseID/
     python -m venv venv
     source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
     ```
-3.  **Install dependencies:**
+3.  **Install dependencies and the package in editable mode:**
     ```bash
     pip install -r requirements.txt
+    pip install -e .
     ```
 
 ## How to Run
@@ -91,6 +92,14 @@ python main.py
 ```
 
 Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
+
+## Running Tests
+
+After installing the package, run the test suite with:
+
+```bash
+pytest
+```
 
 ## Roadmap
 

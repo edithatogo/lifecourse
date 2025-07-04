@@ -44,7 +44,7 @@ ABS_MORT = cp.array([
 ])
 MORT_HR = cp.array([2.0, 4.0])
 
-defaul_yield = 0.45
+default_yield = 0.45
 
 # Fertility bands
 FERT_AGE_SPEC = {
@@ -96,7 +96,7 @@ def gen_population_gpu(n, familial_prop, arm='prospective'):
     sex = cp.random.choice(2, n)
     sev = cp.random.choice(2, n, p=SEVERITY_DIST)
     familial = cp.random.random(n) < familial_prop
-    diag = cp.zeros(n, bool) if arm == 'prospective' else (cp.random.random(n) < defaul_yield)
+    diag = cp.zeros(n, bool) if arm == 'prospective' else (cp.random.random(n) < default_yield)
     living = cp.random.choice(4, n, p=cp.array([0.2,0.1,0.3,0.4]))
     employment = cp.random.choice(3, n, p=cp.array([0.7,0.2,0.1]))
     uses_respite = cp.random.random(n) < 0.3
@@ -231,7 +231,7 @@ def run_scenario(params, pop_size=POP_SIZE):
 scenarios = {'low': 0.10, 'base': 0.165, 'high': 0.23}
 results = []
 for name, val in scenarios.items():
-    dc, dq = run_sim({'familial_prop': val, 'yield_wgs': defaul_yield}, pop_size=20000)
+    dc, dq = run_sim({'familial_prop': val, 'yield_wgs': default_yield}, pop_size=20000)
     results.append({'scenario': name, 'dCost': dc, 'dQALY': dq, 'ICER': dc/dq})
 det_df = cudf.DataFrame(results)
 det_df.to_csv('deterministic_summary.csv', index=False)
@@ -275,9 +275,9 @@ plt.plot(wtp.get(), evpi.get()); plt.title('EVPI'); plt.xlabel('WTP'); plt.ylabe
 
 tornado = []
 for param in ['yield_wgs','familial_prop']:
-    base = defaul_yield if param=='yield_wgs' else 0.165
+    base = default_yield if param=='yield_wgs' else 0.165
     for change in [-0.2,0.2]:
-        p = {'familial_prop':0.165,'yield_wgs':defaul_yield}
+        p = {'familial_prop':0.165,'yield_wgs':default_yield}
         p[param] = base * (1+change)
         dc, dq = run_sim(p, pop_size=10000)
         tornado.append({'param':param, 'change':f'{int(change*100)}%', 'ICER': dc/dq})
@@ -294,17 +294,17 @@ sg = []
 orig = SEVERITY_DIST.copy()
 for sev,label in [(0,'Mild'),(1,'Moderate')]:
     SEVERITY_DIST[:] = cp.array([1.0 if i==sev else 0.0 for i in range(2)])
-    res,_ = run_scenario({'familial_prop':0.165,'yield_wgs':defaul_yield}, pop_size=15000)
+    res,_ = run_scenario({'familial_prop':0.165,'yield_wgs':default_yield}, pop_size=15000)
     ic = res[0]/res[1]
     sg.append({'group':f"Severity {label}", 'ICER': ic})
 SEVERITY_DIST[:] = orig
 # Age-at-test
 for age in [0,18,30]:
-    res,_ = run_scenario({'familial_prop':0.165,'yield_wgs':defaul_yield,'min_test_age':age}, pop_size=15000)
+    res,_ = run_scenario({'familial_prop':0.165,'yield_wgs':default_yield,'min_test_age':age}, pop_size=15000)
     ic = res[0]/res[1]
     sg.append({'group':f"MinTestAge {age}", 'ICER': ic})
 # Time-horizon
-res_full, int_full = run_scenario({'familial_prop':0.165,'yield_wgs':defaul_yield}, pop_size=15000)
+res_full, int_full = run_scenario({'familial_prop':0.165,'yield_wgs':default_yield}, pop_size=15000)
 for yrs_n in [10,20,len(YEARS)]:
     yr = START_YEAR + yrs_n - 1
     dfp = int_full[int_full['arm']=='prospective']
@@ -322,7 +322,7 @@ plt.figure(); plt.errorbar(icers, labels, xerr=[0]*len(icers), fmt='o'); plt.xla
 # %% [markdown]
 ## 11. Cost-Mix Stacked Area (Prospective)
 
-_, mix = run_scenario({'familial_prop':0.165,'yield_wgs':defaul_yield}, pop_size=20000)
+_, mix = run_scenario({'familial_prop':0.165,'yield_wgs':default_yield}, pop_size=20000)
 pm = mix[mix['arm']=='prospective']
 cost_cols = ['cost_health','cost_edu','cost_respite','cost_mobility','cost_welfare','cost_emp','cost_morbidity']
 years_host = pm['year'].to_arrow().to_pylist()
@@ -336,7 +336,7 @@ budg = []
 uptakes = [0.2, 0.5, 0.8]
 yrs = YEARS[:5]
 for u in uptakes:
-    _, df = run_scenario({'familial_prop':0.165,'yield_wgs':defaul_yield}, pop_size=20000)
+    _, df = run_scenario({'familial_prop':0.165,'yield_wgs':default_yield}, pop_size=20000)
     dfp = df[df['arm']=='prospective']; dfr = df[df['arm']=='retrospective']
     for yr in yrs:
         c1 = dfp.loc[dfp['year']==yr,'costs'].to_arrow().to_pylist()[0]
@@ -354,7 +354,7 @@ plt.title('5-Year Budget Impact'); plt.xlabel('Year'); plt.ylabel('ΔCost'); plt
 # %% [markdown]
 ## 13. Equity by SES Quintile
 
-eq_int = run_scenario({'familial_prop':0.165,'yield_wgs':defaul_yield}, pop_size=20000)[1]
+eq_int = run_scenario({'familial_prop':0.165,'yield_wgs':default_yield}, pop_size=20000)[1]
 bas = eq_int[eq_int['arm']=='prospective']
 row = bas[bas['year']==YEARS[-1]].iloc[0]
 ses_cols = [f'ses_q{i}_pct' for i in range(5)]
@@ -387,7 +387,7 @@ plt.figure(); plt.plot(wtp.get().tolist(), ceaf); plt.title('CEAF'); plt.xlabel(
 
 params = {
     'DISCOUNT': DISCOUNT,
-    'default_yield': defaul_yield,
+    'default_yield': default_yield,
     'U_DIAG': U_DIAG,
     'U_CARER': U_CARER,
     'RESPITE': RESPITE,

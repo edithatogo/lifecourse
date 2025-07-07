@@ -105,7 +105,7 @@ class PopulationSystemDask:
                 return df.assign(
                     cost_health=0.0, cost_edu=0.0, cost_respite=0.0, cost_mobility=0.0,
                     cost_welfare=0.0, cost_emp=0.0, cost_morbidity=0.0,
-                    annual_cost=0.0, annual_qaly=0.0, cost_ndis=0.0, cost_carer=0.0, cost_hospital=0.0, cost_common_other=0.0, income=0.0
+                    annual_cost=0.0, annual_qaly=0.0, cost_ndis=0.0, cost_carer=0.0, cost_hospital=0.0, cost_common_other=0.0
                 )
 
             n = len(df)
@@ -165,7 +165,9 @@ class PopulationSystemDask:
                 annual_qaly=total_qaly
             )
 
-        self.pop = self.pop.map_partitions(cost_qaly_partition, meta=self.pop._meta).persist()
+        self.pop = self.pop.map_partitions(cost_qaly_partition, meta=self.pop._meta.assign(
+            cost_ndis=0.0, cost_carer=0.0, cost_hospital=0.0, cost_common_other=0.0
+        )).persist()
 
     def step(self, year):
         self._mortality()
@@ -174,5 +176,5 @@ class PopulationSystemDask:
         self.pop = self.pop.assign(age=self.pop.age + 1)
         if new_babies_dd.npartitions > 0:
             self.pop = dd.concat([self.pop, new_babies_dd], interleave_partitions=True)
-        self.pop = self.pop.persist()
+        
         self._cost_qaly(year)

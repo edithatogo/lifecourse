@@ -68,20 +68,18 @@ def run_scenario(sampled_params, pop_size=POP_SIZE):
     for yr in YEARS:
         sim_r.step(yr)
         if sim_r.pop.npartitions > 0:
-            annual_data_r_dask_list.append(sim_r.pop[['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']].sum().to_frame(name=yr).T)
+            annual_data_r_dask_list.append(sim_r.pop[['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']].sum())
             ses_r_dask_list.append(sim_r.pop['ses'])
         else:
-            empty_df = pd.DataFrame([[0.0]*9], columns=['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity'], index=[yr])
-            annual_data_r_dask_list.append(dd.from_pandas(empty_df, npartitions=1))
+            annual_data_r_dask_list.append(dd.from_pandas(pd.Series([0.0]*9, index=['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']), npartitions=1))
             ses_r_dask_list.append(dd.from_pandas(pd.Series([0]*pop_size, dtype=int), npartitions=1))
 
         sim_p.step(yr)
         if sim_p.pop.npartitions > 0:
-            annual_data_p_dask_list.append(sim_p.pop[['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']].sum().to_frame(name=yr).T)
+            annual_data_p_dask_list.append(sim_p.pop[['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']].sum())
             ses_p_dask_list.append(sim_p.pop['ses'])
         else:
-            empty_df = pd.DataFrame([[0.0]*9], columns=['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity'], index=[yr])
-            annual_data_p_dask_list.append(dd.from_pandas(empty_df, npartitions=1))
+            annual_data_p_dask_list.append(dd.from_pandas(pd.Series([0.0]*9, index=['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']), npartitions=1))
             ses_p_dask_list.append(dd.from_pandas(pd.Series([0]*pop_size, dtype=int), npartitions=1))
 
     all_dask_objects = annual_data_r_dask_list + annual_data_p_dask_list + ses_r_dask_list + ses_p_dask_list
@@ -103,7 +101,7 @@ def run_scenario(sampled_params, pop_size=POP_SIZE):
         cum_c = 0.0
         cum_q = 0.0
         for yr_idx, yr in enumerate(YEARS):
-            annual_sums = annual_computed_list[yr_idx].iloc[0]
+            annual_sums = annual_computed_list[yr_idx]
             ses_series = ses_computed_list[yr_idx]
 
             cum_c += annual_sums['annual_cost']
@@ -113,7 +111,8 @@ def run_scenario(sampled_params, pop_size=POP_SIZE):
 
             row_data = {
                 'arm': arm, 'year': yr,
-                'annual_cost': annual_sums['annual_cost'], 'cost_health': annual_sums['cost_health'], 'cost_edu': annual_sums['cost_edu'],
+                'annual_cost': annual_sums['annual_cost'], 'annual_qaly': annual_sums['annual_qaly'],
+                'cost_health': annual_sums['cost_health'], 'cost_edu': annual_sums['cost_edu'],
                 'cost_respite': annual_sums['cost_respite'], 'cost_mobility': annual_sums['cost_mobility'], 'cost_welfare': annual_sums['cost_welfare'],
                 'cost_emp': annual_sums['cost_emp'], 'cost_morbidity': annual_sums['cost_morbidity'],
                 'costs': cum_c, 'qalys': cum_q,

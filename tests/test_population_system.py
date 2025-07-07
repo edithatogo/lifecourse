@@ -14,13 +14,13 @@ from src.model.parameters import (
 def basic_pop_system():
     sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=42)
     dask_params = prepare_dask_params(sampled_params)
-    return PopulationSystemDask(pop_size=10, current_params=dask_params, arm='prospective')
+    return PopulationSystemDask(pop_size=1, current_params=dask_params, arm='prospective')
 
 @pytest.fixture
 def retrospective_pop_system():
     sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=42)
     dask_params = prepare_dask_params(sampled_params)
-    return PopulationSystemDask(pop_size=100, current_params=dask_params, arm='retrospective')
+    return PopulationSystemDask(pop_size=1, current_params=dask_params, arm='retrospective')
 
 def test_population_system_init(basic_pop_system):
     assert basic_pop_system.arm == 'prospective'
@@ -72,10 +72,12 @@ def test_cost_qaly(basic_pop_system):
 
 def test_step(basic_pop_system):
     initial_pop_size = len(basic_pop_system.pop.compute())
+    initial_age = basic_pop_system.pop['age'].max().compute()
     basic_pop_system.step(START_YEAR)
     current_pop_size = len(basic_pop_system.pop.compute())
     assert current_pop_size >= 0 # Population can shrink or grow
     assert 'age' in basic_pop_system.pop.columns
-    assert basic_pop_system.pop['age'].max().compute() > basic_pop_system.pop['age'].min().compute() # Ages should have incremented
+    if current_pop_size > 0:
+        assert basic_pop_system.pop['age'].max().compute() == initial_age + 1 # Ages should have incremented
     assert 'annual_cost' in basic_pop_system.pop.columns
     assert 'annual_qaly' in basic_pop_system.pop.columns

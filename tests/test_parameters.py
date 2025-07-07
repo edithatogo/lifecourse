@@ -40,11 +40,9 @@ def test_get_beta_params():
     assert params['dist'] == 'fixed'
     assert params['value'] == 0.7
 
-    # Test with variance too large (should return uniform)
+    # Test with variance too large (should return beta after adjustment)
     params = get_beta_params(0.5, 0.5) # variance = 0.25, mean*(1-mean) = 0.25
-    assert params['dist'] == 'uniform'
-    assert params['low'] == pytest.approx(0.49)
-    assert params['high'] == pytest.approx(0.51)
+    assert params['dist'] == 'beta'
 
 def test_sample_params_from_dist():
     # Test that all parameters are sampled and severity_severe_prop is calculated

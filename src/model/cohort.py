@@ -60,6 +60,7 @@ def gen_population_dask(n, current_params, arm='prospective'):
 
     for col in ['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu',
                 'cost_respite', 'cost_mobility', 'cost_welfare',
-                'cost_emp', 'cost_morbidity']:
+                'cost_emp', 'cost_morbidity',
+                'cost_ndis', 'cost_carer', 'cost_hospital', 'cost_common_other']: # Added new cost columns
         df[col] = 0.0
     return dd.from_pandas(df, npartitions=4)

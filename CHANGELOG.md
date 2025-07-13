@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased (Current Date - Please fill in)
+
+### Added
+- Comprehensive testing framework (Roadmap Phase 2):
+  - Unit tests for `src/model/parameters.py`.
+  - Unit tests for `src/model/cohort.py`.
+  - Unit tests for `src/model/population_system.py`.
+  - Integration tests for `src/analysis/run_helpers.py`.
+  - Created `tests/__init__.py` to enable test discovery.
+- GitHub Actions CI pipeline (`.github/workflows/ci.yml`):
+  - Triggers on push/pull_request.
+  - Installs dependencies from `requirements.txt`.
+  - Runs all tests using `python -m unittest discover` across Python 3.10, 3.11, and 3.12.
+- Project management and session tracking files:
+  - `TODO.md` for listing pending tasks and future work.
+  - `SESSION_SUMMARY.md` detailing work performed in the current session.
+
+### Changed
+- Updated `requirements.txt`:
+  - Added `dask[distributed]` for full Dask capabilities.
+  - Added `pyarrow` as an optional Dask dependency often needed for full performance/compatibility.
+- `src/model/cohort.py`: Modified `gen_population_dask` to initialize all cost columns (including new ones like `cost_ndis`, `cost_carer`, `cost_hospital`, `cost_common_other`) to `0.0`. This resolved a Dask metadata error encountered during testing of `_cost_qaly`.
+- `src/analysis/run_helpers.py`:
+  - Refactored `run_scenario` to collect Dask Series for annual data and perform DataFrame structuring using pandas after computation. This resolved an `AttributeError` related to Dask DataFrame transpose operations.
+  - Modified `run_sim` to seed Python's built-in `random` module in addition to `numpy.random`, enhancing reproducibility.
+
+### Fixed
+- Ensured deterministic behavior in `run_sim` for tests using `seed_idx` by seeding both `numpy.random` and `random`.
+- Corrected typos in `tests/test_run_helpers.py` during development.
+- Addressed various issues to enable successful generation of `deterministic_summary.csv` during validation attempts (though validation itself highlighted model discrepancies).
+
+### Removed
+- (Internal) Temporary modifications to `main.py` and `config/scenarios.yaml` made for validation debugging were reverted after the `reset_all` command and subsequent controlled re-application of changes.
+
+### Process Note
+- Used `reset_all()` to recover from persistent test timeouts after extensive `main.py` debugging for validation. All features and fixes from the session were then systematically re-applied to a clean repository state.
+
 ## 2025-07-02
 - Initial project setup with modular Python package structure.
 - Refactored `LifeCourseID, v7, 20250623.py` into:

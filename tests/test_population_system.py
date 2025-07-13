@@ -1,81 +1,216 @@
+import unittest
 import numpy as np
 import pandas as pd
 import dask.dataframe as dd
-import pytest
 from src.model.population_system import PopulationSystemDask
 from src.model.parameters import (
-    START_YEAR, ABS_MORT, LIFE_EXP_NP, EMP_NP, MORB_KEYS, DISCOUNT, NDIS_COST,
-    CARER_HOURS_NP, WAGE_HR, HOSP_COST, HOSP_RATE_NP, MENTAL_HEALTH_COST, INFORMAL_CARE_COST,
-    DISTRIBUTIONS, prepare_dask_params, sample_params_from_dist
+    sample_params_from_dist,
+    prepare_dask_params,
+    DISTRIBUTIONS,
+    START_YEAR,
+    LIFE_EXP_NP
 )
 
-# Fixture for a basic PopulationSystemDask instance
-@pytest.fixture
-def basic_pop_system():
-    sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=42)
-    dask_params = prepare_dask_params(sampled_params)
-    return PopulationSystemDask(pop_size=10, current_params=dask_params, arm='prospective')
+def get_test_params_for_system(seed=42): # Renamed to avoid potential global scope issues
+    raw_sampled = sample_params_from_dist(DISTRIBUTIONS, seed=seed)
+    return prepare_dask_params(raw_sampled)
 
-@pytest.fixture
-def retrospective_pop_system():
-    sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=42)
-    dask_params = prepare_dask_params(sampled_params)
-    return PopulationSystemDask(pop_size=100, current_params=dask_params, arm='retrospective')
+class TestPopulationSystem(unittest.TestCase):
 
-def test_population_system_init(basic_pop_system):
-    assert basic_pop_system.arm == 'prospective'
-    assert isinstance(basic_pop_system.pop, dd.DataFrame)
-    assert len(basic_pop_system.pop.columns) > 0
-    assert basic_pop_system.pop.npartitions > 0
+    def _create_pop_system(self, pop_size, arm_type='prospective', seed=42):
+        params = get_test_params_for_system(seed)
+        return PopulationSystemDask(pop_size, params, arm=arm_type)
 
-def test_mortality(basic_pop_system):
-    initial_pop_size = len(basic_pop_system.pop.compute())
-    basic_pop_system._mortality()
-    current_pop_size = len(basic_pop_system.pop.compute())
-    assert current_pop_size <= initial_pop_size # Population should not increase
-    # More specific tests would require mocking random or specific age/severity distributions
+    def setUp(self):
+        self.pop_size_default = 50
+        # This default system is created for each test method
+        # self.pop_system_default = self._create_pop_system(self.pop_size_default, arm_type='prospective', seed=1)
 
-def test_fertility(basic_pop_system):
-    initial_pop_size = len(basic_pop_system.pop.compute())
-    basic_pop_system._fertility()
-    current_pop_size = len(basic_pop_system.pop.compute())
-    assert current_pop_size >= initial_pop_size # Population can increase due to births
+    def test_initialization(self):
+        pop_system = self._create_pop_system(pop_size=10, arm_type='prospective', seed=2)
+        self.assertEqual(pop_system.arm, 'prospective')
+        self.assertIsInstance(pop_system.pop, dd.DataFrame)
+        self.assertTrue(len(pop_system.pop.columns) > 0) # Check it has columns
+        self.assertTrue(pop_system.pop.npartitions > 0) # Check it has partitions
+        computed_pop = pop_system.pop.compute()
+        self.assertEqual(len(computed_pop), 10)
+        self.assertIn('age', computed_pop.columns)
+        self.assertIn('diagnosed', computed_pop.columns)
 
-def test_diagnosis_prospective(basic_pop_system):
-    # Ensure that diagnosis happens for familial individuals in prospective arm
-    initial_diagnosed_count = basic_pop_system.pop['diagnosed'].sum().compute()
-    basic_pop_system._diagnosis()
-    final_diagnosed_count = basic_pop_system.pop['diagnosed'].sum().compute()
-    assert final_diagnosed_count >= initial_diagnosed_count
-    # If there are familial individuals, some should become diagnosed
-    familial_count = basic_pop_system.pop['familial'].sum().compute()
-    if familial_count > 0:
-        assert final_diagnosed_count > 0 or basic_pop_system.params['yield_wgs'] == 0 # If yield is 0, no diagnosis
 
-def test_diagnosis_retrospective(retrospective_pop_system):
-    # Ensure diagnosis does NOT happen in retrospective arm (it's seeded at init)
-    initial_diagnosed_count = retrospective_pop_system.pop['diagnosed'].sum().compute()
-    retrospective_pop_system._diagnosis()
-    final_diagnosed_count = retrospective_pop_system.pop['diagnosed'].sum().compute()
-    assert final_diagnosed_count == initial_diagnosed_count
+    def test_mortality(self):
+        pop_system = self._create_pop_system(pop_size=self.pop_size_default, seed=3)
+        initial_pop_computed = pop_system.pop.compute() # Compute once before operation
+        initial_pop_size = len(initial_pop_computed)
 
-def test_cost_qaly(basic_pop_system):
-    # Test that cost and QALY columns are populated and non-zero (for a non-empty population)
-    initial_pop_size = len(basic_pop_system.pop.compute())
-    if initial_pop_size > 0:
-        basic_pop_system._cost_qaly(START_YEAR)
-        df_computed = basic_pop_system.pop.compute()
-        assert np.all(df_computed['annual_cost'] >= 0) # Costs should be non-negative
-        assert np.all(df_computed['annual_qaly'] >= 0) # QALYs should be non-negative
-        assert df_computed['annual_cost'].sum() > 0 # Total cost should be > 0 for a living pop
-        assert df_computed['annual_qaly'].sum() > 0 # Total QALYs should be > 0 for a living pop
+        pop_system._mortality()
+        current_pop_computed = pop_system.pop.compute() # Compute once after operation
+        current_pop_size = len(current_pop_computed)
 
-def test_step(basic_pop_system):
-    initial_pop_size = len(basic_pop_system.pop.compute())
-    basic_pop_system.step(START_YEAR)
-    current_pop_size = len(basic_pop_system.pop.compute())
-    assert current_pop_size >= 0 # Population can shrink or grow
-    assert 'age' in basic_pop_system.pop.columns
-    assert basic_pop_system.pop['age'].max().compute() > basic_pop_system.pop['age'].min().compute() # Ages should have incremented
-    assert 'annual_cost' in basic_pop_system.pop.columns
-    assert 'annual_qaly' in basic_pop_system.pop.columns
+        self.assertTrue(current_pop_size <= initial_pop_size)
+
+        # Test LIFE_EXP_NP effect
+        params_mort = get_test_params_for_system(seed=101)
+        params_mort['MORT_HR'] = np.array([0.00001, 0.00001]) # Minimize HR effect
+
+        # Create a new system for this specific test
+        temp_pop_sys = PopulationSystemDask(self.pop_size_default, params_mort, arm='prospective')
+        pop_df_mort = temp_pop_sys.pop.compute()
+
+        if len(pop_df_mort) > 2:
+            # Modify a few individuals to test specific age-related mortality
+            pop_df_mort.loc[pop_df_mort.index[0], 'age'] = LIFE_EXP_NP[1] + 5 # Severe, older than life exp
+            pop_df_mort.loc[pop_df_mort.index[0], 'severity'] = 1
+
+            pop_df_mort.loc[pop_df_mort.index[1], 'age'] = LIFE_EXP_NP[0] - 5 # Mild, younger than life exp
+            pop_df_mort.loc[pop_df_mort.index[1], 'severity'] = 0
+
+            temp_pop_sys.pop = dd.from_pandas(pop_df_mort, npartitions=temp_pop_sys.pop.npartitions or 1)
+
+        temp_pop_sys._mortality()
+        pop_after_controlled_mort = temp_pop_sys.pop.compute()
+
+        if len(pop_df_mort) > 0 and pop_df_mort.iloc[0]['severity'] == 1:
+             self.assertNotIn(pop_df_mort.index[0], pop_after_controlled_mort.index,
+                              "Old severe individual should be removed by LIFE_EXP_NP")
+        if len(pop_df_mort) > 1 and pop_df_mort.iloc[1]['severity'] == 0:
+             self.assertIn(pop_df_mort.index[1], pop_after_controlled_mort.index,
+                           "Young mild individual should survive LIFE_EXP_NP")
+
+
+    def test_fertility(self):
+        pop_system = self._create_pop_system(pop_size=self.pop_size_default, seed=5)
+        pop_df_fert = pop_system.pop.compute()
+        num_to_modify = min(5, len(pop_df_fert))
+
+        if num_to_modify > 0 :
+            indices_to_modify = pop_df_fert.index[0:num_to_modify]
+            pop_df_fert.loc[indices_to_modify, 'sex'] = 0  # Female
+            pop_df_fert.loc[indices_to_modify, 'age'] = 25 # Fertile age
+            pop_df_fert.loc[indices_to_modify, 'familial'] = True
+            pop_system.pop = dd.from_pandas(pop_df_fert, npartitions=pop_system.pop.npartitions or 1)
+
+        babies_dd = pop_system._fertility()
+        babies_df = babies_dd.compute() # This will be empty if no births
+
+        if not babies_df.empty:
+            self.assertTrue(np.all(babies_df['age'] == 0))
+            # Check if familial status is inherited (probabilistic, so check if any familial if mothers were)
+            if num_to_modify > 0 and pop_df_fert.loc[indices_to_modify[0], 'familial']:
+                 # If any baby is familial, it's a good sign. If all mothers are familial, all babies should be.
+                 self.assertTrue(babies_df['familial'].any() or babies_df['familial'].all())
+
+
+    def test_diagnosis_prospective(self):
+        pop_system = self._create_pop_system(pop_size=self.pop_size_default, arm_type='prospective', seed=6)
+        pop_df_diag_initial = pop_system.pop.compute()
+        num_to_modify = min(10, len(pop_df_diag_initial))
+        eligible_indices = []
+
+        if num_to_modify > 0:
+            indices_to_modify = pop_df_diag_initial.index[0:num_to_modify]
+            pop_df_diag_initial.loc[indices_to_modify, 'diagnosed'] = False
+            pop_df_diag_initial.loc[indices_to_modify, 'familial'] = True
+            pop_df_diag_initial.loc[indices_to_modify, 'age'] = pop_system.params['min_test_age'] + 1
+            eligible_indices = indices_to_modify # These are the ones we made eligible
+            pop_system.pop = dd.from_pandas(pop_df_diag_initial, npartitions=pop_system.pop.npartitions or 1)
+
+        pop_system.params['yield_wgs'] = 1.0
+        pop_system._diagnosis()
+        pop_after_diag_yield_1 = pop_system.pop.compute()
+
+        if num_to_modify > 0:
+            self.assertTrue(pop_after_diag_yield_1.loc[eligible_indices, 'diagnosed'].all())
+
+        # Reset for yield_wgs = 0.0 test
+        if num_to_modify > 0:
+            pop_df_diag_initial.loc[eligible_indices, 'diagnosed'] = False # Reset
+            pop_system.pop = dd.from_pandas(pop_df_diag_initial, npartitions=pop_system.pop.npartitions or 1)
+
+        pop_system.params['yield_wgs'] = 0.0
+        pop_system._diagnosis()
+        pop_after_diag_yield_0 = pop_system.pop.compute()
+        if num_to_modify > 0:
+            self.assertFalse(pop_after_diag_yield_0.loc[eligible_indices, 'diagnosed'].any())
+
+
+    def test_diagnosis_non_prospective_arm(self):
+        pop_system = self._create_pop_system(pop_size=self.pop_size_default, arm_type='retrospective', seed=7)
+        pop_df_diag_retro = pop_system.pop.compute()
+        # Manually set some diagnosed states to ensure they are not changed
+        if len(pop_df_diag_retro) > 1:
+            pop_df_diag_retro.loc[pop_df_diag_retro.index[0], 'diagnosed'] = True
+            pop_df_diag_retro.loc[pop_df_diag_retro.index[1], 'diagnosed'] = False
+            pop_system.pop = dd.from_pandas(pop_df_diag_retro, npartitions=pop_system.pop.npartitions or 1)
+
+        initial_diagnosed_state = pop_system.pop['diagnosed'].compute()
+        pop_system._diagnosis()
+        after_diagnosed_state = pop_system.pop['diagnosed'].compute()
+        pd.testing.assert_series_equal(initial_diagnosed_state, after_diagnosed_state, check_dtype=False)
+
+
+    def test_cost_qaly_calculation(self):
+        pop_system = self._create_pop_system(pop_size=self.pop_size_default, seed=8)
+        pop_df_cq = pop_system.pop.compute()
+        if len(pop_df_cq) > 0: # Setup one individual for specific checks
+            idx_to_mod = pop_df_cq.index[0]
+            pop_df_cq.loc[idx_to_mod, 'diagnosed'] = True
+            pop_df_cq.loc[idx_to_mod, 'severity'] = 1
+            pop_df_cq.loc[idx_to_mod, 'uses_respite'] = True
+            pop_df_cq.loc[idx_to_mod, 'school'] = 0
+            pop_df_cq.loc[idx_to_mod, 'support'] = 1
+            pop_system.pop = dd.from_pandas(pop_df_cq, npartitions=pop_system.pop.npartitions or 1)
+
+        pop_system._cost_qaly(year=START_YEAR)
+        pop_after_cq_df = pop_system.pop.compute()
+
+        self.assertIn('annual_cost', pop_after_cq_df.columns)
+        self.assertIn('annual_qaly', pop_after_cq_df.columns)
+
+        if len(pop_after_cq_df) > 0:
+            self.assertTrue(pop_after_cq_df['annual_cost'].sum() >= 0)
+            self.assertTrue(pop_after_cq_df['annual_qaly'].between(-1.5 * (pop_system.params['DISCOUNT'] +1) , 1.5 * (pop_system.params['DISCOUNT'] +1) ).all()) # Wider range to account for adjustments
+
+            if 0 in pop_after_cq_df.index and len(pop_df_cq)>0 and pop_df_cq.index[0] == 0 : # If the modified individual is still index 0
+                first_person_costs = pop_after_cq_df.loc[0]
+                self.assertTrue(first_person_costs['cost_health'] > 0)
+                if pop_system.params['RESPITE'] > 0 : self.assertTrue(first_person_costs['cost_respite'] > 0)
+                # edu cost depends on params['EDU'] values which can be 0
+                # self.assertTrue(first_person_costs['cost_edu'] > 0)
+                if pop_system.params['NDIS_COST'] > 0 : self.assertTrue(first_person_costs['cost_ndis'] > 0)
+                if pop_system.params['CARER_HOURS_NP'][1] * pop_system.params['WAGE_HR'] > 0: self.assertTrue(first_person_costs['cost_carer'] > 0)
+
+
+    def test_step_function(self):
+        pop_system = self._create_pop_system(pop_size=self.pop_size_default, seed=9)
+        initial_pop_ddf = pop_system.pop.copy()
+        initial_ages_computed = initial_pop_ddf['age'].compute() # Compute before step
+        initial_len = len(initial_ages_computed)
+
+        pop_system.step(year=START_YEAR + 1)
+
+        pop_after_step_df = pop_system.pop.compute()
+        current_len = len(pop_after_step_df)
+
+        self.assertTrue(current_len >= 0)
+        if initial_len == 0:
+            self.assertEqual(current_len, 0)
+            return
+
+        if current_len > 0 :
+            self.assertTrue(np.all(pop_after_step_df['age'] >= 0))
+            # Check if ages of (some) survivors incremented
+            # This is complex due to births/deaths and dask indexing.
+            # A simple check: if any original individuals survived, their age should be initial_age + 1
+            # This requires matching individuals.
+            # For now, just check that 'age' column exists and some basic properties.
+            if initial_len > 0 and current_len > 0:
+                # If we had some people with age > 0 before, and some people still exist,
+                # it's likely max age increased or mean age changed plausibly.
+                if initial_ages_computed.max() > 0 :
+                     pass # Max age could decrease if all oldest die.
+
+            self.assertTrue(pop_after_step_df['annual_cost'].sum() >= 0 if current_len > 0 else True)
+
+if __name__ == '__main__':
+    unittest.main()

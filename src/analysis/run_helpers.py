@@ -1,3 +1,4 @@
+import random # Added for setting Python's global random seed
 import numpy as np
 import pandas as pd
 import dask.dataframe as dd
@@ -8,10 +9,12 @@ from src.model.population_system import PopulationSystemDask
 from src.model.parameters import POP_SIZE, YEARS, DISTRIBUTIONS, prepare_dask_params, sample_params_from_dist
 
 def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None):
+    actual_seed = 42
     if seed_idx is not None:
-        np.random.seed(42 + seed_idx)
-    else:
-        np.random.seed(42)
+        actual_seed += seed_idx
+
+    np.random.seed(actual_seed)
+    random.seed(actual_seed) # Also seed Python's built-in random module
 
     dask_params = prepare_dask_params(sampled_params)
 
@@ -60,62 +63,74 @@ def run_scenario(sampled_params, pop_size=POP_SIZE):
     sim_r = PopulationSystemDask(pop_size, dask_params, 'retrospective')
     sim_p = PopulationSystemDask(pop_size, dask_params, 'prospective')
 
-    annual_data_r_dask_list = []
-    annual_data_p_dask_list = []
+    annual_series_r_dask_list = [] # Changed name
+    annual_series_p_dask_list = [] # Changed name
     ses_r_dask_list = []
     ses_p_dask_list = []
+
+    cols_to_sum = ['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']
 
     for yr in YEARS:
         sim_r.step(yr)
         if sim_r.pop.npartitions > 0:
-            annual_data_r_dask_list.append(sim_r.pop[['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']].sum().to_frame(name=yr).T)
+            annual_series_r_dask_list.append(sim_r.pop[cols_to_sum].sum()) # Store Dask Series
             ses_r_dask_list.append(sim_r.pop['ses'])
         else:
-            empty_df = pd.DataFrame([[0.0]*9], columns=['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity'], index=[yr])
-            annual_data_r_dask_list.append(dd.from_pandas(empty_df, npartitions=1))
-            ses_r_dask_list.append(dd.from_pandas(pd.Series([0]*pop_size, dtype=int), npartitions=1))
+            annual_series_r_dask_list.append(dd.from_pandas(pd.Series([0.0]*len(cols_to_sum), index=cols_to_sum, name=yr), npartitions=1))
+            ses_r_dask_list.append(dd.from_pandas(pd.Series([0]*pop_size, dtype=int, name=f"ses_{yr}_r"), npartitions=1))
 
         sim_p.step(yr)
         if sim_p.pop.npartitions > 0:
-            annual_data_p_dask_list.append(sim_p.pop[['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']].sum().to_frame(name=yr).T)
+            annual_series_p_dask_list.append(sim_p.pop[cols_to_sum].sum()) # Store Dask Series
             ses_p_dask_list.append(sim_p.pop['ses'])
         else:
-            empty_df = pd.DataFrame([[0.0]*9], columns=['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity'], index=[yr])
-            annual_data_p_dask_list.append(dd.from_pandas(empty_df, npartitions=1))
-            ses_p_dask_list.append(dd.from_pandas(pd.Series([0]*pop_size, dtype=int), npartitions=1))
+            annual_series_p_dask_list.append(dd.from_pandas(pd.Series([0.0]*len(cols_to_sum), index=cols_to_sum, name=yr), npartitions=1))
+            ses_p_dask_list.append(dd.from_pandas(pd.Series([0]*pop_size, dtype=int, name=f"ses_{yr}_p"), npartitions=1))
 
-    all_dask_objects = annual_data_r_dask_list + annual_data_p_dask_list + ses_r_dask_list + ses_p_dask_list
+    all_dask_objects = annual_series_r_dask_list + annual_series_p_dask_list + ses_r_dask_list + ses_p_dask_list
     computed_results = dd.compute(*all_dask_objects)
 
     num_years = len(YEARS)
-    all_annual_r_computed = computed_results[0:num_years]
-    all_annual_p_computed = computed_results[num_years:2*num_years]
+    all_annual_r_computed_series = computed_results[0:num_years] # List of pandas Series
+    all_annual_p_computed_series = computed_results[num_years:2*num_years] # List of pandas Series
     ses_r_computed_list = computed_results[2*num_years:3*num_years]
     ses_p_computed_list = computed_results[3*num_years:4*num_years]
 
     outputs = []
     final_totals = {}
 
-    for arm_idx, (arm, annual_computed_list, ses_computed_list) in enumerate([
-        ('retrospective', all_annual_r_computed, ses_r_computed_list),
-        ('prospective', all_annual_p_computed, ses_p_computed_list)
+    for arm_idx, (arm, annual_computed_series_list, ses_computed_list) in enumerate([
+        ('retrospective', all_annual_r_computed_series, ses_r_computed_list),
+        ('prospective', all_annual_p_computed_series, ses_p_computed_list)
     ]):
         cum_c = 0.0
         cum_q = 0.0
         for yr_idx, yr in enumerate(YEARS):
-            annual_sums = annual_computed_list[yr_idx].iloc[0]
+            annual_sums_series = annual_computed_series_list[yr_idx] # This is a pandas Series
             ses_series = ses_computed_list[yr_idx]
 
-            cum_c += annual_sums['annual_cost']
-            cum_q += annual_sums['annual_qaly']
+            if isinstance(annual_sums_series, pd.DataFrame): # Should not happen with current dd.from_pandas for empty
+                if not annual_sums_series.empty: annual_sums_series = annual_sums_series.iloc[0]
+                else: annual_sums_series = pd.Series([0.0]*len(cols_to_sum), index=cols_to_sum)
 
-            ses_q_pct = {f'ses_q{i}_pct': (ses_series == i).mean() * 100 for i in range(5)}
+            if not isinstance(ses_series, pd.Series): ses_series = pd.Series(ses_series)
+
+
+            cum_c += annual_sums_series.get('annual_cost', 0.0)
+            cum_q += annual_sums_series.get('annual_qaly', 0.0)
+
+            ses_q_pct = {f'ses_q{i}_pct': (ses_series == i).mean() * 100 if not ses_series.empty else 0.0 for i in range(5)}
 
             row_data = {
                 'arm': arm, 'year': yr,
-                'annual_cost': annual_sums['annual_cost'], 'cost_health': annual_sums['cost_health'], 'cost_edu': annual_sums['cost_edu'],
-                'cost_respite': annual_sums['cost_respite'], 'cost_mobility': annual_sums['cost_mobility'], 'cost_welfare': annual_sums['cost_welfare'],
-                'cost_emp': annual_sums['cost_emp'], 'cost_morbidity': annual_sums['cost_morbidity'],
+                'annual_cost': annual_sums_series.get('annual_cost', 0.0),
+                'cost_health': annual_sums_series.get('cost_health', 0.0),
+                'cost_edu': annual_sums_series.get('cost_edu', 0.0),
+                'cost_respite': annual_sums_series.get('cost_respite', 0.0),
+                'cost_mobility': annual_sums_series.get('cost_mobility', 0.0),
+                'cost_welfare': annual_sums_series.get('cost_welfare', 0.0),
+                'cost_emp': annual_sums_series.get('cost_emp', 0.0),
+                'cost_morbidity': annual_sums_series.get('cost_morbidity', 0.0),
                 'costs': cum_c, 'qalys': cum_q,
                 **ses_q_pct
             }

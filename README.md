@@ -102,6 +102,24 @@ python cli.py base --pop-size 100
 
 This reads `config/scenarios.yaml` and prints the incremental cost, QALY, and ICER for the chosen scenario.
 
+### Scenario Overrides
+
+Values in `config/scenarios.yaml` modify the base parameters. Numeric overrides
+within ±0.5 are treated as relative adjustments and added to the existing value.
+Larger magnitudes replace the value entirely. Non-numeric entries are always
+applied as absolute overrides.
+
+Example entries from `config/scenarios.yaml`:
+
+```yaml
+scenarios:
+  high_familial_prop:
+    familial_prop: +0.05  # relative increase to the base value
+    yield_wgs: null
+  high_coverage:
+    yield_wgs: 0.70       # absolute override for the parameter
+```
+
 ## Roadmap
 
 For future development plans and upcoming features, please refer to the [ROADMAP.md](ROADMAP.md) file.

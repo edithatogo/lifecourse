@@ -17,7 +17,8 @@ from src.model.parameters import (
     EMP_NP, # Added for checking in prepare_dask_params
     NDIS_COST, CARER_HOURS_NP, WAGE_HR, HOSP_COST, HOSP_RATE_NP, # Added
     MENTAL_HEALTH_COST, INFORMAL_CARE_COST, INCOME_PARAMS, EDUCATION_LEVELS, # Added
-    AGE_BANDS, AGE_BAND_P, FERT_AGE_SPEC # Added
+    AGE_BANDS, AGE_BAND_P, FERT_AGE_SPEC, # Added
+    get_mean_params,
 )
 
 class TestParameterFunctions(unittest.TestCase):
@@ -191,6 +192,15 @@ class TestParameterFunctions(unittest.TestCase):
             self.assertIn(key, dask_params)
             # Raw sampled parameters use lowercase keys
             self.assertEqual(dask_params[key], raw_sampled_params[key.lower()], f"Mismatch for sampled param {key}")
+
+    def test_get_mean_params(self):
+        means = get_mean_params(DISTRIBUTIONS)
+        self.assertIn('cost_inp_mild', means)
+        self.assertGreater(means['cost_inp_mild'], 0)
+        self.assertAlmostEqual(
+            means['severity_mild_prop'] + means['severity_severe_prop'],
+            1.0,
+        )
 
 if __name__ == '__main__':
     unittest.main()

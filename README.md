@@ -92,6 +92,24 @@ python main.py
 
 Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
 
+### Command Line Interface
+
+You can also run a specific scenario using the lightweight CLI:
+
+```bash
+python cli.py base --pop-size 100
+```
+
+This reads `config/scenarios.yaml` and prints the incremental cost, QALY, and ICER for the chosen scenario.
+
+### Running Tests
+
+After installing dependencies, run the unit test suite with:
+
+```bash
+pytest -q
+```
+
 ## Roadmap
 
 For future development plans and upcoming features, please refer to the [ROADMAP.md](ROADMAP.md) file.

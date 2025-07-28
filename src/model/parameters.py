@@ -168,6 +168,33 @@ def sample_params_from_dist(dist_dict, seed=None):
         sampled_params['severity_severe_prop'] = 1.0 - sampled_params['severity_mild_prop']
     return sampled_params
 
+
+def get_mean_params(dist_dict):
+    """Return deterministic mean values for each distribution.
+
+    Parameters defined with relative distributions are converted to their mean
+    values so that deterministic scenarios can be generated easily.
+    """
+    mean_params = {}
+    for key, info in dist_dict.items():
+        if info['dist'] == 'beta':
+            mean_params[key] = info['alpha'] / (info['alpha'] + info['beta'])
+        elif info['dist'] == 'gamma':
+            mean_params[key] = info['shape'] * info['scale']
+        elif info['dist'] == 'lognormal':
+            mean_params[key] = info['scale'] * np.exp(info['s'] ** 2 / 2)
+        elif info['dist'] == 'normal':
+            mean_params[key] = info['loc']
+        elif info['dist'] == 'uniform':
+            mean_params[key] = (info['low'] + info['high']) / 2
+        elif info['dist'] == 'fixed':
+            mean_params[key] = info['value']
+
+    if 'severity_mild_prop' in mean_params:
+        mean_params['severity_severe_prop'] = 1.0 - mean_params['severity_mild_prop']
+
+    return mean_params
+
 def prepare_dask_params(sampled_params):
     # Costs
     COST_INP_NP_sampled = np.array([sampled_params['cost_inp_mild'], sampled_params['cost_inp_severe']])

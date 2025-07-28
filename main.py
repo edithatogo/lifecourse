@@ -4,9 +4,16 @@ import numpy as np
 import yaml
 from dask.distributed import LocalCluster, Client
 
-from src.model.parameters import DISTRIBUTIONS, YEARS, START_YEAR, POP_SIZE, sample_params_from_dist
+from src.model.parameters import (
+    DISTRIBUTIONS,
+    YEARS,
+    START_YEAR,
+    POP_SIZE,
+    sample_params_from_dist,
+    get_mean_params,
+)
 from src.analysis.run_helpers import run_sim, run_scenario
-from src.data_loader import load_scenarios_from_yaml
+from src.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
 
 def main():
     print("--- Running LifeCourseID Simulation and Analysis ---")
@@ -20,40 +27,14 @@ def main():
 
         # Module 6: Deterministic Scenarios
         print("\n--- Running Module 6: Deterministic Scenarios ---")
-        base_mean_params = {}
-        for k, v in DISTRIBUTIONS.items():
-            if v['dist'] == 'beta':
-                base_mean_params[k] = v['alpha'] / (v['alpha'] + v['beta'])
-            elif v['dist'] == 'gamma':
-                base_mean_params[k] = v['shape'] * v['scale']
-            elif v['dist'] == 'lognormal':
-                base_mean_params[k] = v['scale'] * np.exp(v['s']**2 / 2)
-            elif v['dist'] == 'normal':
-                base_mean_params[k] = v['loc']
-            elif v['dist'] == 'uniform':
-                base_mean_params[k] = (v['low'] + v['high']) / 2
-            elif v['dist'] == 'fixed':
-                base_mean_params[k] = v['value']
-
-        if 'severity_mild_prop' in base_mean_params:
-            base_mean_params['severity_severe_prop'] = 1.0 - base_mean_params['severity_mild_prop']
+        base_mean_params = get_mean_params(DISTRIBUTIONS)
 
         # Load scenarios from YAML
         scenarios_config = load_scenarios_from_yaml('config/scenarios.yaml')
 
         results = []
         for name, overrides in scenarios_config.items():
-            current_params_for_run = base_mean_params.copy()
-            for param_name, value in overrides.items():
-                if value is not None:
-                    if isinstance(value, (int, float)) and param_name in base_mean_params and isinstance(base_mean_params[param_name], (int, float)):
-                        # Check if it's a relative adjustment
-                        if value < -0.5 or value > 0.5: # Heuristic for absolute vs relative
-                            current_params_for_run[param_name] = value # Absolute value
-                        else:
-                            current_params_for_run[param_name] = base_mean_params[param_name] + value # Relative adjustment
-                    else:
-                        current_params_for_run[param_name] = value # Absolute value or non-numeric
+            current_params_for_run = apply_scenario_overrides(base_mean_params, overrides)
 
             dc, dq = run_sim(current_params_for_run, pop_size=100) # Smaller population for testing
             icer = (dc / dq) if dq != 0 else 0

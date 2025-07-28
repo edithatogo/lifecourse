@@ -71,7 +71,6 @@ scenarios:
 scenario_grid:
   familial_prop: [0.1, 0.2]
   yield_wgs: [0.5, 0.7]
-"""
         with open("/tmp/test_scenarios.yaml", "w") as f:
             f.write(yaml_content)
 

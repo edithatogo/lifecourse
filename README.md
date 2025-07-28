@@ -119,6 +119,17 @@ scenarios:
   high_coverage:
     yield_wgs: 0.70       # absolute override for the parameter
 ```
+You can also define a `scenario_grid` section to automatically generate combinations of parameter values. Each combination forms a scenario named using the parameter names and values.
+
+### Running Tests
+
+After installing the requirements you can run the full test suite with `pytest`:
+
+```bash
+pytest -q
+```
+
+All tests are also executed automatically via the GitHub Actions workflow defined in `.github/workflows/ci.yml`.
 
 ## Roadmap
 

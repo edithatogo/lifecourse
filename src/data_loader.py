@@ -3,9 +3,29 @@ import numpy as np
 import yaml
 
 def load_scenarios_from_yaml(file_path):
+    """Load scenarios and expand any scenario grid definitions."""
     with open(file_path, 'r') as f:
         config = yaml.safe_load(f)
-    return config['scenarios']
+
+    scenarios = config.get('scenarios', {})
+
+    grid = config.get('scenario_grid')
+    if grid:
+        from itertools import product
+
+        keys = list(grid.keys())
+        value_lists = [grid[k] for k in keys]
+
+        for combo in product(*value_lists):
+            overrides = {}
+            name_parts = []
+            for k, v in zip(keys, combo):
+                overrides[k] = v
+                safe_v = str(v).replace('.', '_')
+                name_parts.append(f"{k}_{safe_v}")
+            scenarios['_'.join(name_parts)] = overrides
+
+    return scenarios
 
 
 def apply_scenario_overrides(base_params, overrides):

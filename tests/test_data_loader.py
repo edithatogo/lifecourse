@@ -7,6 +7,7 @@ from src.data_loader import (
     load_nz_population_distribution,
     load_nz_life_table_hazards,
     apply_scenario_overrides,
+    load_scenarios_from_yaml,
 )
 from src.model.parameters import get_mean_params, DISTRIBUTIONS
 
@@ -62,6 +63,25 @@ Female,1,0.0009
         self.assertAlmostEqual(updated["familial_prop"], expected_familial)
         self.assertAlmostEqual(updated["severity_mild_prop"], 0.6)
         self.assertAlmostEqual(updated["severity_severe_prop"], 0.4)
+
+    def test_load_scenarios_with_grid(self):
+        yaml_content = """
+scenarios:
+  base: {familial_prop: 0.15}
+scenario_grid:
+  familial_prop: [0.1, 0.2]
+  yield_wgs: [0.5, 0.7]
+"""
+        with open("/tmp/test_scenarios.yaml", "w") as f:
+            f.write(yaml_content)
+
+        scenarios = load_scenarios_from_yaml("/tmp/test_scenarios.yaml")
+        os.remove("/tmp/test_scenarios.yaml")
+
+        # base scenario + 4 generated combos
+        self.assertEqual(len(scenarios), 5)
+        self.assertIn("familial_prop_0_1_yield_wgs_0_5", scenarios)
+        self.assertEqual(scenarios["familial_prop_0_1_yield_wgs_0_5"], {"familial_prop": 0.1, "yield_wgs": 0.5})
 
 if __name__ == '__main__':
     unittest.main()

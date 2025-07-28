@@ -3,7 +3,12 @@ from unittest.mock import patch
 import pandas as pd
 from io import StringIO
 import os
-from src.data_loader import load_nz_population_distribution, load_nz_life_table_hazards
+from src.data_loader import (
+    load_nz_population_distribution,
+    load_nz_life_table_hazards,
+    apply_scenario_overrides,
+)
+from src.model.parameters import get_mean_params, DISTRIBUTIONS
 
 class TestDataLoader(unittest.TestCase):
 
@@ -47,6 +52,16 @@ Female,1,0.0009
             self.assertEqual(len(hazards['Female']), 2)
             self.assertAlmostEqual(hazards['Male'][0], 0.005)
             self.assertAlmostEqual(hazards['Female'][1], 0.0009)
+
+    def test_apply_scenario_overrides(self):
+        base = get_mean_params(DISTRIBUTIONS)
+        overrides = {"familial_prop": 0.2, "severity_mild_prop": 0.6}
+        updated = apply_scenario_overrides(base, overrides)
+
+        expected_familial = base["familial_prop"] + 0.2
+        self.assertAlmostEqual(updated["familial_prop"], expected_familial)
+        self.assertAlmostEqual(updated["severity_mild_prop"], 0.6)
+        self.assertAlmostEqual(updated["severity_severe_prop"], 0.4)
 
 if __name__ == '__main__':
     unittest.main()

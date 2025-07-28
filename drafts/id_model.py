@@ -6,6 +6,7 @@ It is part of a design exercise to refactor the model for multi-cohort support.
 import numpy as np
 import pandas as pd
 import dask.dataframe as dd
+from src.model.parameters import START_YEAR
 
 # This draft assumes it will be used within a new PopulationSystem that handles
 # the Dask execution. The logic is transposed from the original PopulationSystemDask.

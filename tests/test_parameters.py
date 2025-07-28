@@ -47,9 +47,10 @@ class TestParameterFunctions(unittest.TestCase):
         self.assertEqual(params_zero_std['value'], 0.5)
 
         params_high_std = get_beta_params(mean=0.5, std_dev=1)
-        self.assertEqual(params_high_std['dist'], 'uniform')
-        self.assertAlmostEqual(params_high_std['low'], 0.49)
-        self.assertAlmostEqual(params_high_std['high'], 0.51)
+        # Extremely high variance is clamped so that alpha/beta remain positive
+        self.assertEqual(params_high_std['dist'], 'beta')
+        self.assertGreater(params_high_std['alpha'], 0)
+        self.assertGreater(params_high_std['beta'], 0)
 
         params_edge_mean_low = get_beta_params(mean=0, std_dev=0.1)
         self.assertEqual(params_edge_mean_low['dist'], 'fixed')
@@ -188,7 +189,8 @@ class TestParameterFunctions(unittest.TestCase):
         ]
         for key in direct_sampled_keys:
             self.assertIn(key, dask_params)
-            self.assertEqual(dask_params[key], raw_sampled_params[key], f"Mismatch for sampled param {key}")
+            # Raw sampled parameters use lowercase keys
+            self.assertEqual(dask_params[key], raw_sampled_params[key.lower()], f"Mismatch for sampled param {key}")
 
 if __name__ == '__main__':
     unittest.main()

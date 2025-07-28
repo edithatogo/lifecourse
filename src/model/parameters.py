@@ -80,7 +80,7 @@ def get_gamma_params(mean, std_dev):
 
 # Helper function to get Beta parameters from mean and standard deviation
 def get_beta_params(mean, std_dev):
-    if not (0 <= mean <= 1) or std_dev <= 0:
+    if not (0 <= mean <= 1) or std_dev <= 0 or mean in (0, 1):
         return {'dist': 'fixed', 'value': mean}
     variance = std_dev**2
     if variance >= mean * (1 - mean) and mean > 0 and mean < 1:

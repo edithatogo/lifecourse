@@ -102,17 +102,20 @@ class PopulationSystem:
 
         # 1. Universal events that happen before disease-specific events
         mortality_func = self._mortality()
-        # self.pop = self.pop.map_partitions(mortality_func, meta=self.pop._meta).persist()
+        if callable(mortality_func):
+            self.pop = self.pop.map_partitions(mortality_func, meta=self.pop._meta).persist()
 
         new_babies_dd = self._fertility()
 
         # 2. Delegate cohort-specific logic to the disease model object
         # The disease model's methods should return the function to be mapped
         diagnosis_func = self.disease_model.run_diagnosis(self.pop, year, self.params, self.arm)
-        # self.pop = self.pop.map_partitions(diagnosis_func, meta=self.pop._meta).persist()
+        if callable(diagnosis_func):
+            self.pop = self.pop.map_partitions(diagnosis_func, meta=self.pop._meta).persist()
 
         progression_func = self.disease_model.run_progression(self.pop, year, self.params)
-        # self.pop = self.pop.map_partitions(progression_func, meta=self.pop._meta).persist()
+        if callable(progression_func):
+            self.pop = self.pop.map_partitions(progression_func, meta=self.pop._meta).persist()
 
         # 3. Universal updates to the population
         print("[Draft] Applying universal aging.")
@@ -124,7 +127,16 @@ class PopulationSystem:
         self.pop = self.pop.persist()
 
         # 4. Delegate final cohort-specific calculation for the new state
-        cost_qaly_func = self.disease_model.calculate_costs_and_qalys(self.pop, year, self.params, self.arm)
-        # self.pop = self.pop.map_partitions(cost_qaly_func, meta=self.pop._meta).persist()
+        cost_qaly_result = self.disease_model.calculate_costs_and_qalys(self.pop, year, self.params, self.arm)
+        if callable(cost_qaly_result):
+            # For this draft we apply the function eagerly to avoid meta issues
+            result_df = cost_qaly_result(self.pop.compute())
+            self.pop = dd.from_pandas(result_df, npartitions=1)
+        elif cost_qaly_result is not None:
+            # If the method returned a dataframe directly, convert if needed
+            if isinstance(cost_qaly_result, dd.DataFrame):
+                self.pop = cost_qaly_result
+            else:
+                self.pop = dd.from_pandas(cost_qaly_result, npartitions=1)
 
         print(f"--- [Draft] Finished Step for Year: {year} ---")

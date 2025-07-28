@@ -7,6 +7,30 @@ def load_scenarios_from_yaml(file_path):
         config = yaml.safe_load(f)
     return config['scenarios']
 
+
+def apply_scenario_overrides(base_params, overrides):
+    """Apply scenario overrides to a base parameter dictionary."""
+    updated = base_params.copy()
+    for key, value in overrides.items():
+        if value is None:
+            continue
+        if (
+            isinstance(value, (int, float))
+            and key in base_params
+            and isinstance(base_params[key], (int, float))
+        ):
+            if abs(value) <= 0.5:
+                updated[key] = base_params[key] + value
+            else:
+                updated[key] = value
+        else:
+            updated[key] = value
+
+    if 'severity_mild_prop' in updated:
+        updated['severity_severe_prop'] = 1.0 - updated['severity_mild_prop']
+
+    return updated
+
 def load_nz_population_distribution(url=None): # For New Zealand data
     """
     Load NZ population distribution by age and sex from Stats NZ public CSV.

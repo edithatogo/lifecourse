@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import dask.dataframe as dd
 import dask.array as da
+import dask
 from dask.distributed import LocalCluster, Client, progress
 
 from src.model.population_system import PopulationSystemDask
@@ -14,7 +15,8 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None):
         actual_seed += seed_idx
 
     np.random.seed(actual_seed)
-    random.seed(actual_seed) # Also seed Python's built-in random module
+    random.seed(actual_seed)  # Also seed Python's built-in random module
+    dask.config.set(scheduler="single-threaded")
 
     dask_params = prepare_dask_params(sampled_params)
 

@@ -1,8 +1,9 @@
-dask
+dask[distributed]
 pandas
 matplotlib
 seaborn
 numpy
 scipy
 pyyaml
+pyarrow
 pytest

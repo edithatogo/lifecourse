@@ -68,3 +68,11 @@
 - Updated `README.md` to reflect the enhanced scenario analysis capabilities.
 - Created `src/data_loader.py` for external demographic data loading.
 - Updated `src/model/parameters.py` to load `AGE_DIST` and `ABS_MORT` from `src/data_loader.py`.
+
+## 2025-07-28
+- Added `drafts/__init__.py` to package the drafts directory for imports.
+- Fixed `get_beta_params` to return `fixed` when mean is 0 or 1.
+- Updated `run_sim` to set the Dask scheduler to single-threaded for reproducible tests.
+- Enhanced the draft `PopulationSystem` step to apply mapped functions if callables.
+- Adjusted parameter tests for clamped variance and lowercase keys.
+- Added `pyarrow` and `dask[distributed]` to `requirements.txt`.

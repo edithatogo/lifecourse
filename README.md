@@ -102,6 +102,24 @@ python cli.py base --pop-size 100
 
 This reads `config/scenarios.yaml` and prints the incremental cost, QALY, and ICER for the chosen scenario.
 
+## Running Tests
+
+Ensure all dependencies are installed before executing the test suite. In a
+clean environment, install packages from `requirements.txt`:
+
+```bash
+pip install -r requirements.txt
+```
+
+Once the dependencies are installed, run the tests with:
+
+```bash
+pytest
+```
+
+If any required packages are missing, `pytest` will raise `ImportError`
+messages during test collection.
+
 ### Scenario Overrides
 
 Values in `config/scenarios.yaml` modify the base parameters. Numeric overrides
@@ -128,6 +146,7 @@ After installing the requirements you can run the full test suite with `pytest`:
 ```bash
 pytest -q
 ```
+
 All tests are also executed automatically via the GitHub Actions workflow defined in `.github/workflows/ci.yml`.
 
 ## Roadmap

@@ -45,3 +45,8 @@ Following `reset_all()`, a new plan was initiated to systematically re-apply all
 5.  **Documentation:** This `SESSION_SUMMARY.md`, `TODO.md` (updated for current status), and `CHANGELOG.md` (to be updated next) are being re-created/updated.
 
 The next step after documentation is to run all tests and then submit if successful. The primary unresolved issue from the original goals is the failed validation, which will be the focus after this restoration.
+
+## Recent Additions
+- Introduced a lightweight CLI (`cli.py`) to run scenarios from `config/scenarios.yaml`.
+- Added `apply_scenario_overrides` and `get_mean_params` utilities with tests.
+- Installed dependencies and verified that the full test suite passes (47 tests).

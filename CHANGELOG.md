@@ -16,6 +16,10 @@
 - Project management and session tracking files:
   - `TODO.md` for listing pending tasks and future work.
   - `SESSION_SUMMARY.md` detailing work performed in the current session.
+- Lightweight command-line interface (`cli.py`) for running scenarios defined
+  in `config/scenarios.yaml`.
+- Utility functions `apply_scenario_overrides` and `get_mean_params` with
+  corresponding unit tests.
 
 ### Changed
 - Updated `requirements.txt`:

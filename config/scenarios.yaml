@@ -24,3 +24,7 @@ scenarios:
     min_test_age: 25 # Absolute value for min_test_age
   high_coverage:
     yield_wgs: 0.70 # Absolute value for yield_wgs
+
+scenario_grid:
+  familial_prop: [0.10, 0.20]
+  yield_wgs: [0.50, 0.70]

@@ -129,7 +129,6 @@ After installing the requirements you can run the full test suite with `pytest`:
 pytest -q
 ```
 
-=======
 All tests are also executed automatically via the GitHub Actions workflow defined in `.github/workflows/ci.yml`.
 
 ## Roadmap

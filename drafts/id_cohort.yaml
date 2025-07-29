@@ -1,0 +1,150 @@
+# Parameter Configuration for the Intellectual Disability (ID) Cohort Model
+# NOTE: This is a draft file for a proposed multi-cohort architecture.
+
+# --- METADATA ---
+cohort_name: "Intellectual Disability Model"
+version: 1.0
+description: "Parameters for a microsimulation of a specific health condition with mild/severe states, focused on an intervention of genomic testing."
+
+# --- HEALTH STATES ---
+# Defines the discrete health states used in this model's logic.
+states:
+  severity: [mild, severe]
+  # In a more complex model, could add more states like:
+  # cancer_status: [none, colorectal_pre, colorectal_local, colorectal_distal]
+
+# --- FIXED PARAMETERS ---
+# Global constants for the simulation.
+fixed_parameters:
+  # Simulation Horizon & Discounting
+  START_YEAR: 2020
+  END_YEAR: 2100
+  DISCOUNT_RATE: 0.035
+
+  # Cost Inflation
+  COST_REFERENCE_YEAR: 2017
+  INFLATION_RATE: 0.03
+
+  # Mortality
+  life_expectancy_by_severity:
+    mild: 74
+    severe: 54
+
+  # Employment Costs (per year)
+  employment_costs_by_status: # Indexed by 0:unemployed, 1:employed, 2:not_in_labour_force
+    - 0
+    - 10000
+    - 0
+
+  # Specific Fixed Costs (annual, pre-inflation)
+  ndis_cost: 45000
+  hospitalization_cost_per_event: 8500
+  mental_health_cost: 30418
+  informal_care_cost: 25000
+
+  # Carer Costs
+  carer_hours_per_week_by_severity:
+    mild: 5
+    severe: 15
+  wage_hour: 38
+
+  # Demographics
+  education_levels: [primary, secondary, tertiary]
+  age_bands_for_distribution: [[0, 14], [15, 64], [65, 100]]
+  age_band_proportions: [0.19, 0.65, 0.16]
+
+  # Morbidity
+  morbidity_keys: [epilepsy, asd, mental]
+
+  # Base Demographic Data (Placeholder - currently NZ data)
+  # In a real run, this would point to a file path. For this draft, values are illustrative.
+  # A data loader would read these.
+  baseline_mortality_by_age_band: [0.0002, 0.0001, 0.0001, 0.0002, 0.0003, 0.0005, 0.0007, 0.0011, 0.0019, 0.0035, 0.0055, 0.0085, 0.0130, 0.0200, 0.0350, 0.0600, 0.0950, 0.1500, 0.2500]
+  age_distribution_proportions: [0.064, 0.067, 0.069, 0.069, 0.071, 0.076, 0.080, 0.077, 0.080, 0.079, 0.073, 0.078, 0.077, 0.072, 0.055, 0.041, 0.031, 0.022, 0.012]
+
+
+# --- UNCERTAIN PARAMETERS (for PSA) ---
+# Defines the distributions for parameters sampled in PSA.
+# Helper functions (get_beta_params, etc.) would be used by the data loader to parse this.
+distributions:
+  # Using more generic names where possible
+  # Cost Parameters (Gamma Distributions)
+  cost_inpatient_by_severity:
+    mild:   { dist: gamma, mean: 5000,  std_dev_mult: 0.20 }
+    severe: { dist: gamma, mean: 15000, std_dev_mult: 0.20 }
+  cost_outpatient_by_severity:
+    mild:   { dist: gamma, mean: 1000,  std_dev_mult: 0.20 }
+    severe: { dist: gamma, mean: 3000,  std_dev_mult: 0.20 }
+  cost_pharmacy_by_severity:
+    mild:   { dist: gamma, mean: 200,   std_dev_mult: 0.20 }
+    severe: { dist: gamma, mean: 500,   std_dev_mult: 0.20 }
+
+  cost_education_support:
+    primary_low:    { dist: gamma, mean: 16107, std_dev_mult: 0.15 }
+    primary_medium: { dist: gamma, mean: 27903, std_dev_mult: 0.15 }
+    primary_high:   { dist: gamma, mean: 46733, std_dev_mult: 0.15 }
+    secondary_low:    { dist: gamma, mean: 18958, std_dev_mult: 0.15 }
+    secondary_medium: { dist: gamma, mean: 30789, std_dev_mult: 0.15 }
+    secondary_high:   { dist: gamma, mean: 49604, std_dev_mult: 0.15 }
+
+  cost_respite: { dist: gamma, mean: 13024, std_dev_mult: 0.20 }
+  cost_mobility: { dist: gamma, mean: 2493, std_dev_mult: 0.20 }
+
+  cost_welfare_by_severity:
+    mild:   { dist: gamma, mean: 3000, std_dev_mult: 0.20 }
+    severe: { dist: gamma, mean: 8000, std_dev_mult: 0.20 }
+
+  cost_morbidity:
+    epilepsy: { dist: gamma, mean: 2000, std_dev_mult: 0.20 }
+    asd:      { dist: gamma, mean: 1500, std_dev_mult: 0.20 }
+    mental:   { dist: gamma, mean: 1000, std_dev_mult: 0.20 }
+
+  cost_adjustment_wgs_diagnosis: { dist: normal, mean: -1000, std_dev: 100 }
+
+  # Utility Parameters (Beta Distributions)
+  utility_base_by_severity:
+    mild:   { dist: beta, mean: 0.78, std_dev: 0.02 }
+    severe: { dist: beta, mean: 0.65, std_dev: 0.03 }
+
+  utility_decay_rate: { dist: beta, mean: 0.0005, std_dev: 0.00005 }
+  utility_gain_diagnosis: { dist: beta, mean: 0.02, std_dev: 0.002 }
+  utility_gain_carer: { dist: beta, mean: 0.05, std_dev: 0.005 }
+  utility_adjustment_wgs_diagnosis: { dist: beta, mean: 0.01, std_dev: 0.001 }
+
+  utility_decrement_morbidity:
+    epilepsy: { dist: beta, mean: 0.04, std_dev: 0.005 }
+    asd:      { dist: beta, mean: 0.03, std_dev: 0.005 }
+    mental:   { dist: beta, mean: 0.05, std_dev: 0.005 }
+
+  # Probability / Rate Parameters
+  mortality_hazard_ratio_by_severity:
+    mild:   { dist: lognormal, s: 0.1, scale: 2.0 }
+    severe: { dist: lognormal, s: 0.1, scale: 4.0 }
+
+  probability_morbidity:
+    epilepsy: { dist: beta, mean: 0.25, std_dev: 0.03 }
+    asd:      { dist: beta, mean: 0.30, std_dev: 0.03 }
+    mental:   { dist: beta, mean: 0.35, std_dev: 0.04 }
+
+  proportion_familial: { dist: beta, alpha: 30, beta: 150 }
+  diagnostic_yield_wgs: { dist: beta, alpha: 45, beta: 55 }
+  proportion_severity_mild: { dist: beta, mean: 0.70, std_dev: 0.03 }
+  fertility_rate_multiplier: { dist: lognormal, s: 0.1, scale: 1.0 }
+
+  # Fixed Value Parameters within Distributions section
+  min_test_age: { dist: fixed, value: 0 }
+
+  # Hospitalization rates (Poisson mean)
+  hospitalization_rate_by_severity:
+    mild: { dist: fixed, value: 0.5 }
+    moderate: { dist: fixed, value: 1.5 } # Note: Model uses 3 levels here
+    severe: { dist: fixed, value: 3.0 }
+
+  # Income Parameters (Log-normal) - could be structured under distributions or as a separate table
+  income_distribution_params:
+    mild_primary:   { dist: lognormal, mu: 10.5, sigma: 0.5 }
+    mild_secondary: { dist: lognormal, mu: 10.8, sigma: 0.4 }
+    mild_tertiary:  { dist: lognormal, mu: 11.2, sigma: 0.3 }
+    severe_primary:   { dist: lognormal, mu: 10.3, sigma: 0.6 }
+    severe_secondary: { dist: lognormal, mu: 10.6, sigma: 0.5 }
+    severe_tertiary:  { dist: lognormal, mu: 10.9, sigma: 0.4 }

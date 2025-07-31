@@ -1,4 +1,4 @@
-# LifeCourseID Microsimulation Model
+# `lifecourse` Microsimulation Model
 
 ## Overview
 

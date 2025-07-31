@@ -6,3 +6,6 @@ numpy
 scipy
 pyyaml
 pyarrow
+pre-commit
+black
+ruff

@@ -10,7 +10,7 @@ DEFAULT_CONFIG = {
 
 MINIMAL_TEST_CONFIG = {
     "POP_SIZE": 100,
-    "PSA_N": 0, # No PSA runs for minimal test
+    "PSA_N": 0,  # No PSA runs for minimal test
     "SIMULATION_YEARS": 5,
     "CALIBRATION_POP_SIZE": 100,
     "STRUCTURAL_UNCERTAINTY_POP_SIZE": 100,

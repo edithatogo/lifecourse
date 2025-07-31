@@ -6,9 +6,15 @@ from lifecourse.analysis.run_helpers import run_sim
 
 def main():
     parser = argparse.ArgumentParser(description="Run LifeCourseID scenarios")
-    parser.add_argument("scenario", help="Scenario name defined in config/scenarios.yaml")
-    parser.add_argument("--pop-size", type=int, default=100, help="Population size for the run")
-    parser.add_argument("--config", default="config/scenarios.yaml", help="Path to scenario YAML file")
+    parser.add_argument(
+        "scenario", help="Scenario name defined in config/scenarios.yaml"
+    )
+    parser.add_argument(
+        "--pop-size", type=int, default=100, help="Population size for the run"
+    )
+    parser.add_argument(
+        "--config", default="config/scenarios.yaml", help="Path to scenario YAML file"
+    )
     args = parser.parse_args()
 
     scenarios = load_scenarios_from_yaml(args.config)

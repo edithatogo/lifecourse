@@ -3,7 +3,9 @@ This file contains the draft of the DiseaseModel abstract base class.
 NOTE: This code is a draft, has not been integrated, and has not been tested.
 It is part of a design exercise to refactor the model for multi-cohort support.
 """
+
 from abc import ABC, abstractmethod
+
 
 class DiseaseModel(ABC):
     """
@@ -13,6 +15,7 @@ class DiseaseModel(ABC):
     Each concrete implementation of this class will represent the specific logic
     for a particular disease or cohort (e.g., Intellectual Disability, Lynch Syndrome).
     """
+
     def __init__(self, cohort_params: dict):
         """
         Initializes the disease model with a dictionary of cohort-specific parameters.

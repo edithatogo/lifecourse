@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from src.analysis.advanced_analysis import run_calibration, run_structural_uncertainty
 
+TEST_YEARS = range(2020, 2022)
+
 class TestAdvancedAnalysis(unittest.TestCase):
 
     def setUp(self):
@@ -26,10 +28,10 @@ class TestAdvancedAnalysis(unittest.TestCase):
         mock_run_sim.return_value = (525000, 100) # (dCost, dQALY)
 
         # Run the calibration function
-        result = run_calibration(self.base_params, pop_size=100) # Small pop_size for test
+        result = run_calibration(self.base_params, pop_size=100, years=TEST_YEARS)
 
         # Assertions
-        mock_run_sim.assert_called_once_with(self.base_params, pop_size=100)
+        mock_run_sim.assert_called_once_with(self.base_params, pop_size=100, years=TEST_YEARS)
         self.assertIsInstance(result, dict)
         self.assertIn('sim_cost', result)
         self.assertIn('error_pct', result)
@@ -48,7 +50,7 @@ class TestAdvancedAnalysis(unittest.TestCase):
         mock_run_sim.return_value = (10000, 50) # (dCost, dQALY)
         
         num_runs = 5 # Small number for testing
-        df = run_structural_uncertainty(self.base_params, num_runs=num_runs, pop_size=100)
+        df = run_structural_uncertainty(self.base_params, num_runs=num_runs, pop_size=100, years=TEST_YEARS)
 
         # Assertions
         self.assertEqual(mock_run_sim.call_count, num_runs)

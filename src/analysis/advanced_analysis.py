@@ -6,11 +6,11 @@ from src.model.parameters import POP_SIZE, DISTRIBUTIONS, sample_params_from_dis
 # Benchmark for calibration (example values, replace with actual if available)
 OBS_BENCHMARK = {'mild': 200000, 'severe': 500000} # Assuming 2 severity levels for simplicity
 
-def run_calibration(base_mean_params, pop_size=POP_SIZE):
+def run_calibration(base_mean_params, pop_size=POP_SIZE, years=None):
     """Runs a simulation with base parameters and compares against observed benchmarks."""
     print("\n--- Running Calibration Analysis ---")
     # Run a simulation with the base mean parameters
-    dc, dq = run_sim(base_mean_params, pop_size=pop_size)
+    dc, dq = run_sim(base_mean_params, pop_size=pop_size, years=years)
     sim_cost = dc # Assuming dCost is the relevant cost for calibration
 
     # For simplicity, let's assume we want to calibrate against a total cost benchmark
@@ -32,7 +32,7 @@ def run_calibration(base_mean_params, pop_size=POP_SIZE):
     return {'sim_cost': sim_cost, 'benchmark_cost': benchmark_total_cost, 'error_pct': error_pct}
 
 
-def run_structural_uncertainty(base_mean_params, num_runs=10, pop_size=POP_SIZE):
+def run_structural_uncertainty(base_mean_params, num_runs=10, pop_size=POP_SIZE, years=None):
     """Runs simulations with structural variations (e.g., alternative survival models)."""
     print("\n--- Running Structural Uncertainty Analysis ---")
     results = []
@@ -44,7 +44,7 @@ def run_structural_uncertainty(base_mean_params, num_runs=10, pop_size=POP_SIZE)
         temp_params['mort_hr_mild'] = DISTRIBUTIONS['mort_hr_mild']['scale'] * (1 + (np.random.rand() - 0.5) * 0.5) 
         temp_params['mort_hr_severe'] = DISTRIBUTIONS['mort_hr_severe']['scale'] * (1 + (np.random.rand() - 0.5) * 0.5)
 
-        dc, dq = run_sim(temp_params, pop_size=pop_size)
+        dc, dq = run_sim(temp_params, pop_size=pop_size, years=years)
         results.append({'run': i, 'dCost': dc, 'dQALY': dq})
 
     structural_df = pd.DataFrame(results)

@@ -198,3 +198,6 @@ results/
 
 # Deterministic summary
 deterministic_summary.csv
+
+# macOS system files
+.DS_Store

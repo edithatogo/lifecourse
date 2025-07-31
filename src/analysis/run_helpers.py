@@ -7,16 +7,14 @@ import dask
 from dask.distributed import LocalCluster, Client, progress
 
 from src.model.population_system import PopulationSystemDask
-from src.model.parameters import POP_SIZE, YEARS, DISTRIBUTIONS, prepare_dask_params, sample_params_from_dist
+from src.model.parameters import POP_SIZE, DISTRIBUTIONS, prepare_dask_params, sample_params_from_dist
 
-def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None):
+def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None):
     actual_seed = 42
     if seed_idx is not None:
         actual_seed += seed_idx
 
     np.random.seed(actual_seed)
-    random.seed(actual_seed)  # Also seed Python's built-in random module
-    dask.config.set(scheduler="single-threaded")
 
     dask_params = prepare_dask_params(sampled_params)
 
@@ -28,38 +26,66 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None):
     annual_costs_p = []
     annual_qalys_p = []
 
-    for yr in YEARS:
+    individual_qalys_r = [] # New list to store individual QALYs
+    individual_qalys_p = [] # New list to store individual QALYs
+
+    for yr in years:
         sim_r.step(yr)
         if sim_r.pop.npartitions > 0: # Check if population is not empty
             annual_costs_r.append(sim_r.pop['annual_cost'].sum())
             annual_qalys_r.append(sim_r.pop['annual_qaly'].sum())
+            individual_qalys_r.append(sim_r.pop['annual_qaly']) # Store individual QALYs
         else:
             annual_costs_r.append(da.from_array(np.array(0.0)))
             annual_qalys_r.append(da.from_array(np.array(0.0)))
+            individual_qalys_r.append(dd.from_pandas(pd.Series([], dtype=float), npartitions=1)) # Empty Series for individual QALYs
 
         sim_p.step(yr)
         if sim_p.pop.npartitions > 0: # Check if population is not empty
             annual_costs_p.append(sim_p.pop['annual_cost'].sum())
             annual_qalys_p.append(sim_p.pop['annual_qaly'].sum())
+            individual_qalys_p.append(sim_p.pop['annual_qaly']) # Store individual QALYs
         else:
             annual_costs_p.append(da.from_array(np.array(0.0)))
             annual_qalys_p.append(da.from_array(np.array(0.0)))
+            individual_qalys_p.append(dd.from_pandas(pd.Series([], dtype=float), npartitions=1)) # Empty Series for individual QALYs
 
     cum_r_c_dask = sum(annual_costs_r)
     cum_r_q_dask = sum(annual_qalys_r)
     cum_p_c_dask = sum(annual_costs_p)
     cum_p_q_dask = sum(annual_qalys_p)
 
-    cum_r_c, cum_r_q, cum_p_c, cum_p_q = dd.compute(
+    # Compute all Dask objects at once
+    computed_results = dd.compute(
         cum_r_c_dask,
         cum_r_q_dask,
         cum_p_c_dask,
-        cum_p_q_dask
+        cum_p_q_dask,
+        *individual_qalys_r,
+        *individual_qalys_p
     )
+
+    # Extract computed results
+    cum_r_c, cum_r_q, cum_p_c, cum_p_q = computed_results[0:4]
+    computed_individual_qalys_r = computed_results[4:4+len(years)]
+    computed_individual_qalys_p = computed_results[4+len(years):]
+
+    # Debugging individual QALYs
+    print("DEBUG: Individual QALYs for Retrospective Arm (first 5 individuals, first year):")
+    if len(computed_individual_qalys_r[0]) > 0:
+        print(computed_individual_qalys_r[0].head(5).tolist())
+    else:
+        print("Empty population for retrospective arm in first year.")
+
+    print("DEBUG: Individual QALYs for Prospective Arm (first 5 individuals, first year):")
+    if len(computed_individual_qalys_p[0]) > 0:
+        print(computed_individual_qalys_p[0].head(5).tolist())
+    else:
+        print("Empty population for prospective arm in first year.")
 
     return (cum_p_c - cum_r_c, cum_p_q - cum_r_q)
 
-def run_scenario(sampled_params, pop_size=POP_SIZE):
+def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
     dask_params = prepare_dask_params(sampled_params)
 
     sim_r = PopulationSystemDask(pop_size, dask_params, 'retrospective')
@@ -72,7 +98,7 @@ def run_scenario(sampled_params, pop_size=POP_SIZE):
 
     cols_to_sum = ['annual_cost', 'annual_qaly', 'cost_health', 'cost_edu', 'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp', 'cost_morbidity']
 
-    for yr in YEARS:
+    for yr in years:
         sim_r.step(yr)
         if sim_r.pop.npartitions > 0:
             annual_series_r_dask_list.append(sim_r.pop[cols_to_sum].sum()) # Store Dask Series
@@ -92,7 +118,7 @@ def run_scenario(sampled_params, pop_size=POP_SIZE):
     all_dask_objects = annual_series_r_dask_list + annual_series_p_dask_list + ses_r_dask_list + ses_p_dask_list
     computed_results = dd.compute(*all_dask_objects)
 
-    num_years = len(YEARS)
+    num_years = len(years)
     all_annual_r_computed_series = computed_results[0:num_years] # List of pandas Series
     all_annual_p_computed_series = computed_results[num_years:2*num_years] # List of pandas Series
     ses_r_computed_list = computed_results[2*num_years:3*num_years]
@@ -107,7 +133,7 @@ def run_scenario(sampled_params, pop_size=POP_SIZE):
     ]):
         cum_c = 0.0
         cum_q = 0.0
-        for yr_idx, yr in enumerate(YEARS):
+        for yr_idx, yr in enumerate(years):
             annual_sums_series = annual_computed_series_list[yr_idx] # This is a pandas Series
             ses_series = ses_computed_list[yr_idx]
 

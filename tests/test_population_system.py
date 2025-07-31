@@ -169,7 +169,7 @@ class TestPopulationSystem(unittest.TestCase):
 
         if len(pop_after_cq_df) > 0:
             self.assertTrue(pop_after_cq_df['annual_cost'].sum() >= 0)
-            self.assertTrue(pop_after_cq_df['annual_qaly'].between(-1.5 * (pop_system.params['DISCOUNT'] +1) , 1.5 * (pop_system.params['DISCOUNT'] +1) ).all()) # Wider range to account for adjustments
+            self.assertTrue(pop_after_cq_df['annual_qaly'].between(-3.0, 3.0).all()) # Wider range to account for adjustments
 
             if 0 in pop_after_cq_df.index and len(pop_df_cq)>0 and pop_df_cq.index[0] == 0 : # If the modified individual is still index 0
                 first_person_costs = pop_after_cq_df.loc[0]

@@ -35,7 +35,8 @@ class PopulationSystemDask:
         if moms_dd.npartitions == 0:
             return dd.from_pandas(pd.DataFrame(columns=self.pop.columns), npartitions=1)
 
-        moms_merged_dd = moms_dd.merge(self.params['FERT_RATES_DF'], on=['severity', 'age'], how='left').fillna(0)
+        moms_merged_dd = moms_dd.merge(self.params['FERT_RATES_DF'], on=['severity', 'age'], how='left')
+        moms_merged_dd['rate'] = moms_merged_dd['rate'].fillna(0)
 
         def determine_births_and_familial_status(df_partition):
             if df_partition.empty:
@@ -124,17 +125,6 @@ class PopulationSystemDask:
             if m0.any(): ec[m0] = params['EDU'][0, df.loc[m0, 'support'].values] * disc
             if m1.any(): ec[m1] = params['EDU'][1, df.loc[m1, 'support'].values] * disc
 
-            # New costs
-            cost_ndis = np.where(df['diagnosed'].values & (sev == 1), params['NDIS_COST'], 0) * disc # NDIS for diagnosed severe
-            cost_carer = params['CARER_HOURS_NP'][sev] * params['WAGE_HR'] * disc
-
-            # Hospitalization costs (poisson distributed events)
-            hosp_events = np.random.poisson(params['HOSP_RATE_NP'][sev], size=n)
-            cost_hospital = hosp_events * params['HOSP_COST'] * disc
-
-            # Other common costs
-            cost_common_other = (params['MENTAL_HEALTH_COST'] + params['INFORMAL_CARE_COST']) * disc
-
             morb_cost = np.zeros(n, dtype=np.float64)
             base_rand = np.random.random(n)
             for i, k in enumerate(params['MORB_KEYS']):
@@ -151,20 +141,19 @@ class PopulationSystemDask:
                 morb_qaly += m.astype(np.float64) * params['MORB_QALY_NP'][i] * disc
 
             uq = params['U_BASE_NP'][sev] * np.exp(-params['U_DECAY'] * np.clip(ages - 20, 0, None))
-            total_qaly = (uq + df['diagnosed'].values.astype(int) * params['U_DIAG'] + params['U_CARER']) * disc - morb_qaly
+            total_qaly = (uq + params['U_CARER']) * disc - morb_qaly # U_CARER applied universally
 
             if self.arm == 'prospective':
                 m = df['diagnosed'].values
-                total_qaly += m.astype(np.float64) * params['WGS_DIAG_QALY_ADJUSTMENT'] * disc
+                total_qaly += m.astype(np.float64) * (params['U_DIAG'] + params['WGS_DIAG_QALY_ADJUSTMENT']) * disc
 
-            return df.assign(
-                cost_health=hc, cost_edu=ec, cost_respite=rc, cost_mobility=mc,
-                cost_welfare=wc, cost_emp=emp, cost_morbidity=morb_cost,
-                cost_ndis=cost_ndis, cost_carer=cost_carer, cost_hospital=cost_hospital, cost_common_other=cost_common_other,
-                annual_cost=hc + ec + rc + mc + wc + emp + morb_cost + cost_ndis + cost_carer + cost_hospital + cost_common_other,
-                annual_qaly=total_qaly
-            )
-
+            df['annual_cost'] = hc + ec + rc + mc + wc + emp + morb_cost
+            df['cost_health'] = hc
+            df['cost_respite'] = rc
+            df['annual_qaly'] = total_qaly
+            df['cost_ndis'] = df['diagnosed'].values.astype(int) * params['NDIS_COST'] * disc
+            df['cost_carer'] = params['CARER_HOURS_NP'][sev] * params['WAGE_HR'] * disc
+            return df
         self.pop = self.pop.map_partitions(cost_qaly_partition, meta=self.pop._meta).persist()
 
     def step(self, year):

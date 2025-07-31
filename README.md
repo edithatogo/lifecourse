@@ -33,7 +33,7 @@ The project is organized into a modular Python package to enhance maintainabilit
 ```
 LifeCourseID/
 ├── src/
-��   ├── __init__.py
+├── __init__.py
 │   ├── model/
 │   │   ├── __init__.py
 │   │   ├── parameters.py

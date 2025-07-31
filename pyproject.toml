@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lifecourseid"
+version = "0.1.0"
+authors = [
+  { name="Dylan Mordaunt", email="dylan.mordaunt@example.com" }, # Placeholder email
+]
+description = "A microsimulation model for evaluating cost-effectiveness and budget impact of health interventions."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Simulation",
+    "Intended Audience :: Science/Research",
+]
+keywords = ["microsimulation", "health economics", "cost-effectiveness", "QALY", "budget impact", "Dask"]
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "dask",
+    "matplotlib",
+    "pyyaml",
+    "scipy",
+    "seaborn",
+    "openpyxl", # For Excel output if used
+    "pyarrow",
+    "pytest", # For testing, though typically not a runtime dependency
+]
+
+[project.scripts]
+lifecourseid-cli = "src.cli:main"
+lifecourseid-main = "src.main:main"
+
+[project.urls]
+"Homepage" = "https://github.com/edithatogo/lifecourse"
+"Bug Tracker" = "https://github.com/edithatogo/lifecourse/issues"

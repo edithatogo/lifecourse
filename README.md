@@ -65,39 +65,44 @@ LifeCourseID/
 -   **`src/analysis/run_helpers.py`**: Provides high-level functions (`run_sim` and `run_scenario`) to orchestrate the execution of the microsimulation model for different analytical purposes (e.g., single runs, scenario comparisons, data collection for detailed outputs).
 -   **`main.py`**: The primary entry point for the application. It orchestrates the entire simulation and analysis workflow, calling functions from the `src/model` and `src/analysis` modules, and handling output generation.
 
-## Setup and Installation
+## Installation
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/LifeCourseID.git
-    cd LifeCourseID
-    ```
-2.  **Create a virtual environment (recommended):**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-    ```
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-## How to Run
-
-To execute the full microsimulation and generate all analysis results (CSVs and plots), run the `main.py` script from the project root directory:
+You can install the `lifecourseid` package using pip:
 
 ```bash
-python main.py
+pip install lifecourseid
 ```
 
-Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
+## Usage
 
-### Command Line Interface
+After installation, you can run the simulation from your terminal. The `lifecourseid` package provides a command-line entry point. You can run the full simulation and analysis workflow using:
+
+```bash
+python -m lifecourseid.main
+```
+
+Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory relative to where you run the command.
+
+### Running with specific configurations
+
+You can specify a predefined configuration (e.g., `MINIMAL_TEST_CONFIG`) or provide an external YAML configuration file:
+
+```bash
+python -m lifecourseid.main --config_name MINIMAL_TEST_CONFIG
+```
+
+Or with a custom YAML file:
+
+```bash
+python -m lifecourseid.main --config_file path/to/your_config.yaml
+```
+
+### Command Line Interface (CLI) for Scenarios
 
 You can also run a specific scenario using the lightweight CLI:
 
 ```bash
-python cli.py base --pop-size 100
+python -m lifecourseid.cli base --pop-size 100
 ```
 
 This reads `config/scenarios.yaml` and prints the incremental cost, QALY, and ICER for the chosen scenario.

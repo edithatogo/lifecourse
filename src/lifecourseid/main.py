@@ -5,16 +5,16 @@ import yaml
 import argparse
 from dask.distributed import LocalCluster, Client
 
-from config.config_loader import load_config # Import the new config loader
+from lifecourse.config.config_loader import load_config
 
-from src.model.parameters import (
+from lifecourse.model.parameters import (
     DISTRIBUTIONS,
     START_YEAR,
     sample_params_from_dist,
     get_mean_params,
 )
-from src.analysis.run_helpers import run_sim, run_scenario
-from src.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+from lifecourse.analysis.run_helpers import run_sim, run_scenario
+from lifecourse.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
 
 def main():
     parser = argparse.ArgumentParser(description="Run LifeCourseID Simulation and Analysis.")

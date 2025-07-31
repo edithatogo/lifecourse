@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lifecourseid"
-version = "0.1.0"
+name = "lifecourse"
+version = "0.1.2"
 authors = [
   { name="Dylan Mordaunt", email="dylan.mordaunt@example.com" }, # Placeholder email
 ]
@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
-    "Topic :: Scientific/Engineering :: Simulation",
+    "Topic :: Scientific/Engineering",
     "Intended Audience :: Science/Research",
 ]
 keywords = ["microsimulation", "health economics", "cost-effectiveness", "QALY", "budget impact", "Dask"]
@@ -31,12 +31,16 @@ dependencies = [
     "seaborn",
     "openpyxl", # For Excel output if used
     "pyarrow",
-    "pytest", # For testing, though typically not a runtime dependency
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
 ]
 
 [project.scripts]
-lifecourseid-cli = "src.cli:main"
-lifecourseid-main = "src.main:main"
+lifecourse-cli = "lifecourse.cli:main"
+lifecourse-main = "lifecourse.main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/edithatogo/lifecourse"

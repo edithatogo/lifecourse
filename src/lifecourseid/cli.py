@@ -1,7 +1,7 @@
 import argparse
-from src.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
-from src.model.parameters import DISTRIBUTIONS, get_mean_params
-from src.analysis.run_helpers import run_sim
+from lifecourse.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params
+from lifecourse.analysis.run_helpers import run_sim
 
 
 def main():

@@ -15,6 +15,8 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None):
         actual_seed += seed_idx
 
     np.random.seed(actual_seed)
+    random.seed(actual_seed)  # Also seed Python's built-in random module
+    dask.config.set(scheduler="synchronous") # Enforce single-threaded execution for determinism
 
     dask_params = prepare_dask_params(sampled_params)
 

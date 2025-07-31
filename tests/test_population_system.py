@@ -159,6 +159,9 @@ class TestPopulationSystem(unittest.TestCase):
             pop_df_cq.loc[idx_to_mod, 'uses_respite'] = True
             pop_df_cq.loc[idx_to_mod, 'school'] = 0
             pop_df_cq.loc[idx_to_mod, 'support'] = 1
+            pop_df_cq.loc[idx_to_mod, 'needs_mobility'] = True # Added for mobility cost test
+            pop_df_cq.loc[idx_to_mod, 'employment'] = 1 # Added for employment cost test (assuming EMP_NP[1] > 0)
+            pop_df_cq.loc[idx_to_mod, 'education'] = 'primary' # Added for income test
             pop_system.pop = dd.from_pandas(pop_df_cq, npartitions=pop_system.pop.npartitions or 1)
 
         pop_system._cost_qaly(year=START_YEAR)
@@ -179,6 +182,15 @@ class TestPopulationSystem(unittest.TestCase):
                 # self.assertTrue(first_person_costs['cost_edu'] > 0)
                 if pop_system.params['NDIS_COST'] > 0 : self.assertTrue(first_person_costs['cost_ndis'] > 0)
                 if pop_system.params['CARER_HOURS_NP'][1] * pop_system.params['WAGE_HR'] > 0: self.assertTrue(first_person_costs['cost_carer'] > 0)
+                if pop_system.params['MOBILITY'] > 0: self.assertTrue(first_person_costs['cost_mobility'] < 0) # Mobility is negative cost
+                if pop_system.params['WELFARE_NP'][1] > 0: self.assertTrue(first_person_costs['cost_welfare'] > 0)
+                if pop_system.params['EMP_NP'][1] > 0: self.assertTrue(first_person_costs['cost_emp'] > 0)
+                # Morbidity cost is probabilistic, so we can't assert > 0 directly unless we mock random
+                # self.assertTrue(first_person_costs['cost_morbidity'] >= 0)
+                if pop_system.params['HOSP_COST'] > 0: self.assertTrue(first_person_costs['cost_hospital'] >= 0) # Can be 0 if no events
+                if pop_system.params['MENTAL_HEALTH_COST'] + pop_system.params['INFORMAL_CARE_COST'] > 0: self.assertTrue(first_person_costs['cost_common_other'] > 0)
+                # Income should be positive for employed individuals
+                self.assertTrue(first_person_costs['income'] > 0)
 
 
     def test_step_function(self):

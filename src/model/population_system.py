@@ -119,6 +119,13 @@ class PopulationSystemDask:
             wc = params['WELFARE_NP'][sev] * disc
             emp = EMP_NP[df['employment'].values] * disc
 
+            # Hospitalization costs (poisson distributed events)
+            hosp_events = np.random.poisson(params['HOSP_RATE_NP'][sev], size=n)
+            cost_hospital = hosp_events * params['HOSP_COST'] * disc
+
+            # Other common costs
+            cost_common_other = (params['MENTAL_HEALTH_COST'] + params['INFORMAL_CARE_COST']) * disc
+
             ec = np.zeros(n, dtype=np.float64)
             m0 = df['school'] == 0
             m1 = df['school'] == 1
@@ -153,6 +160,21 @@ class PopulationSystemDask:
             df['annual_qaly'] = total_qaly
             df['cost_ndis'] = df['diagnosed'].values.astype(int) * params['NDIS_COST'] * disc
             df['cost_carer'] = params['CARER_HOURS_NP'][sev] * params['WAGE_HR'] * disc
+            df['cost_mobility'] = mc
+            df['cost_welfare'] = wc
+            df['cost_emp'] = emp
+
+            # Impute income based on severity and education
+            income = np.zeros(n, dtype=np.float64)
+            for i, sev_label in enumerate(['mild', 'severe']): # Assuming 0:mild, 1:severe
+                for edu_label in params['EDUCATION_LEVELS']:
+                    mask = (df['severity'] == i) & (df['education'] == edu_label)
+                    if mask.any():
+                        mu, sigma = params['INCOME_PARAMS'][sev_label][edu_label]
+                        income[mask] = np.exp(np.random.normal(mu, sigma, size=mask.sum()))
+            df['income'] = income
+            df['cost_hospital'] = cost_hospital
+            df['cost_common_other'] = cost_common_other
             return df
         self.pop = self.pop.map_partitions(cost_qaly_partition, meta=self.pop._meta).persist()
 

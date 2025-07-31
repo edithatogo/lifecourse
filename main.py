@@ -5,7 +5,7 @@ import yaml
 import argparse
 from dask.distributed import LocalCluster, Client
 
-from config.simulation_configs import DEFAULT_CONFIG, MINIMAL_TEST_CONFIG # Import configurations
+from config.config_loader import load_config # Import the new config loader
 
 from src.model.parameters import (
     DISTRIBUTIONS,
@@ -20,15 +20,12 @@ def main():
     parser = argparse.ArgumentParser(description="Run LifeCourseID Simulation and Analysis.")
     parser.add_argument('--config_name', type=str, default='DEFAULT_CONFIG',
                         help='Name of the simulation configuration to use (e.g., DEFAULT_CONFIG, MINIMAL_TEST_CONFIG).')
+    parser.add_argument('--config_file', type=str,
+                        help='Path to an external YAML configuration file to load and override settings.')
     args = parser.parse_args()
 
-    # Load selected configuration
-    if args.config_name == 'DEFAULT_CONFIG':
-        config = DEFAULT_CONFIG
-    elif args.config_name == 'MINIMAL_TEST_CONFIG':
-        config = MINIMAL_TEST_CONFIG
-    else:
-        raise ValueError(f"Unknown configuration name: {args.config_name}")
+    # Load configuration using the new robust loader
+    config = load_config(config_name=args.config_name, config_file_path=args.config_file)
 
     # Update global parameters based on loaded configuration
     current_pop_size = config['POP_SIZE']

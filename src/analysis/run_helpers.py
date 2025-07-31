@@ -88,6 +88,16 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None):
     return (cum_p_c - cum_r_c, cum_p_q - cum_r_q)
 
 def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
+    if pop_size == 0:
+        # Return empty DataFrame and zero costs/qalys for empty population
+        empty_df = pd.DataFrame(columns=[
+            'arm', 'year', 'annual_cost', 'cost_health', 'cost_edu',
+            'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp',
+            'cost_morbidity', 'costs', 'qalys',
+            'ses_q0_pct', 'ses_q1_pct', 'ses_q2_pct', 'ses_q3_pct', 'ses_q4_pct'
+        ])
+        return (0.0, 0.0), empty_df
+
     dask_params = prepare_dask_params(sampled_params)
 
     sim_r = PopulationSystemDask(pop_size, dask_params, 'retrospective')

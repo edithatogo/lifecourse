@@ -35,6 +35,32 @@ class TestRunHelpersIntegration(unittest.TestCase):
         self.assertIsInstance(dc3, (float, int, np.number))
         self.assertIsInstance(dq3, (float, int, np.number))
 
+    def test_run_sim_different_pop_sizes(self):
+        # Test with a smaller population size
+        dc_small, dq_small = run_sim(self.sampled_params, pop_size=5, years=TEST_YEARS)
+        self.assertIsInstance(dc_small, (float, int, np.number))
+        self.assertIsInstance(dq_small, (float, int, np.number))
+        self.assertFalse(np.isnan(dc_small), "d_cost should not be NaN for small pop_size")
+        self.assertFalse(np.isnan(dq_small), "d_qaly should not be NaN for small pop_size")
+
+        # Test with a larger population size (but still small for quick testing)
+        dc_large, dq_large = run_sim(self.sampled_params, pop_size=50, years=TEST_YEARS)
+        self.assertIsInstance(dc_large, (float, int, np.number))
+        self.assertIsInstance(dq_large, (float, int, np.number))
+        self.assertFalse(np.isnan(dc_large), "d_cost should not be NaN for large pop_size")
+        self.assertFalse(np.isnan(dq_large), "d_qaly should not be NaN for large pop_size")
+
+    def test_run_sim_different_year_ranges(self):
+        # Test with a single year
+        dc_single_year, dq_single_year = run_sim(self.sampled_params, pop_size=TEST_POP_SIZE, years=range(START_YEAR, START_YEAR + 1))
+        self.assertIsInstance(dc_single_year, (float, int, np.number))
+        self.assertIsInstance(dq_single_year, (float, int, np.number))
+
+        # Test with a longer year range
+        dc_long_years, dq_long_years = run_sim(self.sampled_params, pop_size=TEST_POP_SIZE, years=range(START_YEAR, START_YEAR + 5))
+        self.assertIsInstance(dc_long_years, (float, int, np.number))
+        self.assertIsInstance(dq_long_years, (float, int, np.number))
+
     def test_run_scenario_output_type_and_structure(self):
         (dc, dq), df_output = run_scenario(self.sampled_params, pop_size=TEST_POP_SIZE, years=TEST_YEARS)
 
@@ -72,6 +98,43 @@ class TestRunHelpersIntegration(unittest.TestCase):
             arm_data = df_output[df_output['arm'] == arm_name].sort_values(by='year')
             self.assertTrue(np.all(np.diff(arm_data['costs']) >= -1e-9), f"Cumulative costs for {arm_name} arm should be non-decreasing")
             self.assertTrue(np.all(np.diff(arm_data['qalys']) >= -1e-9), f"Cumulative QALYs for {arm_name} arm should be non-decreasing")
+
+    def test_run_scenario_empty_population(self):
+        # Test with an empty population (pop_size=0)
+        (dc_empty, dq_empty), df_output_empty = run_scenario(self.sampled_params, pop_size=0, years=TEST_YEARS)
+        self.assertEqual(dc_empty, 0.0, "d_cost should be 0 for empty population")
+        self.assertEqual(dq_empty, 0.0, "d_qaly should be 0 for empty population")
+        self.assertTrue(df_output_empty.empty, "DataFrame output should be empty for empty population")
+
+    def test_run_scenario_with_overrides(self):
+        # Create a dummy scenario with overrides
+        overridden_params = self.sampled_params.copy()
+        overridden_params['yield_wgs'] = 0.9 # Override yield_wgs
+        overridden_params['min_test_age'] = 10 # Override min_test_age
+
+        # Run scenario with overridden parameters
+        (dc, dq), df_output = run_scenario(overridden_params, pop_size=TEST_POP_SIZE, years=TEST_YEARS)
+
+        # Assertions on the output (e.g., check if costs/qalys are different from base run)
+        # This is a high-level check, detailed validation would be in unit tests for _cost_qaly etc.
+        self.assertIsInstance(dc, (float, int, np.number))
+        self.assertIsInstance(dq, (float, int, np.number))
+        self.assertFalse(np.isnan(dc))
+        self.assertFalse(np.isnan(dq))
+
+        # More specific checks could involve running a base scenario and comparing results,
+        # but for integration, just ensuring it runs and produces plausible output is key.
+        # For example, if yield_wgs is higher, dQALY might be higher (but not guaranteed due to randomness)
+        # A simple check: ensure the output DataFrame is not empty and has expected columns.
+        self.assertFalse(df_output.empty)
+        expected_cols = [
+            'arm', 'year', 'annual_cost', 'cost_health', 'cost_edu',
+            'cost_respite', 'cost_mobility', 'cost_welfare', 'cost_emp',
+            'cost_morbidity', 'costs', 'qalys',
+            'ses_q0_pct', 'ses_q1_pct', 'ses_q2_pct', 'ses_q3_pct', 'ses_q4_pct'
+        ]
+        for col in expected_cols:
+            self.assertIn(col, df_output.columns, f"Expected column '{col}' not in run_scenario DataFrame with overrides")
 
 if __name__ == '__main__':
     unittest.main()

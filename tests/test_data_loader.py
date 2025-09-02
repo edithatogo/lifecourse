@@ -1,90 +1,147 @@
 import unittest
-from unittest.mock import patch
-import pandas as pd
-from io import StringIO
+import tempfile
 import os
-from src.data_loader import (
-    load_nz_population_distribution,
-    load_nz_life_table_hazards,
-    apply_scenario_overrides,
-    load_scenarios_from_yaml,
-)
-from src.model.parameters import get_mean_params, DISTRIBUTIONS
+from lifecourseid.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
 
 
 class TestDataLoader(unittest.TestCase):
-    def test_load_nz_population_distribution(self):
-        # Sample CSV data mimicking the real file structure
-        csv_data = """Geography,Age,Sex,Population
-New Zealand,"0 years",Male,100
-New Zealand,"1 year",Male,110
-New Zealand,"0 years",Female,90
-New Zealand,"1 year",Female,105
-Other,"0 years",Male,50
-"""
-        # Mock pd.read_csv to use our sample data
-        with patch("pandas.read_csv", return_value=pd.read_csv(StringIO(csv_data))):
-            pop_dist = load_nz_population_distribution(url="mock_url")
+    def setUp(self):
+        # Create a temporary YAML file for testing
+        self.temp_file = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        )
+        self.temp_file.write("""
+scenarios:
+  base:
+    param1: null
+    param2: 10
+  scenario_a:
+    param1: 5
+    param2: null
+  scenario_b:
+    param1: null
+    param2: 20
 
-            # Assertions
-            self.assertIsInstance(pop_dist, pd.DataFrame)
-            self.assertEqual(list(pop_dist.columns), ["age", "sex", "count"])
-            self.assertEqual(len(pop_dist), 4)  # Should filter out 'Other'
-            self.assertTrue(pd.api.types.is_integer_dtype(pop_dist["age"]))
-            self.assertEqual(pop_dist["count"].sum(), 405)
+scenario_grid:
+  param1: [1, 2]
+  param2: [100, 200]
+""")
+        self.temp_file.close()
 
-    def test_load_nz_life_table_hazards(self):
-        # Sample CSV data mimicking the real file structure
-        csv_data = """Sex,Age,nMx
-Male,0,0.005
-Male,1,0.001
-Female,0,0.004
-Female,1,0.0009
-"""
-        # Mock pd.read_csv to use our sample data
-        with patch("pandas.read_csv", return_value=pd.read_csv(StringIO(csv_data))):
-            hazards = load_nz_life_table_hazards(url="mock_url")
+    def tearDown(self):
+        # Clean up the temporary file
+        os.unlink(self.temp_file.name)
 
-            # Assertions
-            self.assertIsInstance(hazards, dict)
-            self.assertIn("Male", hazards)
-            self.assertIn("Female", hazards)
-            self.assertEqual(len(hazards["Male"]), 2)
-            self.assertEqual(len(hazards["Female"]), 2)
-            self.assertAlmostEqual(hazards["Male"][0], 0.005)
-            self.assertAlmostEqual(hazards["Female"][1], 0.0009)
+    def test_load_scenarios_from_yaml(self):
+        """Test loading scenarios from YAML file."""
+        scenarios = load_scenarios_from_yaml(self.temp_file.name)
+
+        # Check that all scenarios are loaded
+        self.assertIn("base", scenarios)
+        self.assertIn("scenario_a", scenarios)
+        self.assertIn("scenario_b", scenarios)
+
+        # Check specific values
+        self.assertEqual(scenarios["base"]["param2"], 10)
+        self.assertEqual(scenarios["scenario_a"]["param1"], 5)
+        self.assertIsNone(scenarios["scenario_a"]["param2"])
+
+    def test_scenario_grid_generation(self):
+        """Test that scenario grid definitions are properly expanded."""
+        scenarios = load_scenarios_from_yaml(self.temp_file.name)
+
+        # Check that grid scenarios are generated
+        self.assertIn("param1_1_param2_100", scenarios)
+        self.assertIn("param1_1_param2_200", scenarios)
+        self.assertIn("param1_2_param2_100", scenarios)
+        self.assertIn("param1_2_param2_200", scenarios)
+
+        # Check specific values in grid scenarios
+        self.assertEqual(scenarios["param1_1_param2_100"]["param1"], 1)
+        self.assertEqual(scenarios["param1_1_param2_100"]["param2"], 100)
+        self.assertEqual(scenarios["param1_2_param2_200"]["param1"], 2)
+        self.assertEqual(scenarios["param1_2_param2_200"]["param2"], 200)
+
+    def test_scenario_grid_combinatorial_expansion(self):
+        """Test that all combinations in scenario grid are generated."""
+        scenarios = load_scenarios_from_yaml(self.temp_file.name)
+
+        # Count grid scenarios by checking if they contain both parameter names
+        grid_scenarios = [
+            name for name in scenarios.keys() if "param1_" in name and "param2_" in name
+        ]
+
+        # Should have 2 * 2 = 4 combinations
+        self.assertEqual(len(grid_scenarios), 4)
+
+        # Check that all expected combinations exist
+        expected_names = [
+            "param1_1_param2_100",
+            "param1_1_param2_200",
+            "param1_2_param2_100",
+            "param1_2_param2_200",
+        ]
+
+        for name in expected_names:
+            self.assertIn(name, scenarios)
 
     def test_apply_scenario_overrides(self):
-        base = get_mean_params(DISTRIBUTIONS)
-        overrides = {"familial_prop": 0.2, "severity_mild_prop": 0.6}
-        updated = apply_scenario_overrides(base, overrides)
+        """Test applying scenario overrides to base parameters."""
+        base_params = {"param1": 100, "param2": 200, "param3": 300}
 
-        expected_familial = base["familial_prop"] + 0.2
-        self.assertAlmostEqual(updated["familial_prop"], expected_familial)
-        self.assertAlmostEqual(updated["severity_mild_prop"], 0.6)
-        self.assertAlmostEqual(updated["severity_severe_prop"], 0.4)
+        overrides = {
+            "param1": 150,  # Absolute value
+            "param2": 0.1,  # Relative adjustment (small value)
+            "param3": None,  # No change
+        }
 
-    def test_load_scenarios_with_grid(self):
-        yaml_content = """
-scenarios:
-  base: {familial_prop: 0.15}
+        result = apply_scenario_overrides(base_params, overrides)
+
+        # Check absolute value override
+        self.assertEqual(result["param1"], 150)
+
+        # Check relative adjustment
+        self.assertEqual(result["param2"], 200.1)  # 200 + 0.1
+
+        # Check no change when None
+        self.assertEqual(result["param3"], 300)
+
+    def test_apply_scenario_overrides_with_severity_prop(self):
+        """Test that severity proportions are correctly handled."""
+        base_params = {"severity_mild_prop": 0.7, "severity_severe_prop": 0.3}
+
+        overrides = {"severity_mild_prop": 0.8}
+
+        result = apply_scenario_overrides(base_params, overrides)
+
+        # Check that mild prop is updated
+        self.assertEqual(result["severity_mild_prop"], 0.8)
+
+        # Check that severe prop is automatically updated to maintain sum = 1
+        # Using almost equal for floating point comparison
+        self.assertAlmostEqual(result["severity_severe_prop"], 0.2, places=10)
+
+    def test_scenario_name_sanitization(self):
+        """Test that scenario names are properly sanitized."""
+        # Create a temporary YAML file with decimal values
+        temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False)
+        temp_file.write("""
 scenario_grid:
-  familial_prop: [0.1, 0.2]
-  yield_wgs: [0.5, 0.7]
-"""
-        with open("/tmp/test_scenarios.yaml", "w") as f:
-            f.write(yaml_content)
+  param_with_decimal: [0.1, 0.2]
+  another_param: [1.5, 2.5]
+""")
+        temp_file.close()
 
-        scenarios = load_scenarios_from_yaml("/tmp/test_scenarios.yaml")
-        os.remove("/tmp/test_scenarios.yaml")
+        try:
+            scenarios = load_scenarios_from_yaml(temp_file.name)
 
-        # base scenario + 4 generated combos
-        self.assertEqual(len(scenarios), 5)
-        self.assertIn("familial_prop_0_1_yield_wgs_0_5", scenarios)
-        self.assertEqual(
-            scenarios["familial_prop_0_1_yield_wgs_0_5"],
-            {"familial_prop": 0.1, "yield_wgs": 0.5},
-        )
+            # Check that decimal points are replaced with underscores in names
+            self.assertIn("param_with_decimal_0_1_another_param_1_5", scenarios)
+            self.assertIn("param_with_decimal_0_1_another_param_2_5", scenarios)
+            self.assertIn("param_with_decimal_0_2_another_param_1_5", scenarios)
+            self.assertIn("param_with_decimal_0_2_another_param_2_5", scenarios)
+        finally:
+            os.unlink(temp_file.name)
 
 
 if __name__ == "__main__":

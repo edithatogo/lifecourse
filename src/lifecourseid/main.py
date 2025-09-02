@@ -1,18 +1,27 @@
 import pandas as pd
 import numpy as np
 import argparse
+import os
+import psutil
 from dask.distributed import LocalCluster, Client
 
-from lifecourse.config.config_loader import load_config
+from config.config_loader import load_config
 
-from lifecourse.model.parameters import (
+from lifecourseid.model.parameters import (
     DISTRIBUTIONS,
     START_YEAR,
     sample_params_from_dist,
     get_mean_params,
 )
-from lifecourse.analysis.run_helpers import run_sim, run_scenario
-from lifecourse.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+from lifecourseid.analysis.run_helpers import run_sim, run_scenario
+from lifecourseid.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+
+
+def get_system_resources():
+    """Get system resources to optimize Dask configuration"""
+    cpu_count = os.cpu_count() or 4
+    total_memory_gb = psutil.virtual_memory().total / (1024**3)
+    return cpu_count, total_memory_gb
 
 
 def main():
@@ -29,6 +38,11 @@ def main():
         "--config_file",
         type=str,
         help="Path to an external YAML configuration file to load and override settings.",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode with detailed output and single-threaded execution.",
     )
     args = parser.parse_args()
 
@@ -50,8 +64,52 @@ def main():
         f"Simulation Parameters: Population Size={current_pop_size}, PSA Runs={current_psa_n}, Simulation Years={config['SIMULATION_YEARS']}"
     )
 
-    # Initialize Dask cluster for parallel processing
-    cluster = LocalCluster()
+    # Get system resources for optimal Dask configuration
+    cpu_count, total_memory_gb = get_system_resources()
+
+    # Initialize Dask cluster for parallel processing with optimized settings
+    if args.debug:
+        # Use single-threaded execution for debugging
+        cluster = LocalCluster(
+            n_workers=1,
+            threads_per_worker=1,
+            memory_limit="2GB",
+            silence_logs=False,
+        )
+    else:
+        # Optimize Dask cluster based on system resources
+        # Calculate optimal workers and threads based on system resources
+        # Reserve some resources for the main process
+        available_memory_gb = max(
+            1, total_memory_gb - 2
+        )  # Reserve 2GB for main process
+
+        # Use number of workers based on CPU cores but limit by available memory
+        # Assume each worker needs about 1GB of memory
+        max_workers_by_memory = int(available_memory_gb)
+        n_workers = min(
+            cpu_count, max_workers_by_memory, 8
+        )  # Cap at 8 workers to avoid excessive overhead
+
+        # Distribute threads among workers
+        threads_per_worker = max(1, cpu_count // n_workers)
+
+        # Calculate memory limit per worker
+        memory_limit_per_worker = f"{max(1, int(available_memory_gb // n_workers))}GB"
+
+        print(
+            f"System resources: {cpu_count} CPUs, {total_memory_gb:.1f}GB total memory"
+        )
+        print(
+            f"Dask configuration: {n_workers} workers, {threads_per_worker} threads/worker, {memory_limit_per_worker} memory/worker"
+        )
+
+        cluster = LocalCluster(
+            n_workers=n_workers,
+            threads_per_worker=threads_per_worker,
+            memory_limit=memory_limit_per_worker,
+            silence_logs=True,  # Reduce logging for better performance
+        )
     client = Client(cluster)
 
     try:
@@ -71,12 +129,15 @@ def main():
             )
 
             dc, dq = run_sim(
-                current_params_for_run, pop_size=current_pop_size, years=YEARS
+                current_params_for_run,
+                pop_size=current_pop_size,
+                years=YEARS,
+                debug=args.debug,
             )
             icer = (dc / dq) if dq != 0 else 0
             results.append({"scenario": name, "dCost": dc, "dQALY": dq, "ICER": icer})
 
-        from src.analysis.plotting import plot_deterministic_icers
+        from lifecourseid.analysis.plotting import plot_deterministic_icers
 
         det_df = pd.DataFrame(results)
         det_df.to_csv("results/deterministic_summary.csv", index=False)
@@ -94,8 +155,20 @@ def main():
                 sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=i)
                 psa_args.append((sampled_params, current_pop_size, i, YEARS))
 
+            # Use client.map for better parallelization with optimized batching
+            # Batch size based on number of workers to balance load
+            batch_size = max(1, n_workers)
+
             futures = client.map(
-                lambda args: run_sim(args[0], args[1], args[2], args[3]), psa_args
+                lambda args: run_sim(
+                    args[0],
+                    args[1],
+                    args[2],
+                    args[3],
+                    args.debug if hasattr(args, "debug") else False,
+                ),
+                psa_args,
+                batch_size=batch_size,  # Optimize batch size for better scheduling
             )
             # progress(futures) # Dask progress bar, can be noisy in CLI
 
@@ -111,7 +184,7 @@ def main():
             psa_df_pd.to_csv("results/psa_samples.csv", index=False)
             print("PSA results saved to results/psa_samples.csv")
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -144,7 +217,7 @@ def main():
                 )
 
             base_dc, base_dq = run_sim(
-                base_params, pop_size=current_pop_size, years=YEARS
+                base_params, pop_size=current_pop_size, years=YEARS, debug=args.debug
             )
             base_icer = (base_dc / base_dq) if base_dq != 0 else 0
 
@@ -187,14 +260,16 @@ def main():
                 for val in [low_val, high_val]:
                     p_temp = base_params.copy()
                     p_temp[param_name] = val
-                    dc, dq = run_sim(p_temp, pop_size=current_pop_size, years=YEARS)
+                    dc, dq = run_sim(
+                        p_temp, pop_size=current_pop_size, years=YEARS, debug=args.debug
+                    )
                     icer = (dc / dq) if dq != 0 else 0
                     change_type = "Low" if val < mean_val else "High"
                     tornado.append(
                         {"param": param_name, "change_type": change_type, "ICER": icer}
                     )
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -258,7 +333,9 @@ def main():
                             1.0 - overrides["severity_mild_prop"]
                         )
 
-                    dc, dq = run_sim(p_temp, pop_size=current_pop_size, years=YEARS)
+                    dc, dq = run_sim(
+                        p_temp, pop_size=current_pop_size, years=YEARS, debug=args.debug
+                    )
                     icer = (dc / dq) if dq != 0 else 0
                     sg.append({"group": name, "ICER": icer})
 
@@ -284,7 +361,7 @@ def main():
             for yrs_n in [
                 10,
                 20,
-                args.simulation_years,
+                config["SIMULATION_YEARS"],
             ]:  # Use simulation_years for full horizon
                 yr = START_YEAR + yrs_n - 1
                 if yr in dfp["year"].values and yr in dfr["year"].values:
@@ -300,7 +377,7 @@ def main():
                         }
                     )
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -312,7 +389,10 @@ def main():
 
             sg_df = pd.DataFrame(sg)
             base_dc_subgroup, base_dq_subgroup = run_sim(
-                mean_params_for_subgroup, pop_size=current_pop_size, years=YEARS
+                mean_params_for_subgroup,
+                pop_size=current_pop_size,
+                years=YEARS,
+                debug=args.debug,
             )
             base_icer_subgroup = (
                 (base_dc_subgroup / base_dq_subgroup) if base_dq_subgroup != 0 else 0
@@ -320,7 +400,7 @@ def main():
 
             plot_subgroup_analysis(sg_df, base_icer_subgroup)
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -349,7 +429,7 @@ def main():
             uptakes = [0.2, 0.5, 0.8]
             yrs_budget = YEARS[:5]  # Use a fixed 5-year horizon for budget impact
             dfp = mix_data[mix_data["arm"] == "prospective"]
-            dfr = mix_data[dfr["arm"] == "retrospective"]
+            dfr = mix_data[mix_data["arm"] == "retrospective"]
 
             for u in uptakes:
                 for yr in yrs_budget:
@@ -365,7 +445,7 @@ def main():
                             }
                         )
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -380,7 +460,7 @@ def main():
             budg_df = pd.DataFrame(budg)
             plot_budget_impact(budg_df)
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -396,14 +476,14 @@ def main():
             # Module 13: Equity by SES Quintile
             print("\n--- Running Module 13: Equity by SES Quintile ---")
             bas = mix_data[mix_data["arm"] == "prospective"]
-            if YEARS[-1] in bas["year"].values:
-                row_series = bas[bas["year"] == YEARS[-1]].iloc[0]
+            if simulation_end_year in bas["year"].values:
+                row_series = bas[bas["year"] == simulation_end_year].iloc[0]
                 ses_cols = [f"ses_q{i}_pct" for i in range(5)]
                 ses_vals = [float(row_series[col]) for col in ses_cols]
                 labels = [f"Quintile {i+1}" for i in range(5)]
-                plot_ses_equity(ses_vals, labels, YEARS[-1])
+                plot_ses_equity(ses_vals, labels, simulation_end_year)
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -423,7 +503,7 @@ def main():
             qaly_list = psa_df_pd["dQALY"].tolist()
             plot_psa_histograms(cost_list, qaly_list)
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -507,13 +587,15 @@ def main():
             for f_prop in familial_prevalence_range:
                 p_temp = mean_params_for_sens.copy()
                 p_temp["familial_prop"] = f_prop
-                dc, dq = run_sim(p_temp, pop_size=current_pop_size, years=YEARS)
+                dc, dq = run_sim(
+                    p_temp, pop_size=current_pop_size, years=YEARS, debug=args.debug
+                )
                 icer = (dc / dq) if dq != 0 else 0
                 familial_sens_results.append(
                     {"familial_prop": f_prop, "dCost": dc, "dQALY": dq, "ICER": icer}
                 )
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -561,7 +643,7 @@ def main():
                 "u_diag",
                 "cost_inp_severe",
             ]
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -587,7 +669,7 @@ def main():
 
             plot_evppi_curves(evppi_results, wtp)
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -612,7 +694,7 @@ def main():
             psa_icers_np = (dc / dq).replace([np.inf, -np.inf], np.nan).dropna()
             plot_psa_icer_distribution(psa_icers_np)
 
-            from src.analysis.plotting import (
+            from lifecourseid.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -642,17 +724,40 @@ def main():
             print("Retrospective Cost Mix analysis complete.")
 
             # Module 22: Calibration Analysis
-            # run_calibration(
-            #     base_mean_params, pop_size=config["CALIBRATION_POP_SIZE"], years=YEARS
-            # )  # Using current_pop_size and YEARS
+            print("\n--- Running Module 22: Calibration Analysis ---")
+            from lifecourseid.analysis.advanced_analysis import run_calibration
+
+            calibration_result = run_calibration(
+                base_mean_params,
+                pop_size=config["CALIBRATION_POP_SIZE"],
+                years=YEARS,
+                debug=args.debug,
+            )
+            print(
+                f"Calibration completed with error: {calibration_result['error_pct']:.2f}%"
+            )
 
             # Module 23: Structural Uncertainty Analysis
-            # run_structural_uncertainty(
-            #     base_mean_params,
-            #     num_runs=10,
-            #     pop_size=config["STRUCTURAL_UNCERTAINTY_POP_SIZE"],
-            #     years=YEARS,
-            # )
+            print("\n--- Running Module 23: Structural Uncertainty Analysis ---")
+            from lifecourseid.analysis.advanced_analysis import (
+                run_structural_uncertainty,
+            )
+
+            structural_uncertainty_df = run_structural_uncertainty(
+                base_mean_params,
+                num_runs=10,
+                pop_size=config["STRUCTURAL_UNCERTAINTY_POP_SIZE"],
+                years=YEARS,
+                debug=args.debug,
+            )
+            print("Structural uncertainty analysis completed.")
+            # Save results to CSV
+            structural_uncertainty_df.to_csv(
+                "results/structural_uncertainty.csv", index=False
+            )
+            print(
+                "Structural uncertainty results saved to results/structural_uncertainty.csv"
+            )
 
     finally:
         client.close()

@@ -1,8 +1,18 @@
 import unittest
 import numpy as np
 import pandas as pd
-from src.analysis.run_helpers import run_sim, run_scenario
-from src.model.parameters import DISTRIBUTIONS, START_YEAR, sample_params_from_dist
+import sys
+import os
+
+# Add the src directory to the path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+from lifecourseid.analysis.run_helpers import run_sim, run_scenario
+from lifecourseid.model.parameters import (
+    DISTRIBUTIONS,
+    START_YEAR,
+    sample_params_from_dist,
+)
 
 TEST_YEARS = range(START_YEAR, START_YEAR + 2)
 TEST_POP_SIZE = 10

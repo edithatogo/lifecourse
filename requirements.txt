@@ -8,3 +8,4 @@ pyyaml
 pyarrow
 pre-commit
 ruff
+pytest-cov

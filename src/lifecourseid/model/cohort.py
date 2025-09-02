@@ -3,6 +3,7 @@ import pandas as pd
 import dask.dataframe as dd
 from .parameters import AGE_BREAKS, AGE_DIST, FERT_AGE_SPEC, EDUCATION_LEVELS, AGE_BANDS
 
+
 # Build lookup table for fertility rates (base rates)
 fert_data = []
 for (s, (lo, hi)), r in FERT_AGE_SPEC.items():
@@ -29,7 +30,9 @@ def gen_population_dask(n, current_params, arm="prospective"):
             "sex": np.random.choice(2, n),
             "severity": np.random.choice(2, n, p=sev_dist),
             "familial": np.random.random(n) < current_params["familial_prop"],
-            "diagnosed": np.zeros(n, bool),
+            "diagnosed": np.zeros(n, bool)
+            if arm == "prospective"
+            else (np.random.random(n) < current_params["yield_wgs"]),
             "living": np.random.choice(4, n, p=[0.2, 0.1, 0.3, 0.4]),
             "employment": np.random.choice(3, n, p=[0.7, 0.2, 0.1]),
             "uses_respite": np.random.random(n) < 0.3,
@@ -38,9 +41,6 @@ def gen_population_dask(n, current_params, arm="prospective"):
             "ses": np.random.choice(5, n),
         }
     )
-
-    if arm == "retrospective":
-        df["diagnosed"] = np.random.random(n) < current_params["yield_wgs"]
 
     df["education"] = np.random.choice(EDUCATION_LEVELS, n)
     df["age_band"] = pd.cut(

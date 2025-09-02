@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pandas as pd
 import numpy as np
 
-from src.analysis.plotting import (
+from lifecourseid.analysis.plotting import (
     plot_deterministic_icers,
     plot_ce_plane,
     plot_ceac,
@@ -165,6 +165,102 @@ class TestPlotting(unittest.TestCase):
         icers = np.random.rand(100) * 50000
         plot_psa_icer_distribution(icers)
         mock_savefig.assert_called_once_with("results/psa_icer_distribution.png")
+
+    # Enhanced tests with more detailed assertions
+    @patch("matplotlib.pyplot.figure")
+    @patch("matplotlib.pyplot.bar")
+    @patch("matplotlib.pyplot.title")
+    @patch("matplotlib.pyplot.ylabel")
+    @patch("matplotlib.pyplot.savefig")
+    def test_plot_deterministic_icers_detailed(
+        self, mock_savefig, mock_ylabel, mock_title, mock_bar, mock_figure
+    ):
+        """Test the deterministic ICER plot function with detailed assertions."""
+        data = {"scenario": ["A", "B"], "ICER": [10000, 20000]}
+        df = pd.DataFrame(data)
+        plot_deterministic_icers(df)
+
+        # Check that the functions are called
+        mock_figure.assert_called_once()
+        mock_bar.assert_called_once()
+        mock_title.assert_called_once_with("Deterministic ICERs (£/QALY)")
+        mock_ylabel.assert_called_once_with("ICER (£/QALY)")
+        mock_savefig.assert_called_once_with("results/deterministic_icers.png")
+
+    @patch("matplotlib.pyplot.figure")
+    @patch("matplotlib.pyplot.scatter")
+    @patch("matplotlib.pyplot.plot")
+    @patch("matplotlib.pyplot.xlabel")
+    @patch("matplotlib.pyplot.ylabel")
+    @patch("matplotlib.pyplot.title")
+    @patch("matplotlib.pyplot.legend")
+    @patch("matplotlib.pyplot.grid")
+    @patch("matplotlib.pyplot.savefig")
+    def test_plot_ce_plane_detailed(
+        self,
+        mock_savefig,
+        mock_grid,
+        mock_legend,
+        mock_title,
+        mock_ylabel,
+        mock_xlabel,
+        mock_plot,
+        mock_scatter,
+        mock_figure,
+    ):
+        """Test the CE plane plot function with detailed assertions."""
+        dcost = np.array([1000, 2000, 3000])
+        dqaly = np.array([1, 2, 3])
+        wtp = np.array([20000, 30000])
+
+        plot_ce_plane(dcost, dqaly, wtp)
+
+        # Check that the functions are called
+        mock_figure.assert_called_once()
+        mock_scatter.assert_called_once()
+        mock_plot.assert_called()
+        mock_xlabel.assert_called_once_with("Incremental QALYs (Delta QALY)")
+        mock_ylabel.assert_called_once_with("Incremental Cost (Delta Cost)")
+        mock_title.assert_called_once_with(
+            "Cost-Effectiveness Plane with WTP Thresholds"
+        )
+        mock_legend.assert_called_once()
+        mock_grid.assert_called_once()
+        mock_savefig.assert_called_once_with("results/ce_plane.png")
+
+    @patch("matplotlib.pyplot.figure")
+    @patch("matplotlib.pyplot.plot")
+    @patch("matplotlib.pyplot.xlabel")
+    @patch("matplotlib.pyplot.ylabel")
+    @patch("matplotlib.pyplot.title")
+    @patch("matplotlib.pyplot.grid")
+    @patch("matplotlib.pyplot.savefig")
+    def test_plot_ceac_detailed(
+        self,
+        mock_savefig,
+        mock_grid,
+        mock_title,
+        mock_ylabel,
+        mock_xlabel,
+        mock_plot,
+        mock_figure,
+    ):
+        """Test the CEAC plot function with detailed assertions."""
+        wtp = np.array([0, 50000, 100000])
+        nb = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])  # All positive
+
+        plot_ceac(wtp, nb)
+
+        # Check that the functions are called
+        mock_figure.assert_called_once()
+        mock_plot.assert_called()
+        mock_xlabel.assert_called_once_with("Willingness-to-Pay per QALY")
+        mock_ylabel.assert_called_once_with("Probability Cost-Effective")
+        mock_title.assert_called_once_with(
+            "Cost-Effectiveness Acceptability Curve (CEAC)"
+        )
+        mock_grid.assert_called_once()
+        mock_savefig.assert_called_once_with("results/ceac.png")
 
 
 if __name__ == "__main__":

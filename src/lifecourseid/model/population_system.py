@@ -1,8 +1,15 @@
 import numpy as np
 import pandas as pd
 import dask.dataframe as dd
+import psutil
 from .cohort import gen_population_dask
 from .parameters import START_YEAR, ABS_MORT, LIFE_EXP_NP, EMP_NP
+
+
+def get_memory_usage():
+    """Get current memory usage in MB"""
+    process = psutil.Process()
+    return process.memory_info().rss / 1024 / 1024
 
 
 class PopulationSystemDask:
@@ -10,6 +17,8 @@ class PopulationSystemDask:
         self.arm = arm
         self.params = current_params
         self.pop = gen_population_dask(pop_size, self.params, arm).persist()
+        # Rechunk to optimize memory usage
+        self.pop = self.pop.repartition(npartitions=max(1, pop_size // 1000))
 
     def _mortality(self):
         params = self.params
@@ -27,6 +36,8 @@ class PopulationSystemDask:
         self.pop = self.pop.map_partitions(
             mortality_partition, meta=self.pop._meta
         ).persist()
+        # Optimize partitions after operation
+        self.pop = self.pop.repartition(npartitions=max(1, len(self.pop) // 1000))
 
     def _fertility(self):
         moms_dd = self.pop[(self.pop["sex"] == 0) & (self.pop["age"].between(15, 45))]
@@ -92,6 +103,7 @@ class PopulationSystemDask:
         return babies_dd
 
     def _diagnosis(self):
+        # Only run diagnosis for prospective arm
         if self.arm != "prospective":
             return
 
@@ -112,6 +124,8 @@ class PopulationSystemDask:
         self.pop = self.pop.map_partitions(
             diagnosis_partition, meta=self.pop._meta
         ).persist()
+        # Optimize partitions after operation
+        self.pop = self.pop.repartition(npartitions=max(1, len(self.pop) // 1000))
 
     def _cost_qaly(self, year):
         if self.pop.npartitions == 0:
@@ -191,16 +205,18 @@ class PopulationSystemDask:
             uq = params["U_BASE_NP"][sev] * np.exp(
                 -params["U_DECAY"] * np.clip(ages - 20, 0, None)
             )
+            # Apply U_DIAG directly to diagnosed individuals before discounting
+            diagnosed_mask = df["diagnosed"].values.astype(int)
+            uq_with_diag = uq + diagnosed_mask * params["U_DIAG"]
             total_qaly = (
-                uq + params["U_CARER"]
+                uq_with_diag + params["U_CARER"]
             ) * disc - morb_qaly  # U_CARER applied universally
 
+            # Add WGS_DIAG_QALY_ADJUSTMENT for prospective arm
             if self.arm == "prospective":
                 m = df["diagnosed"].values
                 total_qaly += (
-                    m.astype(np.float64)
-                    * (params["U_DIAG"] + params["WGS_DIAG_QALY_ADJUSTMENT"])
-                    * disc
+                    m.astype(np.float64) * params["WGS_DIAG_QALY_ADJUSTMENT"] * disc
                 )
 
             df["annual_cost"] = hc + ec + rc + mc + wc + emp + morb_cost
@@ -235,6 +251,8 @@ class PopulationSystemDask:
         self.pop = self.pop.map_partitions(
             cost_qaly_partition, meta=self.pop._meta
         ).persist()
+        # Optimize partitions after operation
+        self.pop = self.pop.repartition(npartitions=max(1, len(self.pop) // 1000))
 
     def step(self, year):
         self._mortality()
@@ -244,4 +262,6 @@ class PopulationSystemDask:
         if new_babies_dd.npartitions > 0:
             self.pop = dd.concat([self.pop, new_babies_dd], interleave_partitions=True)
         self.pop = self.pop.persist()
+        # Optimize partitions after concatenation
+        self.pop = self.pop.repartition(npartitions=max(1, len(self.pop) // 1000))
         self._cost_qaly(year)

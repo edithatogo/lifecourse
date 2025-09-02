@@ -4,100 +4,165 @@ import pandas as pd
 import dask.dataframe as dd
 import dask.array as da
 import dask
+import psutil
+import time
 
-from src.model.population_system import PopulationSystemDask
-from src.model.parameters import POP_SIZE, prepare_dask_params
+from lifecourseid.model.population_system import PopulationSystemDask
+from lifecourseid.model.parameters import POP_SIZE, prepare_dask_params
 
 
-def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None):
+def get_memory_usage():
+    """Get current memory usage in MB"""
+    process = psutil.Process()
+    return process.memory_info().rss / 1024 / 1024
+
+
+def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=False):
     actual_seed = 42
     if seed_idx is not None:
         actual_seed += seed_idx
 
     np.random.seed(actual_seed)
     random.seed(actual_seed)  # Also seed Python's built-in random module
-    dask.config.set(
-        scheduler="synchronous"
-    )  # Enforce single-threaded execution for determinism
+
+    # Only use synchronous scheduler for debugging
+    if debug:
+        dask.config.set(scheduler="synchronous")
+    else:
+        # Use default Dask scheduler for better performance
+        dask.config.set(scheduler="threads")
 
     dask_params = prepare_dask_params(sampled_params)
 
+    # Memory profiling
+    if debug:
+        start_memory = get_memory_usage()
+        print(f"Initial memory usage: {start_memory:.2f} MB")
+
     sim_r = PopulationSystemDask(pop_size, dask_params, "retrospective")
     sim_p = PopulationSystemDask(pop_size, dask_params, "prospective")
+
+    # Memory profiling
+    if debug:
+        after_init_memory = get_memory_usage()
+        print(
+            f"Memory after initialization: {after_init_memory:.2f} MB (+{after_init_memory - start_memory:.2f} MB)"
+        )
 
     annual_costs_r = []
     annual_qalys_r = []
     annual_costs_p = []
     annual_qalys_p = []
 
-    individual_qalys_r = []  # New list to store individual QALYs
-    individual_qalys_p = []  # New list to store individual QALYs
+    # Only collect individual QALYs if debugging
+    individual_qalys_r = [] if debug else None
+    individual_qalys_p = [] if debug else None
 
-    for yr in years:
+    for yr_idx, yr in enumerate(years):
+        if debug:
+            year_start_time = time.time()
+            year_start_memory = get_memory_usage()
+            print(f"Processing year {yr} (index {yr_idx})")
+
         sim_r.step(yr)
         if sim_r.pop.npartitions > 0:  # Check if population is not empty
             annual_costs_r.append(sim_r.pop["annual_cost"].sum())
             annual_qalys_r.append(sim_r.pop["annual_qaly"].sum())
-            individual_qalys_r.append(
-                sim_r.pop["annual_qaly"]
-            )  # Store individual QALYs
+            if debug:
+                individual_qalys_r.append(
+                    sim_r.pop["annual_qaly"]
+                )  # Store individual QALYs
         else:
             annual_costs_r.append(da.from_array(np.array(0.0)))
             annual_qalys_r.append(da.from_array(np.array(0.0)))
-            individual_qalys_r.append(
-                dd.from_pandas(pd.Series([], dtype=float), npartitions=1)
-            )  # Empty Series for individual QALYs
+            if debug:
+                individual_qalys_r.append(
+                    dd.from_pandas(pd.Series([], dtype=float), npartitions=1)
+                )  # Empty Series for individual QALYs
 
         sim_p.step(yr)
         if sim_p.pop.npartitions > 0:  # Check if population is not empty
             annual_costs_p.append(sim_p.pop["annual_cost"].sum())
             annual_qalys_p.append(sim_p.pop["annual_qaly"].sum())
-            individual_qalys_p.append(
-                sim_p.pop["annual_qaly"]
-            )  # Store individual QALYs
+            if debug:
+                individual_qalys_p.append(
+                    sim_p.pop["annual_qaly"]
+                )  # Store individual QALYs
         else:
             annual_costs_p.append(da.from_array(np.array(0.0)))
             annual_qalys_p.append(da.from_array(np.array(0.0)))
-            individual_qalys_p.append(
-                dd.from_pandas(pd.Series([], dtype=float), npartitions=1)
-            )  # Empty Series for individual QALYs
+            if debug:
+                individual_qalys_p.append(
+                    dd.from_pandas(pd.Series([], dtype=float), npartitions=1)
+                )  # Empty Series for individual QALYs
+
+        if debug:
+            year_end_time = time.time()
+            year_end_memory = get_memory_usage()
+            print(
+                f"  Year {yr} processing time: {year_end_time - year_start_time:.2f} seconds"
+            )
+            print(
+                f"  Memory after year {yr}: {year_end_memory:.2f} MB (+{year_end_memory - year_start_memory:.2f} MB)"
+            )
 
     cum_r_c_dask = sum(annual_costs_r)
     cum_r_q_dask = sum(annual_qalys_r)
     cum_p_c_dask = sum(annual_costs_p)
     cum_p_q_dask = sum(annual_qalys_p)
 
+    # Memory profiling
+    if debug:
+        before_compute_memory = get_memory_usage()
+        print(f"Memory before compute: {before_compute_memory:.2f} MB")
+
     # Compute all Dask objects at once
-    computed_results = dd.compute(
-        cum_r_c_dask,
-        cum_r_q_dask,
-        cum_p_c_dask,
-        cum_p_q_dask,
-        *individual_qalys_r,
-        *individual_qalys_p,
-    )
+    if debug and individual_qalys_r is not None and individual_qalys_p is not None:
+        computed_results = dd.compute(
+            cum_r_c_dask,
+            cum_r_q_dask,
+            cum_p_c_dask,
+            cum_p_q_dask,
+            *individual_qalys_r,
+            *individual_qalys_p,
+        )
 
-    # Extract computed results
-    cum_r_c, cum_r_q, cum_p_c, cum_p_q = computed_results[0:4]
-    computed_individual_qalys_r = computed_results[4 : 4 + len(years)]
-    computed_individual_qalys_p = computed_results[4 + len(years) :]
+        # Extract computed results
+        cum_r_c, cum_r_q, cum_p_c, cum_p_q = computed_results[0:4]
+        computed_individual_qalys_r = computed_results[4 : 4 + len(years)]
+        computed_individual_qalys_p = computed_results[4 + len(years) :]
 
-    # Debugging individual QALYs
-    print(
-        "DEBUG: Individual QALYs for Retrospective Arm (first 5 individuals, first year):"
-    )
-    if len(computed_individual_qalys_r[0]) > 0:
-        print(computed_individual_qalys_r[0].head(5).tolist())
+        # Debugging individual QALYs
+        print(
+            "DEBUG: Individual QALYs for Retrospective Arm (first 5 individuals, first year):"
+        )
+        if len(computed_individual_qalys_r[0]) > 0:
+            print(computed_individual_qalys_r[0].head(5).tolist())
+        else:
+            print("Empty population for retrospective arm in first year.")
+
+        print(
+            "DEBUG: Individual QALYs for Prospective Arm (first 5 individuals, first year):"
+        )
+        if len(computed_individual_qalys_p[0]) > 0:
+            print(computed_individual_qalys_p[0].head(5).tolist())
+        else:
+            print("Empty population for prospective arm in first year.")
     else:
-        print("Empty population for retrospective arm in first year.")
+        # Compute only the necessary results for better performance
+        cum_r_c, cum_r_q, cum_p_c, cum_p_q = dd.compute(
+            cum_r_c_dask,
+            cum_r_q_dask,
+            cum_p_c_dask,
+            cum_p_q_dask,
+        )
 
-    print(
-        "DEBUG: Individual QALYs for Prospective Arm (first 5 individuals, first year):"
-    )
-    if len(computed_individual_qalys_p[0]) > 0:
-        print(computed_individual_qalys_p[0].head(5).tolist())
-    else:
-        print("Empty population for prospective arm in first year.")
+    # Memory profiling
+    if debug:
+        end_memory = get_memory_usage()
+        print(
+            f"Final memory usage: {end_memory:.2f} MB (+{end_memory - start_memory:.2f} MB)"
+        )
 
     return (cum_p_c - cum_r_c, cum_p_q - cum_r_q)
 

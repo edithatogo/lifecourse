@@ -32,4 +32,5 @@ TEST_PSA_CONFIG = {
     "SIMULATION_YEARS": 3,
     "CALIBRATION_POP_SIZE": 100,
     "STRUCTURAL_UNCERTAINTY_POP_SIZE": 100,
+    "parameter_set": "australia",
 }

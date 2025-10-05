@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import pandas as pd
 import dask.dataframe as dd
@@ -6,6 +7,8 @@ from .cohort import gen_population_dask
 from .parameters import START_YEAR, ABS_MORT, LIFE_EXP_NP, EMP_NP
 from .rng_utils import bernoulli, poisson, normal
 from .dask_utils import ensure_known_divisions, safe_from_pandas
+
+_LOG = logging.getLogger(__name__)
 
 
 def get_memory_usage():
@@ -24,7 +27,9 @@ class PopulationSystemDask:
         base_pop_dd = gen_population_dask(pop_size, self.params, arm)
         # create a parallel dask dataframe for person_uids
         uids = gen_person_uids(pop_size)
-        uids_df = safe_from_pandas(pd.DataFrame({"person_uid": uids}), npartitions=base_pop_dd.npartitions)
+        uids_df = safe_from_pandas(
+            pd.DataFrame({"person_uid": uids}), npartitions=base_pop_dd.npartitions
+        )
         # concatenate person_uid as the first column to keep backward compatibility
         # Ensure known divisions on the producers, then reset index on each
         # and re-ensure divisions before concatenation to avoid Dask warnings
@@ -43,13 +48,12 @@ class PopulationSystemDask:
         try:
             # compute authoritative partition lengths from base population
             part_lens = base_pop_dd.map_partitions(len).compute()
-            import dask
             from dask import delayed
 
             part_lens = list(map(int, part_lens))
             offsets = [0]
-            for l in part_lens[:-1]:
-                offsets.append(offsets[-1] + l)
+            for ln in part_lens[:-1]:
+                offsets.append(offsets[-1] + ln)
             last_idx = offsets[-1] + (part_lens[-1] if part_lens else 0) - 1
             divisions = tuple(offsets + [last_idx])
 
@@ -71,11 +75,14 @@ class PopulationSystemDask:
 
                 new_u_parts.append(_uids_part(slice_arr))
 
-            uids_df = dd.from_delayed(new_u_parts, meta=pd.DataFrame({"person_uid": pd.Series(dtype=np.int64)}))
+            uids_df = dd.from_delayed(
+                new_u_parts,
+                meta=pd.DataFrame({"person_uid": pd.Series(dtype=np.int64)}),
+            )
             try:
                 uids_df.divisions = divisions
-            except Exception:
-                pass
+            except Exception as exc:  # pragma: no cover - best-effort
+                _LOG.debug("Could not set divisions on rebuilt uids_df: %s", exc)
 
             # rebuild base_pop_dd similarly to guarantee matched divisions
             b_parts = base_pop_dd.to_delayed()
@@ -95,10 +102,18 @@ class PopulationSystemDask:
             base_pop_dd = dd.from_delayed(new_b_parts, meta=base_pop_dd._meta)
             try:
                 base_pop_dd.divisions = divisions
-            except Exception:
-                pass
-        except Exception:
-            # Last resort: fall back to original ensure_known_divisions
+            except Exception as exc:  # pragma: no cover - best-effort
+                _LOG.debug("Could not set divisions on rebuilt base_pop_dd: %s", exc)
+        except (ValueError, TypeError) as exc:
+            # Known, recoverable issues when computing partition lengths
+            _LOG.exception(
+                "Recoverable error when computing partition lengths: %s", exc
+            )
+            uids_df = ensure_known_divisions(uids_df)
+            base_pop_dd = ensure_known_divisions(base_pop_dd)
+        except Exception as exc:  # pragma: no cover - defensive
+            # Unexpected errors: log with traceback but fall back safely.
+            _LOG.exception("Unexpected error while aligning partitions: %s", exc)
             uids_df = ensure_known_divisions(uids_df)
             base_pop_dd = ensure_known_divisions(base_pop_dd)
 
@@ -111,21 +126,28 @@ class PopulationSystemDask:
             try:
                 df_part = df_part.copy()
                 df_part["person_uid"] = uids[idx]
-            except Exception:
-                # fallback: assign by position
+            except IndexError:
+                # fallback: assign by position if indexing mismatch occurs
+                _LOG.debug(
+                    "IndexError when assigning person_uid by index; falling back to positional assignment"
+                )
+                df_part = df_part.copy()
+                df_part["person_uid"] = np.arange(len(df_part))
+            except Exception as exc:  # pragma: no cover - defensive
+                _LOG.exception("Unexpected error assigning person_uid: %s", exc)
                 df_part = df_part.copy()
                 df_part["person_uid"] = np.arange(len(df_part))
             return df_part
 
         meta_with_uid = base_pop_dd._meta.copy()
         meta_with_uid["person_uid"] = pd.Series(dtype=np.int64)
-        self.pop = base_pop_dd.map_partitions(_attach_uids, meta=meta_with_uid).persist()
+        self.pop = base_pop_dd.map_partitions(
+            _attach_uids, meta=meta_with_uid
+        ).persist()
         # Ensure explicit, known divisions for later concat/operations
         self.pop = ensure_known_divisions(self.pop)
         # Rechunk to optimize memory usage (now that divisions are known)
         self.pop = self.pop.repartition(npartitions=max(1, pop_size // 1000))
-
-
 
     def _mortality(self, year=None):
         # Backwards compatibility: if no year provided, use START_YEAR
@@ -147,7 +169,9 @@ class PopulationSystemDask:
             mask = (survival.astype(bool)) & (ages < LIFE_EXP_NP[sev])
             return df[mask]
 
-        self.pop = self.pop.map_partitions(mortality_partition, meta=self.pop._meta).persist()
+        self.pop = self.pop.map_partitions(
+            mortality_partition, meta=self.pop._meta
+        ).persist()
         # Optimize partitions after operation
         self.pop = self.pop.repartition(npartitions=max(1, len(self.pop) // 1000))
 
@@ -166,13 +190,21 @@ class PopulationSystemDask:
                 return df
             if self.arm != "prospective":
                 return df
-            mask = (~df["diagnosed"]) & df["familial"] & (df["age"] >= params["min_test_age"])
+            mask = (
+                (~df["diagnosed"])
+                & df["familial"]
+                & (df["age"] >= params["min_test_age"])
+            )
             if mask.any():
                 uids = df.loc[mask, "person_uid"].values
-                df.loc[mask, "diagnosed"] = bernoulli(uids, params["yield_wgs"], tag="diag", year=year)
+                df.loc[mask, "diagnosed"] = bernoulli(
+                    uids, params["yield_wgs"], tag="diag", year=year
+                )
             return df
 
-        self.pop = self.pop.map_partitions(diag_partition, meta=self.pop._meta).persist()
+        self.pop = self.pop.map_partitions(
+            diag_partition, meta=self.pop._meta
+        ).persist()
         self.pop = self.pop.repartition(npartitions=max(1, len(self.pop) // 1000))
 
     def _fertility(self):
@@ -182,7 +214,9 @@ class PopulationSystemDask:
         # with the expected population columns so callers can safely call
         # .compute() and iterate over the result.
         if moms_dd.npartitions == 0:
-            empty = safe_from_pandas(pd.DataFrame(columns=self.pop._meta.columns), npartitions=1)
+            empty = safe_from_pandas(
+                pd.DataFrame(columns=self.pop._meta.columns), npartitions=1
+            )
             return ensure_known_divisions(empty)
 
         moms_merged_dd = moms_dd.merge(
@@ -192,41 +226,74 @@ class PopulationSystemDask:
 
         def determine_births_and_familial_status(df_partition):
             if df_partition.empty:
-                return pd.DataFrame({"has_birth": pd.Series(dtype=bool), "familial_parent": pd.Series(dtype=bool), "parent_uid": pd.Series(dtype=np.int64)}, index=df_partition.index)
+                return pd.DataFrame(
+                    {
+                        "has_birth": pd.Series(dtype=bool),
+                        "familial_parent": pd.Series(dtype=bool),
+                        "parent_uid": pd.Series(dtype=np.int64),
+                    },
+                    index=df_partition.index,
+                )
             rates = df_partition["rate"].values
             uids = df_partition.get("person_uid", np.arange(len(df_partition)))
-            has_birth = bernoulli(uids, rates, tag="birth", year=START_YEAR).astype(bool)
+            has_birth = bernoulli(uids, rates, tag="birth", year=START_YEAR).astype(
+                bool
+            )
             familial_parent = df_partition["familial"].values
             parent_uid = df_partition.get("person_uid", np.arange(len(df_partition)))
-            return pd.DataFrame({"has_birth": has_birth, "familial_parent": familial_parent, "parent_uid": parent_uid}, index=df_partition.index)
+            return pd.DataFrame(
+                {
+                    "has_birth": has_birth,
+                    "familial_parent": familial_parent,
+                    "parent_uid": parent_uid,
+                },
+                index=df_partition.index,
+            )
 
         birth_info_dd = moms_merged_dd.map_partitions(
             determine_births_and_familial_status,
-            meta=pd.DataFrame({
-                "has_birth": pd.Series(dtype=bool),
-                "familial_parent": pd.Series(dtype=bool),
-                "parent_uid": pd.Series(dtype=np.int64),
-            }, index=[]),
+            meta=pd.DataFrame(
+                {
+                    "has_birth": pd.Series(dtype=bool),
+                    "familial_parent": pd.Series(dtype=bool),
+                    "parent_uid": pd.Series(dtype=np.int64),
+                },
+                index=[],
+            ),
         )
 
         actual_births_info_dd = birth_info_dd[birth_info_dd["has_birth"]]
 
         if actual_births_info_dd.npartitions == 0:
-            empty = safe_from_pandas(pd.DataFrame(columns=self.pop._meta.columns), npartitions=1)
+            empty = safe_from_pandas(
+                pd.DataFrame(columns=self.pop._meta.columns), npartitions=1
+            )
             return ensure_known_divisions(empty)
 
-        def generate_babies_for_partition(partition_of_birth_info, params, arm, pop_meta):
+        def generate_babies_for_partition(
+            partition_of_birth_info, params, arm, pop_meta
+        ):
             n_babies_in_partition = len(partition_of_birth_info)
             if n_babies_in_partition == 0:
-                    return pop_meta.copy()
+                return pop_meta.copy()
+            # Generate deterministic child uids derived from parent_uid
             parent_uids = partition_of_birth_info["parent_uid"].values
             child_uids = []
             for i, pid in enumerate(parent_uids):
+                # simple deterministic transformation, keep within 63 bits
                 cid = (int(pid) * 1009 + (i + 1)) & ((1 << 63) - 1)
                 child_uids.append(np.int64(cid))
-            babies_df_part = gen_population_dask(n_babies_in_partition, params, arm, person_uids=np.array(child_uids, dtype=np.int64)).compute()
+            # Generate base baby rows with provided child_uids
+            babies_df_part = gen_population_dask(
+                n_babies_in_partition,
+                params,
+                arm,
+                person_uids=np.array(child_uids, dtype=np.int64),
+            ).compute()
             babies_df_part["age"] = 0
-            babies_df_part["familial"] = partition_of_birth_info["familial_parent"].values
+            babies_df_part["familial"] = partition_of_birth_info[
+                "familial_parent"
+            ].values
             babies_df_part["person_uid"] = np.array(child_uids, dtype=np.int64)
             # Ensure returned baby dataframe matches the authoritative population metadata
             try:
@@ -286,7 +353,9 @@ class PopulationSystemDask:
             hosp_events = poisson(uids, lam, tag="hosp", year=year)
             cost_hospital = hosp_events * params["HOSP_COST"] * disc
 
-            cost_common_other = (params["MENTAL_HEALTH_COST"] + params["INFORMAL_CARE_COST"]) * disc
+            cost_common_other = (
+                params["MENTAL_HEALTH_COST"] + params["INFORMAL_CARE_COST"]
+            ) * disc
 
             ec = np.zeros(n, dtype=np.float64)
             m0 = df["school"] == 0
@@ -304,7 +373,9 @@ class PopulationSystemDask:
 
             if self.arm == "prospective":
                 m = df["diagnosed"].values
-                morb_cost += m.astype(np.float64) * params["WGS_DIAG_COST_ADJUSTMENT"] * disc
+                morb_cost += (
+                    m.astype(np.float64) * params["WGS_DIAG_COST_ADJUSTMENT"] * disc
+                )
 
             morb_qaly = np.zeros(n, dtype=np.float64)
             for i, k in enumerate(params["MORB_KEYS"]):
@@ -312,20 +383,26 @@ class PopulationSystemDask:
                 m = bernoulli(uids, p_arr, tag=f"morbq_{k}", year=year)
                 morb_qaly += m.astype(np.float64) * params["MORB_QALY_NP"][i] * disc
 
-            uq = params["U_BASE_NP"][sev] * np.exp(-params["U_DECAY"] * np.clip(ages - 20, 0, None))
+            uq = params["U_BASE_NP"][sev] * np.exp(
+                -params["U_DECAY"] * np.clip(ages - 20, 0, None)
+            )
             diagnosed_mask = df["diagnosed"].values.astype(int)
             uq_with_diag = uq + diagnosed_mask * params["U_DIAG"]
             total_qaly = (uq_with_diag + params["U_CARER"]) * disc - morb_qaly
 
             if self.arm == "prospective":
                 m = df["diagnosed"].values
-                total_qaly += m.astype(np.float64) * params["WGS_DIAG_QALY_ADJUSTMENT"] * disc
+                total_qaly += (
+                    m.astype(np.float64) * params["WGS_DIAG_QALY_ADJUSTMENT"] * disc
+                )
 
             df["annual_cost"] = hc + ec + rc + mc + wc + emp + morb_cost
             df["cost_health"] = hc
             df["cost_respite"] = rc
             df["annual_qaly"] = total_qaly
-            df["cost_ndis"] = df["diagnosed"].values.astype(int) * params["NDIS_COST"] * disc
+            df["cost_ndis"] = (
+                df["diagnosed"].values.astype(int) * params["NDIS_COST"] * disc
+            )
             df["cost_carer"] = params["CARER_HOURS_NP"][sev] * params["WAGE_HR"] * disc
             df["cost_mobility"] = mc
             df["cost_welfare"] = wc
@@ -345,7 +422,9 @@ class PopulationSystemDask:
             return df
 
         # apply over population
-        self.pop = self.pop.map_partitions(cost_qaly_partition, meta=self.pop._meta).persist()
+        self.pop = self.pop.map_partitions(
+            cost_qaly_partition, meta=self.pop._meta
+        ).persist()
         # Reset index to ensure unique, 0..N-1 integer index across the dataframe.
         # This avoids situations where .loc[row_index] returns multiple rows
         # (which produces a Series/DataFrame ambiguity in tests/assertions).
@@ -370,7 +449,7 @@ class PopulationSystemDask:
         after concatenation. This is a low-risk prototype and keeps the original
         methods intact.
         """
-    # Use stateless per-person randomness (rng_utils) instead of seeding global RNG
+        # Use stateless per-person randomness (rng_utils) instead of seeding global RNG
 
         orig_pop = self.pop
 
@@ -378,37 +457,64 @@ class PopulationSystemDask:
         moms_dd = orig_pop[(orig_pop["sex"] == 0) & (orig_pop["age"].between(15, 45))]
 
         if moms_dd.npartitions == 0:
-            babies_dd = safe_from_pandas(pd.DataFrame(columns=self.pop.columns), npartitions=1)
+            babies_dd = safe_from_pandas(
+                pd.DataFrame(columns=self.pop.columns), npartitions=1
+            )
             babies_dd = ensure_known_divisions(babies_dd)
         else:
-            moms_merged_dd = moms_dd.merge(self.params["FERT_RATES_DF"], on=["severity", "age"], how="left")
+            moms_merged_dd = moms_dd.merge(
+                self.params["FERT_RATES_DF"], on=["severity", "age"], how="left"
+            )
             moms_merged_dd["rate"] = moms_merged_dd["rate"].fillna(0)
 
             def determine_births_and_familial_status(df_partition):
                 if df_partition.empty:
-                    return pd.DataFrame({"has_birth": pd.Series(dtype=bool), "familial_parent": pd.Series(dtype=bool)}, index=df_partition.index)
+                    return pd.DataFrame(
+                        {
+                            "has_birth": pd.Series(dtype=bool),
+                            "familial_parent": pd.Series(dtype=bool),
+                        },
+                        index=df_partition.index,
+                    )
                 rates = df_partition["rate"].values
                 uids = df_partition.get("person_uid", np.arange(len(df_partition)))
                 has_birth = bernoulli(uids, rates, tag="birth", year=year).astype(bool)
                 familial_parent = df_partition["familial"].values
-                parent_uid = df_partition.get("person_uid", np.arange(len(df_partition)))
-                return pd.DataFrame({"has_birth": has_birth, "familial_parent": familial_parent, "parent_uid": parent_uid}, index=df_partition.index)
+                parent_uid = df_partition.get(
+                    "person_uid", np.arange(len(df_partition))
+                )
+                return pd.DataFrame(
+                    {
+                        "has_birth": has_birth,
+                        "familial_parent": familial_parent,
+                        "parent_uid": parent_uid,
+                    },
+                    index=df_partition.index,
+                )
 
             birth_info_dd = moms_merged_dd.map_partitions(
                 determine_births_and_familial_status,
-                meta=pd.DataFrame({
-                    "has_birth": pd.Series(dtype=bool),
-                    "familial_parent": pd.Series(dtype=bool),
-                    "parent_uid": pd.Series(dtype=np.int64),
-                }, index=[]),
+                meta=pd.DataFrame(
+                    {
+                        "has_birth": pd.Series(dtype=bool),
+                        "familial_parent": pd.Series(dtype=bool),
+                        "parent_uid": pd.Series(dtype=np.int64),
+                    },
+                    index=[],
+                ),
             )
 
             actual_births_info_dd = birth_info_dd[birth_info_dd["has_birth"]]
 
             if actual_births_info_dd.npartitions == 0:
-                babies_dd = safe_from_pandas(pd.DataFrame(columns=self.pop.columns), npartitions=1)
+                babies_dd = safe_from_pandas(
+                    pd.DataFrame(columns=self.pop.columns), npartitions=1
+                )
             else:
-                def generate_babies_for_partition(partition_of_birth_info, params, arm, pop_meta):
+
+                def generate_babies_for_partition(
+                    partition_of_birth_info, params, arm, pop_meta
+                ):
                     n_babies_in_partition = len(partition_of_birth_info)
                     if n_babies_in_partition == 0:
                         return pop_meta.copy()
@@ -420,9 +526,16 @@ class PopulationSystemDask:
                         cid = (int(pid) * 1009 + (i + 1)) & ((1 << 63) - 1)
                         child_uids.append(np.int64(cid))
                     # Generate base baby rows with provided child_uids
-                    babies_df_part = gen_population_dask(n_babies_in_partition, params, arm, person_uids=np.array(child_uids, dtype=np.int64)).compute()
+                    babies_df_part = gen_population_dask(
+                        n_babies_in_partition,
+                        params,
+                        arm,
+                        person_uids=np.array(child_uids, dtype=np.int64),
+                    ).compute()
                     babies_df_part["age"] = 0
-                    babies_df_part["familial"] = partition_of_birth_info["familial_parent"].values
+                    babies_df_part["familial"] = partition_of_birth_info[
+                        "familial_parent"
+                    ].values
                     babies_df_part["person_uid"] = np.array(child_uids, dtype=np.int64)
                     # Ensure columns ordering matches the population meta
                     try:
@@ -439,9 +552,9 @@ class PopulationSystemDask:
                 )
                 babies_dd = ensure_known_divisions(babies_dd)
 
-    # --- Fused per-partition update: mortality -> diagnosis -> age++ -> cost/qaly ---
-        params = self.params
-        arm = self.arm
+        # --- Fused per-partition update: mortality -> diagnosis -> age++ -> cost/qaly ---
+        # Use self.params and self.arm directly within fused_partition to avoid
+        # creating unused local variables that confuse linters.
         # expected column ordering (use meta to keep stable across partitions)
         expected_cols = list(self.pop._meta.columns)
 
@@ -461,10 +574,16 @@ class PopulationSystemDask:
 
             # diagnosis uses prior age (before increment) - stateless bernoulli
             if arm == "prospective" and not df.empty:
-                diag_mask = (~df["diagnosed"]) & df["familial"] & (df["age"] >= params["min_test_age"])
+                diag_mask = (
+                    (~df["diagnosed"])
+                    & df["familial"]
+                    & (df["age"] >= params["min_test_age"])
+                )
                 if diag_mask.any():
                     uids_diag = df.loc[diag_mask, "person_uid"].values
-                    df.loc[diag_mask, "diagnosed"] = bernoulli(uids_diag, params["yield_wgs"], tag="diag", year=year)
+                    df.loc[diag_mask, "diagnosed"] = bernoulli(
+                        uids_diag, params["yield_wgs"], tag="diag", year=year
+                    )
 
             # increment age (match original ordering)
             df["age"] = df["age"] + 1
@@ -478,19 +597,26 @@ class PopulationSystemDask:
             ages2 = df["age"].values
             disc = 1 / ((1 + params["DISCOUNT"]) ** (year - START_YEAR))
 
-            hc = (params["COST_INP_NP"][sev] + params["COST_OUTP_NP"][sev] + params["COST_PHARM_NP"][sev]) * disc
+            hc = (
+                params["COST_INP_NP"][sev]
+                + params["COST_OUTP_NP"][sev]
+                + params["COST_PHARM_NP"][sev]
+            ) * disc
             rc = df["uses_respite"].values.astype(int) * params["RESPITE"] * disc
             mc = -df["needs_mobility"].values.astype(int) * params["MOBILITY"] * disc
             wc = params["WELFARE_NP"][sev] * disc
             emp = EMP_NP[df["employment"].values] * disc
 
             import numpy as _np
+
             uids = df["person_uid"].values
             lam = params["HOSP_RATE_NP"][sev]
             hosp_events = poisson(uids, lam, tag="hosp", year=year)
             cost_hospital = hosp_events * params["HOSP_COST"] * disc
 
-            cost_common_other = (params["MENTAL_HEALTH_COST"] + params["INFORMAL_CARE_COST"]) * disc
+            cost_common_other = (
+                params["MENTAL_HEALTH_COST"] + params["INFORMAL_CARE_COST"]
+            ) * disc
 
             ec = _np.zeros(n, dtype=_np.float64)
             m0 = df["school"] == 0
@@ -508,7 +634,9 @@ class PopulationSystemDask:
 
             if arm == "prospective":
                 m = df["diagnosed"].values
-                morb_cost += m.astype(_np.float64) * params["WGS_DIAG_COST_ADJUSTMENT"] * disc
+                morb_cost += (
+                    m.astype(_np.float64) * params["WGS_DIAG_COST_ADJUSTMENT"] * disc
+                )
 
             morb_qaly = _np.zeros(n, dtype=_np.float64)
             for i, k in enumerate(params["MORB_KEYS"]):
@@ -516,20 +644,26 @@ class PopulationSystemDask:
                 m = bernoulli(uids, p_arr, tag=f"morbq_{k}", year=year)
                 morb_qaly += m.astype(_np.float64) * params["MORB_QALY_NP"][i] * disc
 
-            uq = params["U_BASE_NP"][sev] * _np.exp(-params["U_DECAY"] * _np.clip(ages2 - 20, 0, None))
+            uq = params["U_BASE_NP"][sev] * _np.exp(
+                -params["U_DECAY"] * _np.clip(ages2 - 20, 0, None)
+            )
             diagnosed_mask = df["diagnosed"].values.astype(int)
             uq_with_diag = uq + diagnosed_mask * params["U_DIAG"]
             total_qaly = (uq_with_diag + params["U_CARER"]) * disc - morb_qaly
 
             if arm == "prospective":
                 m = df["diagnosed"].values
-                total_qaly += m.astype(_np.float64) * params["WGS_DIAG_QALY_ADJUSTMENT"] * disc
+                total_qaly += (
+                    m.astype(_np.float64) * params["WGS_DIAG_QALY_ADJUSTMENT"] * disc
+                )
 
             df["annual_cost"] = hc + ec + rc + mc + wc + emp + morb_cost
             df["cost_health"] = hc
             df["cost_respite"] = rc
             df["annual_qaly"] = total_qaly
-            df["cost_ndis"] = df["diagnosed"].values.astype(int) * params["NDIS_COST"] * disc
+            df["cost_ndis"] = (
+                df["diagnosed"].values.astype(int) * params["NDIS_COST"] * disc
+            )
             df["cost_carer"] = params["CARER_HOURS_NP"][sev] * params["WAGE_HR"] * disc
             df["cost_mobility"] = mc
             df["cost_welfare"] = wc
@@ -553,7 +687,12 @@ class PopulationSystemDask:
                 return df.reindex(columns=expected_cols)
 
         updated_pop = orig_pop.map_partitions(
-            fused_partition, self.params, self.arm, year, expected_cols, meta=self.pop._meta
+            fused_partition,
+            self.params,
+            self.arm,
+            year,
+            expected_cols,
+            meta=self.pop._meta,
         )
 
         # Concatenate babies (if any) and persist once

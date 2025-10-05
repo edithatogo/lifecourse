@@ -1,8 +1,9 @@
-import numpy as np
-import pandas as pd
+import logging
 import numpy as np
 import pandas as pd
 import dask.dataframe as dd
+
+_LOG = logging.getLogger(__name__)
 
 
 def ensure_known_divisions(ddf):
@@ -20,7 +21,8 @@ def ensure_known_divisions(ddf):
     ddf = ddf.reset_index(drop=True).persist()
     try:
         part_lens = ddf.map_partitions(len).compute()
-    except Exception:
+    except Exception:  # pragma: no cover - defensive
+        _LOG.exception("Failed to compute partition lengths in ensure_known_divisions")
         return ddf
 
     part_lens = np.asarray(part_lens)
@@ -29,8 +31,8 @@ def ensure_known_divisions(ddf):
         empty = ddf.repartition(npartitions=1)
         try:
             empty.divisions = (0, 0)
-        except Exception:
-            pass
+        except Exception:  # pragma: no cover - best-effort
+            _LOG.debug("Could not set divisions on empty repartitioned ddf")
         return empty
 
     offsets = np.concatenate(([0], np.cumsum(part_lens)[:-1])).astype(int)
@@ -57,10 +59,14 @@ def ensure_known_divisions(ddf):
         divisions = tuple(list(offsets.tolist()) + [last_idx])
         try:
             new_ddf.divisions = divisions
-        except Exception:
+        except Exception:  # pragma: no cover - best-effort
+            _LOG.debug(
+                "Failed to set divisions on rebuilt ddf; returning best-effort ddf"
+            )
             return new_ddf
         return new_ddf
-    except Exception:
+    except Exception:  # pragma: no cover - defensive
+        _LOG.exception("Unexpected error while rebuilding ddf with known divisions")
         return ddf
 
 
@@ -75,5 +81,8 @@ def safe_from_pandas(df, npartitions=1):
     ddf = dd.from_pandas(df, npartitions=npartitions)
     try:
         return ensure_known_divisions(ddf)
-    except Exception:
+    except Exception:  # pragma: no cover - defensive
+        _LOG.exception(
+            "safe_from_pandas: ensure_known_divisions failed, returning original ddf"
+        )
         return ddf

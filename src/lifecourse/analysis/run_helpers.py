@@ -1,3 +1,4 @@
+import logging
 import random  # Added for setting Python's global random seed
 import numpy as np
 import pandas as pd
@@ -10,6 +11,8 @@ import time
 from lifecourse.model.population_system import PopulationSystemDask
 from lifecourse.model.parameters import POP_SIZE, prepare_dask_params
 from lifecourse.model.dask_utils import ensure_known_divisions, safe_from_pandas
+
+_LOG = logging.getLogger(__name__)
 
 
 def get_memory_usage():
@@ -46,12 +49,12 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
     # Defensive: ensure the population Dask DataFrames have known divisions
     try:
         sim_r.pop = ensure_known_divisions(sim_r.pop)
-    except Exception:
-        pass
+    except Exception as exc:  # pragma: no cover - defensive
+        _LOG.exception("ensure_known_divisions failed for retrospective pop: %s", exc)
     try:
         sim_p.pop = ensure_known_divisions(sim_p.pop)
-    except Exception:
-        pass
+    except Exception as exc:  # pragma: no cover - defensive
+        _LOG.exception("ensure_known_divisions failed for prospective pop: %s", exc)
 
     # Memory profiling
     if debug:
@@ -95,8 +98,10 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
                 empty_ser = safe_from_pandas(pd.Series([], dtype=float), npartitions=1)
                 try:
                     empty_ser = ensure_known_divisions(empty_ser)
-                except Exception:
-                    pass
+                except Exception as exc:  # pragma: no cover - defensive
+                    _LOG.exception(
+                        "ensure_known_divisions failed for empty_ser: %s", exc
+                    )
                 individual_qalys_r.append(empty_ser)
 
         sim_p.step(yr)
@@ -116,11 +121,15 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
             annual_qalys_p.append(da.from_array(np.array(0.0)))
             if debug:
                 # Empty Series for individual QALYs — ensure known divisions
-                empty_ser_p = safe_from_pandas(pd.Series([], dtype=float), npartitions=1)
+                empty_ser_p = safe_from_pandas(
+                    pd.Series([], dtype=float), npartitions=1
+                )
                 try:
                     empty_ser_p = ensure_known_divisions(empty_ser_p)
-                except Exception:
-                    pass
+                except Exception as exc:  # pragma: no cover - defensive
+                    _LOG.exception(
+                        "ensure_known_divisions failed for empty_ser_p: %s", exc
+                    )
                 individual_qalys_p.append(empty_ser_p)
 
         if debug:

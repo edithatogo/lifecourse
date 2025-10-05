@@ -1,17 +1,19 @@
+import logging
 import yaml
 import os
-import sys
 from .simulation_configs import DEFAULT_CONFIG, MINIMAL_TEST_CONFIG, TEST_PSA_CONFIG
 
-# Add src to path for imports
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+_LOG = logging.getLogger(__name__)
 
+# Try import without mutating sys.path; if that fails we gracefully fall back
+# to a best-effort None factory. Tests and local dev should prefer installing
+# the package in editable mode instead of depending on sys.path hacks.
 try:
     from lifecourseid.model.parameter_factory import get_parameter_factory
-except ImportError:
-    # Fallback if parameter factory is not available
+except Exception:  # pragma: no cover - environment dependent
+    _LOG.debug(
+        "Could not import lifecourseid.parameter_factory; parameter factory disabled"
+    )
     get_parameter_factory = None
 
 
@@ -68,7 +70,10 @@ def load_config(config_name=None, config_file_path=None):
     # Type validation (example for a few keys)
     if not isinstance(config["POP_SIZE"], int) or config["POP_SIZE"] < 0:
         raise ValueError("POP_SIZE must be a non-negative integer.")
-    if not isinstance(config["SIMULATION_YEARS"], int) or config["SIMULATION_YEARS"] <= 0:
+    if (
+        not isinstance(config["SIMULATION_YEARS"], int)
+        or config["SIMULATION_YEARS"] <= 0
+    ):
         raise ValueError("SIMULATION_YEARS must be a positive integer.")
 
     # Validate parameter_set if parameter factory is available

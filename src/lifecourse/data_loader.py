@@ -3,12 +3,13 @@ import yaml
 
 
 def load_scenarios_from_yaml(file_path):
-    """Load scenarios and expand any scenario grid definitions."""
+    """Load scenarios and expand any scenario grid definitions and dynamic scenarios."""
     with open(file_path, "r") as f:
         config = yaml.safe_load(f)
 
     scenarios = config.get("scenarios", {})
 
+    # Handle legacy scenario_grid
     grid = config.get("scenario_grid")
     if grid:
         from itertools import product
@@ -24,6 +25,19 @@ def load_scenarios_from_yaml(file_path):
                 safe_v = str(v).replace(".", "_")
                 name_parts.append(f"{k}_{safe_v}")
             scenarios["_".join(name_parts)] = overrides
+
+    # Handle dynamic scenario generation
+    dynamic_config = config.get("dynamic_scenarios")
+    if dynamic_config:
+        try:
+            from lifecourse.analysis.scenario_generator import get_scenario_manager
+
+            manager = get_scenario_manager()
+            dynamic_scenarios = manager.generate_scenarios(dynamic_config)
+            scenarios.update(dynamic_scenarios)
+        except ImportError:
+            # Fallback if scenario generator is not available
+            pass
 
     return scenarios
 

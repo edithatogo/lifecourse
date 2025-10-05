@@ -5,8 +5,8 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from lifecourseid.analysis.run_helpers import run_sim
-from lifecourseid.model.parameters import DISTRIBUTIONS, get_mean_params
+from lifecourse.analysis.run_helpers import run_sim
+from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params
 
 
 def test_qaly_fix():

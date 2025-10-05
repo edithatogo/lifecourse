@@ -1,10 +1,74 @@
 
-# Policy Scenarios for LifeCourseID Microsimulation
+# Policy Scenarios for LifeCourse Microsimulation
 
 # Each top-level key represents a scenario name.
 # Values are parameter overrides for the base_mean_params.
 
 scenarios:
+  base:
+    familial_prop: null # Use base_mean_params value
+    yield_wgs: null     # Use base_mean_params value
+  low_familial_prop:
+    familial_prop: -0.05 # Relative adjustment to base_mean_params['familial_prop']
+    yield_wgs: null
+  high_familial_prop:
+    familial_prop: +0.05 # Relative adjustment to base_mean_params['familial_prop']
+    yield_wgs: null
+  low_yield_wgs:
+    familial_prop: null
+    yield_wgs: -0.05 # Relative adjustment to base_mean_params['yield_wgs']
+  high_yield_wgs:
+    familial_prop: null
+    yield_wgs: +0.05 # Relative adjustment to base_mean_params['yield_wgs']
+  targeted_age_25:
+    min_test_age: 25 # Absolute value for min_test_age
+  high_coverage:
+    yield_wgs: 0.70 # Absolute value for yield_wgs
+
+scenario_grid:
+  familial_prop: [0.10, 0.20]
+  yield_wgs: [0.50, 0.70]
+
+# Dynamic Scenario Generation
+# Supports automated scenario creation from templates, distributions, and families
+dynamic_scenarios:
+  # Distribution-based sampling for probabilistic sensitivity analysis
+  distribution:
+    sample_size: 5
+    parameters:
+      familial_prop:
+        type: beta
+        params:
+          alpha: 2.0
+          beta: 5.0
+      yield_wgs:
+        type: uniform
+        params:
+          low: 0.4
+          high: 0.8
+
+  # Template-based scenarios for systematic testing
+  template:
+    templates:
+      - name: "coverage_sensitivity"
+        description: "Test different coverage levels"
+        base_parameters: {}
+        variable_parameters:
+          yield_wgs: [0.5, 0.6, 0.7, 0.8]
+        generation_method: "grid"
+
+  # Scenario families with inheritance
+  family:
+    families:
+      - name: "testing_strategy"
+        description: "Different testing strategies"
+        base_scenario:
+          min_test_age: 30
+        variations:
+          early: { min_test_age: 20 }
+          late: { min_test_age: 40 }
+          high_coverage: { yield_wgs: 0.8 }
+        inheritance_mode: "override"
   base:
     familial_prop: null # Use base_mean_params value
     yield_wgs: null     # Use base_mean_params value

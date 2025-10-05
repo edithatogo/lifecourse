@@ -1,15 +1,15 @@
 import argparse
-from lifecourseid.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
-from lifecourseid.model.parameters import DISTRIBUTIONS, get_mean_params
-from lifecourseid.analysis.run_helpers import run_sim
-from lifecourseid.analysis.advanced_analysis import (
+from lifecourse.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+from lifecourse.model.parameter_loader import get_parameter_attributes
+from lifecourse.analysis.run_helpers import run_sim
+from lifecourse.analysis.advanced_analysis import (
     run_calibration,
     run_structural_uncertainty,
 )
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run LifeCourseID scenarios")
+    parser = argparse.ArgumentParser(description="Run lifecourse scenarios")
     parser.add_argument(
         "scenario", nargs="?", help="Scenario name defined in config/scenarios.yaml"
     )
@@ -40,11 +40,15 @@ def main():
         parser.print_help()
         return
 
+    # Load parameters dynamically (default to Australia for CLI)
+    config = {"parameter_set": "australia"}
+    DISTRIBUTIONS, START_YEAR, get_mean_params = get_parameter_attributes(
+        config, 'DISTRIBUTIONS', 'START_YEAR', 'get_mean_params'
+    )
+
     base_params = get_mean_params(DISTRIBUTIONS)
 
     # Create years range
-    from lifecourseid.model.parameters import START_YEAR
-
     years = list(range(START_YEAR, START_YEAR + args.years))
 
     if args.calibration:

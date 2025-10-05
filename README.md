@@ -2,7 +2,7 @@
 
 ## Overview
 
-LifeCourseID is a comprehensive microsimulation model designed to evaluate the cost-effectiveness and budget impact of interventions related to a specific health condition. It simulates individual life courses over a defined time horizon, incorporating demographic events, disease progression, associated costs, and quality-adjusted life years (QALYs). The model is built with a modular Python package structure and leverages Dask for efficient parallel processing of simulations, particularly for probabilistic sensitivity analysis.
+lifecourse is a comprehensive microsimulation model designed to evaluate the cost-effectiveness and budget impact of interventions related to a specific health condition. It simulates individual life courses over a defined time horizon, incorporating demographic events, disease progression, associated costs, and quality-adjusted life years (QALYs). The model is built with a modular Python package structure and leverages Dask for efficient parallel processing of simulations, particularly for probabilistic sensitivity analysis.
 
 ## Features
 
@@ -31,23 +31,29 @@ LifeCourseID is a comprehensive microsimulation model designed to evaluate the c
 The project is organized into a modular Python package to enhance maintainability, reusability, and scalability:
 
 ```
-LifeCourseID/
+lifecourse/
 ├── src/
-├── __init__.py
-│   ├── model/
-│   │   ├── __init__.py
-│   │   ├── parameters.py
-│   │   ├── cohort.py
-│   │   └── population_system.py
-│   └── analysis/
+│   └── lifecourseid/
 │       ├── __init__.py
-│       └── run_helpers.py
-├── main.py
-├── requirements.txt
-├── data/                 # For input data files (currently not used, but reserved)
+│       ├── cli.py
+│       ├── main.py
+│       ├── data_loader.py
+│       ├── model/
+│       │   ├── __init__.py
+│       │   ├── parameters.py
+│       │   ├── cohort.py
+│       │   └── population_system.py
+│       └── analysis/
+│           ├── __init__.py
+│           ├── run_helpers.py
+│           ├── plotting.py
+│           └── advanced_analysis.py
+├── config/
+│   ├── simulation_configs.py
+│   ├── scenarios.yaml
+│   └── config_loader.py
 ├── results/              # All generated output CSVs and plots
-├── tests/                # For unit and integration tests (future development)
-├── config/               # For externalized configuration (future development)
+├── tests/                # Unit and integration tests
 ├── archive/              # Contains older versions of notebooks and scripts
 │   └── old_notebooks/
 ├── .gitignore
@@ -59,11 +65,16 @@ LifeCourseID/
 
 ### Module Breakdown:
 
--   **`src/model/parameters.py`**: Defines all global constants, fixed parameters, and the statistical distributions for uncertain parameters used in the microsimulation. It also includes helper functions for parameter sampling.
--   **`src/model/cohort.py`**: Contains functions responsible for generating the initial synthetic population cohort based on demographic distributions and other baseline characteristics.
--   **`src/model/population_system.py`**: Implements the core logic of the microsimulation. This class manages the population state and defines the annual step-by-step processes, including mortality, fertility, diagnosis, and the calculation of costs and QALYs for each individual.
--   **`src/analysis/run_helpers.py`**: Provides high-level functions (`run_sim` and `run_scenario`) to orchestrate the execution of the microsimulation model for different analytical purposes (e.g., single runs, scenario comparisons, data collection for detailed outputs).
--   **`main.py`**: The primary entry point for the application. It orchestrates the entire simulation and analysis workflow, calling functions from the `src/model` and `src/analysis` modules, and handling output generation.
+-   **`src/lifecourseid/model/parameters.py`**: Defines all global constants, fixed parameters, and the statistical distributions for uncertain parameters used in the microsimulation. It also includes helper functions for parameter sampling.
+-   **`src/lifecourseid/model/cohort.py`**: Contains functions responsible for generating the initial synthetic population cohort based on demographic distributions and other baseline characteristics.
+-   **`src/lifecourseid/model/population_system.py`**: Implements the core logic of the microsimulation. This class manages the population state and defines the annual step-by-step processes, including mortality, fertility, diagnosis, and the calculation of costs and QALYs for each individual.
+-   **`src/lifecourseid/analysis/run_helpers.py`**: Provides high-level functions (`run_sim` and `run_scenario`) to orchestrate the execution of the microsimulation model for different analytical purposes (e.g., single runs, scenario comparisons, data collection for detailed outputs).
+-   **`src/lifecourseid/analysis/plotting.py`**: Contains functions for generating various plots and visualizations for economic evaluation and sensitivity analysis.
+-   **`src/lifecourseid/analysis/advanced_analysis.py`**: Implements advanced analytical methods including calibration, structural uncertainty analysis, and equity analysis.
+-   **`src/lifecourseid/cli.py`**: Command-line interface for running individual scenarios with various options.
+-   **`src/lifecourseid/main.py`**: The primary entry point for the full simulation and analysis workflow, orchestrating the entire analysis pipeline.
+-   **`src/lifecourseid/data_loader.py`**: Utilities for loading and processing external data files and scenario configurations.
+-   **`config/`**: Contains configuration files and loaders for simulation settings and scenario definitions.
 
 ## Installation
 
@@ -75,17 +86,33 @@ pip install lifecourseid
 
 ## Usage
 
-After installation, you can run the simulation from your terminal. The `lifecourseid` package provides a command-line entry point. You can run the full simulation and analysis workflow using:
+After installation, you can run the simulation from your terminal using the provided command-line entry points.
+
+### Full Simulation and Analysis
+
+Run the complete simulation and analysis workflow:
 
 ```bash
-python -m lifecourseid.main
+lifecourse-main
 ```
 
-Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory relative to where you run the command.
+Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
 
 ### Running with specific configurations
 
 You can specify a predefined configuration (e.g., `MINIMAL_TEST_CONFIG`) or provide an external YAML configuration file:
+
+```bash
+lifecourse-main --config_name MINIMAL_TEST_CONFIG
+```
+
+### Individual Scenario Runs
+
+For quick scenario testing, use the CLI interface:
+
+```bash
+lifecourse-cli base --pop-size 100 --debug
+```
 
 ```bash
 python -m lifecourseid.main --config_name MINIMAL_TEST_CONFIG

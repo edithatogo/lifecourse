@@ -7,8 +7,8 @@ import os
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from lifecourseid.analysis.run_helpers import run_sim, run_scenario
-from lifecourseid.model.parameters import (
+from lifecourse.analysis.run_helpers import run_sim, run_scenario, get_memory_usage
+from lifecourse.model.parameters import (
     DISTRIBUTIONS,
     START_YEAR,
     sample_params_from_dist,
@@ -222,6 +222,57 @@ class TestRunHelpersIntegration(unittest.TestCase):
                 df_output.columns,
                 f"Expected column '{col}' not in run_scenario DataFrame with overrides",
             )
+
+    def test_get_memory_usage(self):
+        """Test get_memory_usage function returns a float."""
+        memory_mb = get_memory_usage()
+        self.assertIsInstance(memory_mb, float)
+        self.assertGreater(memory_mb, 0, "Memory usage should be positive")
+
+    def test_run_sim_debug_mode(self):
+        """Test run_sim with debug=True to cover debug code paths."""
+        import io
+        import sys
+        from contextlib import redirect_stdout
+
+        # Capture stdout to verify debug output
+        f = io.StringIO()
+        with redirect_stdout(f):
+            dc, dq = run_sim(
+                self.sampled_params,
+                pop_size=TEST_POP_SIZE,
+                years=TEST_YEARS,
+                debug=True
+            )
+
+        output = f.getvalue()
+        self.assertIsInstance(dc, (float, int, np.number))
+        self.assertIsInstance(dq, (float, int, np.number))
+        # Check for debug output indicators
+        self.assertIn("Initial memory usage", output)
+        self.assertIn("Memory after initialization", output)
+        self.assertIn("Processing year", output)
+
+    def test_run_scenario_empty_population(self):
+        """Test run_scenario with pop_size=0 to cover empty population handling."""
+        (dc, dq), df_output = run_scenario(
+            self.sampled_params, pop_size=0, years=TEST_YEARS
+        )
+
+        self.assertEqual(dc, 0.0, "d_cost should be 0 for empty population")
+        self.assertEqual(dq, 0.0, "d_qaly should be 0 for empty population")
+
+        # Check DataFrame structure for empty population
+        expected_cols = [
+            "arm", "year", "annual_cost", "cost_health", "cost_edu", "cost_respite",
+            "cost_mobility", "cost_welfare", "cost_emp", "cost_morbidity", "costs",
+            "qalys", "ses_q0_pct", "ses_q1_pct", "ses_q2_pct", "ses_q3_pct", "ses_q4_pct"
+        ]
+        for col in expected_cols:
+            self.assertIn(col, df_output.columns)
+
+        # DataFrame should be empty
+        self.assertEqual(len(df_output), 0, "DataFrame should be empty for pop_size=0")
 
 
 if __name__ == "__main__":

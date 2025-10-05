@@ -1,7 +1,13 @@
 import unittest
 import tempfile
 import os
-from lifecourseid.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+from unittest.mock import patch
+from lifecourse.data_loader import (
+    load_scenarios_from_yaml,
+    apply_scenario_overrides,
+    load_nz_population_distribution,
+    load_nz_life_table_hazards,
+)
 
 
 class TestDataLoader(unittest.TestCase):
@@ -142,6 +148,63 @@ scenario_grid:
             self.assertIn("param_with_decimal_0_2_another_param_2_5", scenarios)
         finally:
             os.unlink(temp_file.name)
+
+    @patch('pandas.read_csv')
+    def test_load_nz_population_distribution(self, mock_read_csv):
+        """Test loading NZ population distribution data."""
+        # Mock the CSV data
+        mock_data = {
+            'Geography': ['New Zealand', 'Auckland', 'New Zealand'],
+            'Age': ['0-4', '5-9', '10-14'],
+            'Sex': ['Male', 'Female', 'Male'],
+            'Population': [100, 200, 150]
+        }
+        import pandas as pd
+        mock_df = pd.DataFrame(mock_data)
+        mock_read_csv.return_value = mock_df
+
+        result = load_nz_population_distribution()
+
+        # Check that pandas.read_csv was called
+        mock_read_csv.assert_called_once()
+
+        # Check the result structure
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertListEqual(list(result.columns), ['age', 'sex', 'count'])
+
+        # Check data transformation
+        self.assertEqual(result.iloc[0]['age'], 0)  # '0-4' -> 0
+        self.assertEqual(result.iloc[0]['sex'], 'Male')
+        self.assertEqual(result.iloc[0]['count'], 100)
+
+    @patch('pandas.read_csv')
+    def test_load_nz_life_table_hazards(self, mock_read_csv):
+        """Test loading NZ life table hazards data."""
+        # Mock the CSV data
+        mock_data = {
+            'Sex': ['Male', 'Male', 'Female', 'Female'],
+            'Age': [0, 1, 0, 1],
+            'nMx': [0.01, 0.02, 0.005, 0.015]
+        }
+        import pandas as pd
+        mock_df = pd.DataFrame(mock_data)
+        mock_read_csv.return_value = mock_df
+
+        result = load_nz_life_table_hazards()
+
+        # Check that pandas.read_csv was called
+        mock_read_csv.assert_called_once()
+
+        # Check the result structure
+        self.assertIsInstance(result, dict)
+        self.assertIn('Male', result)
+        self.assertIn('Female', result)
+
+        # Check data transformation
+        self.assertEqual(len(result['Male']), 2)
+        self.assertEqual(len(result['Female']), 2)
+        self.assertEqual(result['Male'][0], 0.01)  # Age 0 for Male
+        self.assertEqual(result['Male'][1], 0.02)  # Age 1 for Male
 
 
 if __name__ == "__main__":

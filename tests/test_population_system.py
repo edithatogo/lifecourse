@@ -2,14 +2,15 @@ import unittest
 import numpy as np
 import pandas as pd
 import dask.dataframe as dd
-from src.model.population_system import PopulationSystemDask
-from src.model.parameters import (
+from lifecourse.model.population_system import PopulationSystemDask
+from lifecourse.model.parameters import (
     sample_params_from_dist,
     prepare_dask_params,
     DISTRIBUTIONS,
     START_YEAR,
     LIFE_EXP_NP,
 )
+from lifecourse.model.dask_utils import safe_from_pandas
 
 
 def get_test_params_for_system(
@@ -75,7 +76,7 @@ class TestPopulationSystem(unittest.TestCase):
             )  # Mild, younger than life exp
             pop_df_mort.loc[pop_df_mort.index[1], "severity"] = 0
 
-            temp_pop_sys.pop = dd.from_pandas(
+            temp_pop_sys.pop = safe_from_pandas(
                 pop_df_mort, npartitions=temp_pop_sys.pop.npartitions or 1
             )
 
@@ -105,7 +106,7 @@ class TestPopulationSystem(unittest.TestCase):
             pop_df_fert.loc[indices_to_modify, "sex"] = 0  # Female
             pop_df_fert.loc[indices_to_modify, "age"] = 25  # Fertile age
             pop_df_fert.loc[indices_to_modify, "familial"] = True
-            pop_system.pop = dd.from_pandas(
+            pop_system.pop = safe_from_pandas(
                 pop_df_fert, npartitions=pop_system.pop.npartitions or 1
             )
 
@@ -137,7 +138,7 @@ class TestPopulationSystem(unittest.TestCase):
                 pop_system.params["min_test_age"] + 1
             )
             eligible_indices = indices_to_modify  # These are the ones we made eligible
-            pop_system.pop = dd.from_pandas(
+            pop_system.pop = safe_from_pandas(
                 pop_df_diag_initial, npartitions=pop_system.pop.npartitions or 1
             )
 
@@ -153,7 +154,7 @@ class TestPopulationSystem(unittest.TestCase):
         # Reset for yield_wgs = 0.0 test
         if num_to_modify > 0:
             pop_df_diag_initial.loc[eligible_indices, "diagnosed"] = False  # Reset
-            pop_system.pop = dd.from_pandas(
+            pop_system.pop = safe_from_pandas(
                 pop_df_diag_initial, npartitions=pop_system.pop.npartitions or 1
             )
 
@@ -174,7 +175,7 @@ class TestPopulationSystem(unittest.TestCase):
         if len(pop_df_diag_retro) > 1:
             pop_df_diag_retro.loc[pop_df_diag_retro.index[0], "diagnosed"] = True
             pop_df_diag_retro.loc[pop_df_diag_retro.index[1], "diagnosed"] = False
-            pop_system.pop = dd.from_pandas(
+            pop_system.pop = safe_from_pandas(
                 pop_df_diag_retro, npartitions=pop_system.pop.npartitions or 1
             )
 
@@ -202,7 +203,7 @@ class TestPopulationSystem(unittest.TestCase):
                 1  # Added for employment cost test (assuming EMP_NP[1] > 0)
             )
             pop_df_cq.loc[idx_to_mod, "education"] = "primary"  # Added for income test
-            pop_system.pop = dd.from_pandas(
+            pop_system.pop = safe_from_pandas(
                 pop_df_cq, npartitions=pop_system.pop.npartitions or 1
             )
 

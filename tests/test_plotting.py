@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pandas as pd
 import numpy as np
 
-from lifecourseid.analysis.plotting import (
+from lifecourse.analysis.plotting import (
     plot_deterministic_icers,
     plot_ce_plane,
     plot_ceac,
@@ -18,6 +18,9 @@ from lifecourseid.analysis.plotting import (
     plot_ceaf,
     plot_familial_prevalence_sensitivity,
     plot_evppi_curves,
+    plot_evsi_curves,
+    plot_evsi_vs_sample_size,
+    plot_concentration_indices,
     plot_psa_icer_distribution,
 )
 
@@ -106,13 +109,17 @@ class TestPlotting(unittest.TestCase):
     def test_plot_budget_impact(self, mock_savefig):
         """Test the budget impact plot function."""
         data = {
-            "uptake": [0.2, 0.2, 0.5, 0.5],
+            "curve_type": ["linear", "linear", "exponential", "exponential"],
             "year": [2024, 2025, 2024, 2025],
             "budget_impact": [100, 120, 250, 300],
+            "adoption_rate": [0.2, 0.2, 0.5, 0.5],
         }
         df = pd.DataFrame(data)
         plot_budget_impact(df)
-        mock_savefig.assert_called_once_with("results/budget_impact.png")
+        # Function saves two figures
+        assert mock_savefig.call_count == 2
+        mock_savefig.assert_any_call("results/budget_impact.png")
+        mock_savefig.assert_any_call("results/adoption_rates.png")
 
     @patch("matplotlib.pyplot.savefig")
     def test_plot_ses_equity(self, mock_savefig):
@@ -261,6 +268,23 @@ class TestPlotting(unittest.TestCase):
         )
         mock_grid.assert_called_once()
         mock_savefig.assert_called_once_with("results/ceac.png")
+
+
+    @patch("matplotlib.pyplot.savefig")
+    def test_plot_concentration_indices(self, mock_savefig):
+        """Test the concentration indices plot function."""
+        ci_results = {
+            'cost_ci': 0.15,
+            'qaly_ci': -0.08,
+            'net_benefit_ci': -0.12,
+            'interpretation': {
+                'cost_ci': 'Positive = costs concentrate among rich',
+                'qaly_ci': 'Negative = QALYs concentrate among poor',
+                'net_benefit_ci': 'Negative = net benefits concentrate among poor'
+            }
+        }
+        plot_concentration_indices(ci_results)
+        mock_savefig.assert_called_once_with("results/concentration_indices.png")
 
 
 if __name__ == "__main__":

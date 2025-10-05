@@ -6,8 +6,8 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from lifecourseid.model.parameters import DISTRIBUTIONS, get_mean_params
-from lifecourseid.analysis.run_helpers import run_sim
+from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params
+from lifecourse.analysis.run_helpers import run_sim
 
 
 def test_full_simulation():

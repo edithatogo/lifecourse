@@ -20,3 +20,5 @@ This document outlines the future development plans for the LifeCourseID microsi
 - Incorporate additional demographic complexities (e.g., migration, more detailed household structures).
 - Implement more advanced disease progression models.
 - Explore uncertainty analysis beyond PSA (e.g., value of information analysis for specific parameters).
+  - *Status: Expected Value of Sample Information (EVSI) analysis has been implemented and integrated into the main workflow.*
+  - *Status: Concentration Index analysis for socioeconomic-related health inequality measurement has been implemented and integrated into the main workflow.*

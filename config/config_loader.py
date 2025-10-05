@@ -1,6 +1,20 @@
+import logging
 import yaml
 import os
-from .simulation_configs import DEFAULT_CONFIG, MINIMAL_TEST_CONFIG
+from .simulation_configs import DEFAULT_CONFIG, MINIMAL_TEST_CONFIG, TEST_PSA_CONFIG
+
+_LOG = logging.getLogger(__name__)
+
+# Try import without mutating sys.path; if that fails we gracefully fall back
+# to a best-effort None factory. Tests and local dev should prefer installing
+# the package in editable mode instead of depending on sys.path hacks.
+try:
+    from lifecourseid.model.parameter_factory import get_parameter_factory
+except Exception:  # pragma: no cover - environment dependent
+    _LOG.debug(
+        "Could not import lifecourseid.parameter_factory; parameter factory disabled"
+    )
+    get_parameter_factory = None
 
 
 def load_config(config_name=None, config_file_path=None):
@@ -27,6 +41,8 @@ def load_config(config_name=None, config_file_path=None):
             pass  # Already loaded
         elif config_name == "MINIMAL_TEST_CONFIG":
             config.update(MINIMAL_TEST_CONFIG)
+        elif config_name == "TEST_PSA_CONFIG":
+            config.update(TEST_PSA_CONFIG)
         else:
             raise ValueError(f"Unknown configuration name: {config_name}")
 
@@ -45,6 +61,7 @@ def load_config(config_name=None, config_file_path=None):
         "SIMULATION_YEARS",
         "CALIBRATION_POP_SIZE",
         "STRUCTURAL_UNCERTAINTY_POP_SIZE",
+        "parameter_set",
     ]
     for key in required_keys:
         if key not in config:
@@ -58,5 +75,15 @@ def load_config(config_name=None, config_file_path=None):
         or config["SIMULATION_YEARS"] <= 0
     ):
         raise ValueError("SIMULATION_YEARS must be a positive integer.")
+
+    # Validate parameter_set if parameter factory is available
+    if get_parameter_factory is not None:
+        factory = get_parameter_factory()
+        available_sets = factory.get_available_parameter_sets()
+        if config["parameter_set"] not in available_sets:
+            raise ValueError(
+                f"parameter_set '{config['parameter_set']}' is not valid. "
+                f"Available sets: {available_sets}"
+            )
 
     return config

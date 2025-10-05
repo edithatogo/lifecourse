@@ -1,9 +1,9 @@
 # GEMINI.md
 
-This file provides specific instructions and context for the Gemini CLI agent when interacting with the LifeCourseID project.
+This file provides specific instructions and context for the Gemini CLI agent when interacting with the LifeCourse project.
 
 ## Project Overview
-LifeCourseID is a microsimulation model designed to evaluate the cost-effectiveness and budget impact of interventions related to a specific health condition over a lifetime. It simulates individual life courses, incorporating demographic events, disease progression, costs, and quality-adjusted life years (QALYs).
+LifeCourse is a microsimulation model designed to evaluate the cost-effectiveness and budget impact of interventions related to a specific health condition over a lifetime. It simulates individual life courses, incorporating demographic events, disease progression, costs, and quality-adjusted life years (QALYs).
 
 ## Project Structure
 

@@ -166,6 +166,11 @@ This document provides a comprehensive task breakdown for the lifecourse microsi
   - Complexity: Low
   - Dependencies: psutil
 
+### Developer note: Dask DataFrame divisions and helper utilities
+
+For detailed guidance on working with Dask DataFrames (including the helpers `ensure_known_divisions` and `safe_from_pandas`), see `CONTRIBUTING.md`.
+
+
 ### 3.2 Advanced Analysis (`advanced_analysis.py`)
 
 - [x] **AnalysisModule Base Class** - Abstract base class for analysis interfaces
@@ -679,7 +684,28 @@ Next steps for Advanced Dask Optimizations:
 
 - [ ] Evaluate partitioning strategies (number and size of partitions) on a medium-sized cluster replica to find sweet spot for memory vs CPU.
 - [ ] Run targeted Dask profiler (distributed.profile) on full PSA samples with pmap-style scheduling to capture hotspots.
-- [ ] Prototype a custom task graph for the annual progression step that reduces intermediate materialization.
+- [x] Run targeted Dask profiler (distributed.profile) on full PSA samples with pmap-style scheduling to capture hotspots.
+
+Recent profiling run (local dev machine): produced HTML and raw profile pickles under `results/`:
+
+`results/dask_profile_pmap_50k.html` and `results/dask_profile_pmap_50k.pkl` — profiling around a PSA-style run (pop_size=50_000, 2 years) using `LocalCluster(processes=False)`.
+
+Note: the raw profile state contained no aggregated frame counts when inspected via `distributed.profile.plot_data` (likely because the sampling window did not capture sustained worker-level stack samples for short-lived tasks). Recommended next step: either increase workload duration (more years or larger populations) or gather worker-level cProfile traces for the per-partition progression function to get line-level hotspots.
+
+- [x] Prototype a custom task graph for the annual progression step that reduces intermediate materialization.
+
+Recent work: A low-risk prototype was added to experiment with fusing the per-year progression into a single per-partition pass.
+
+- Implementation: `src/lifecourse/model/population_system.py::PopulationSystemDask.step_fused` — fused per-partition function performing mortality, diagnosis, age increment and cost/QALY in one pass and generating births from the pre-step population.
+- Benchmark harness: `scripts/benchmark_partitioning.py` — synthetic partitioning/partition-sweep script (short runs produced `results/partition_bench_short.csv`).
+- Profiling artifacts: Dask profiler outputs saved under `results/` (example: `results/dask_profile_pmap_50k.html` / `.pkl`). Note: sampling traces were sparse for short tasks; worker-level cProfile or longer runs recommended.
+
+Next recommended steps:
+
+- Validate correctness: run deterministic comparisons between `step` and `step_fused` on small/medium populations (100, 1k).
+- Performance sweep: run partitioning benchmarks at medium/large sizes (50k, 100k) and compare `step` vs `step_fused` for wall time and peak RSS.
+- Line-level profiling: instrument the fused partition function with cProfile per worker if sampled Dask profiler outputs remain sparse.
+
 - [ ] Add benchmark tests to `tests/` to track wall time and memory for representative pop sizes (10k, 50k, 100k) and add as CI performance checks (optional gated job).
 
 ---

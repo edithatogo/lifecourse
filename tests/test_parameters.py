@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import pandas as pd
-from src.model.parameters import (
+from lifecourse.model.parameters import (
     get_gamma_params,
     get_beta_params,
     sample_params_from_dist,

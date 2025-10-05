@@ -1,3 +1,4 @@
+import logging
 import random  # Added for setting Python's global random seed
 import numpy as np
 import pandas as pd
@@ -7,8 +8,11 @@ import dask
 import psutil
 import time
 
-from lifecourseid.model.population_system import PopulationSystemDask
-from lifecourseid.model.parameters import POP_SIZE, prepare_dask_params
+from lifecourse.model.population_system import PopulationSystemDask
+from lifecourse.model.parameters import POP_SIZE, prepare_dask_params
+from lifecourse.model.dask_utils import ensure_known_divisions, safe_from_pandas
+
+_LOG = logging.getLogger(__name__)
 
 
 def get_memory_usage():
@@ -42,6 +46,16 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
     sim_r = PopulationSystemDask(pop_size, dask_params, "retrospective")
     sim_p = PopulationSystemDask(pop_size, dask_params, "prospective")
 
+    # Defensive: ensure the population Dask DataFrames have known divisions
+    try:
+        sim_r.pop = ensure_known_divisions(sim_r.pop)
+    except Exception as exc:  # pragma: no cover - defensive
+        _LOG.exception("ensure_known_divisions failed for retrospective pop: %s", exc)
+    try:
+        sim_p.pop = ensure_known_divisions(sim_p.pop)
+    except Exception as exc:  # pragma: no cover - defensive
+        _LOG.exception("ensure_known_divisions failed for prospective pop: %s", exc)
+
     # Memory profiling
     if debug:
         after_init_memory = get_memory_usage()
@@ -72,13 +86,23 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
                 individual_qalys_r.append(
                     sim_r.pop["annual_qaly"]
                 )  # Store individual QALYs
+                diagnosed_count_r = sim_r.pop["diagnosed"].sum().compute()
+                print(f"  Retrospective diagnosed count: {diagnosed_count_r}")
+                pop_size_r = sim_r.pop.shape[0].compute()
+                print(f"  Retrospective population size: {pop_size_r}")
         else:
             annual_costs_r.append(da.from_array(np.array(0.0)))
             annual_qalys_r.append(da.from_array(np.array(0.0)))
             if debug:
-                individual_qalys_r.append(
-                    dd.from_pandas(pd.Series([], dtype=float), npartitions=1)
-                )  # Empty Series for individual QALYs
+                # Empty Series for individual QALYs — ensure known divisions
+                empty_ser = safe_from_pandas(pd.Series([], dtype=float), npartitions=1)
+                try:
+                    empty_ser = ensure_known_divisions(empty_ser)
+                except Exception as exc:  # pragma: no cover - defensive
+                    _LOG.exception(
+                        "ensure_known_divisions failed for empty_ser: %s", exc
+                    )
+                individual_qalys_r.append(empty_ser)
 
         sim_p.step(yr)
         if sim_p.pop.npartitions > 0:  # Check if population is not empty
@@ -88,13 +112,25 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
                 individual_qalys_p.append(
                     sim_p.pop["annual_qaly"]
                 )  # Store individual QALYs
+                diagnosed_count_p = sim_p.pop["diagnosed"].sum().compute()
+                print(f"  Prospective diagnosed count: {diagnosed_count_p}")
+                pop_size_p = sim_p.pop.shape[0].compute()
+                print(f"  Prospective population size: {pop_size_p}")
         else:
             annual_costs_p.append(da.from_array(np.array(0.0)))
             annual_qalys_p.append(da.from_array(np.array(0.0)))
             if debug:
-                individual_qalys_p.append(
-                    dd.from_pandas(pd.Series([], dtype=float), npartitions=1)
-                )  # Empty Series for individual QALYs
+                # Empty Series for individual QALYs — ensure known divisions
+                empty_ser_p = safe_from_pandas(
+                    pd.Series([], dtype=float), npartitions=1
+                )
+                try:
+                    empty_ser_p = ensure_known_divisions(empty_ser_p)
+                except Exception as exc:  # pragma: no cover - defensive
+                    _LOG.exception(
+                        "ensure_known_divisions failed for empty_ser_p: %s", exc
+                    )
+                individual_qalys_p.append(empty_ser_p)
 
         if debug:
             year_end_time = time.time()
@@ -224,17 +260,28 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
             ses_r_dask_list.append(sim_r.pop["ses"])
         else:
             annual_series_r_dask_list.append(
-                dd.from_pandas(
+                safe_from_pandas(
                     pd.Series([0.0] * len(cols_to_sum), index=cols_to_sum, name=yr),
                     npartitions=1,
                 )
             )
+            # ensure known divisions for the placeholder annual series
+            try:
+                annual_series_r_dask_list[-1] = ensure_known_divisions(
+                    annual_series_r_dask_list[-1]
+                )
+            except Exception:
+                pass
             ses_r_dask_list.append(
-                dd.from_pandas(
+                safe_from_pandas(
                     pd.Series([0] * pop_size, dtype=int, name=f"ses_{yr}_r"),
                     npartitions=1,
                 )
             )
+            try:
+                ses_r_dask_list[-1] = ensure_known_divisions(ses_r_dask_list[-1])
+            except Exception:
+                pass
 
         sim_p.step(yr)
         if sim_p.pop.npartitions > 0:
@@ -244,17 +291,27 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
             ses_p_dask_list.append(sim_p.pop["ses"])
         else:
             annual_series_p_dask_list.append(
-                dd.from_pandas(
+                safe_from_pandas(
                     pd.Series([0.0] * len(cols_to_sum), index=cols_to_sum, name=yr),
                     npartitions=1,
                 )
             )
+            try:
+                annual_series_p_dask_list[-1] = ensure_known_divisions(
+                    annual_series_p_dask_list[-1]
+                )
+            except Exception:
+                pass
             ses_p_dask_list.append(
-                dd.from_pandas(
+                safe_from_pandas(
                     pd.Series([0] * pop_size, dtype=int, name=f"ses_{yr}_p"),
                     npartitions=1,
                 )
             )
+            try:
+                ses_p_dask_list[-1] = ensure_known_divisions(ses_p_dask_list[-1])
+            except Exception:
+                pass
 
     all_dask_objects = (
         annual_series_r_dask_list

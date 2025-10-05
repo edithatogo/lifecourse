@@ -6,6 +6,7 @@ DEFAULT_CONFIG = {
     "SIMULATION_YEARS": 81,
     "CALIBRATION_POP_SIZE": 10000,
     "STRUCTURAL_UNCERTAINTY_POP_SIZE": 10000,
+    "parameter_set": "australia",  # Parameter set to use: 'australia', 'nz', 'new_zealand'
 }
 
 MINIMAL_TEST_CONFIG = {
@@ -24,3 +25,12 @@ MINIMAL_TEST_CONFIG = {
 #     "CALIBRATION_POP_SIZE": 100,
 #     "STRUCTURAL_UNCERTAINTY_POP_SIZE": 100,
 # }
+
+TEST_PSA_CONFIG = {
+    "POP_SIZE": 100,
+    "PSA_N": 50,
+    "SIMULATION_YEARS": 3,
+    "CALIBRATION_POP_SIZE": 100,
+    "STRUCTURAL_UNCERTAINTY_POP_SIZE": 100,
+    "parameter_set": "australia",
+}

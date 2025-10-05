@@ -2,19 +2,42 @@ import pandas as pd
 import numpy as np
 import argparse
 import os
+import sys
 import psutil
 from dask.distributed import LocalCluster, Client
 
-from config.config_loader import load_config
+# Try to import the config loader normally. When running this module directly
+# from a checkout (instead of an installed package), the package imports may
+# fail. In that case we attempt a single, explicit, documented insertion of
+# the repository root into sys.path and retry once. This keeps the mutation of
+# sys.path local and explicit instead of doing it unconditionally at import
+# time which can confuse importers and reviewers.
+try:
+    from config.config_loader import load_config
+except Exception:
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if project_root not in sys.path:
+        # This is a best-effort fallback for local development. Prefer
+        # installing the package (pip install -e .) or running via
+        # `python -m lifecourse.main` so imports work without modifying sys.path.
+        sys.path.insert(0, project_root)
+    try:
+        from config.config_loader import load_config
+    except Exception as e:
+        # Provide a clear error explaining why the import failed and how to
+        # fix it rather than silently mutating global interpreter state.
+        raise ImportError(
+            "Could not import 'config.config_loader'. If you're running the "
+            "module from a checkout, either install the package in editable "
+            "mode (`pip install -e .`) or set PYTHONPATH to the repository root."
+        ) from e
 
-from lifecourseid.model.parameters import (
-    DISTRIBUTIONS,
-    START_YEAR,
-    sample_params_from_dist,
-    get_mean_params,
-)
-from lifecourseid.analysis.run_helpers import run_sim, run_scenario
-from lifecourseid.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+from lifecourse.model.parameter_loader import get_parameter_attributes
+from lifecourse.analysis.run_helpers import run_sim, run_scenario
+from lifecourse.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+from lifecourse.analysis.advanced_analysis import calculate_budget_impact_with_adoption
 
 
 def get_system_resources():
@@ -26,7 +49,7 @@ def get_system_resources():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run LifeCourseID Simulation and Analysis."
+        description="Run lifecourse Simulation and Analysis."
     )
     parser.add_argument(
         "--config_name",
@@ -51,6 +74,17 @@ def main():
         config_name=args.config_name, config_file_path=args.config_file
     )
 
+    # Load parameters dynamically based on configuration
+    DISTRIBUTIONS, START_YEAR, sample_params_from_dist, get_mean_params = (
+        get_parameter_attributes(
+            config,
+            "DISTRIBUTIONS",
+            "START_YEAR",
+            "sample_params_from_dist",
+            "get_mean_params",
+        )
+    )
+
     # Update global parameters based on loaded configuration
     current_pop_size = config["POP_SIZE"]
     current_psa_n = config["PSA_N"]
@@ -59,7 +93,7 @@ def main():
     # Dynamically set YEARS based on simulation_years
     YEARS = list(range(START_YEAR, simulation_end_year + 1))
 
-    print("--- Running LifeCourseID Simulation and Analysis ---")
+    print("--- Running lifecourse Simulation and Analysis ---")
     print(
         f"Simulation Parameters: Population Size={current_pop_size}, PSA Runs={current_psa_n}, Simulation Years={config['SIMULATION_YEARS']}"
     )
@@ -137,7 +171,7 @@ def main():
             icer = (dc / dq) if dq != 0 else 0
             results.append({"scenario": name, "dCost": dc, "dQALY": dq, "ICER": icer})
 
-        from lifecourseid.analysis.plotting import plot_deterministic_icers
+        from lifecourse.analysis.plotting import plot_deterministic_icers
 
         det_df = pd.DataFrame(results)
         det_df.to_csv("results/deterministic_summary.csv", index=False)
@@ -184,7 +218,7 @@ def main():
             psa_df_pd.to_csv("results/psa_samples.csv", index=False)
             print("PSA results saved to results/psa_samples.csv")
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -269,7 +303,7 @@ def main():
                         {"param": param_name, "change_type": change_type, "ICER": icer}
                     )
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -377,7 +411,7 @@ def main():
                         }
                     )
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -400,7 +434,7 @@ def main():
 
             plot_subgroup_analysis(sg_df, base_icer_subgroup)
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -423,29 +457,68 @@ def main():
                 "results/cost_mix_prospective.png",
             )
 
-            # Module 12: 5-Year Budget Impact
-            print("\n--- Running Module 12: 5-Year Budget Impact ---")
+            # Module 12: 5-Year Budget Impact with Adoption Curves
+            print(
+                "\n--- Running Module 12: 5-Year Budget Impact with Adoption Curves ---"
+            )
             budg = []
-            uptakes = [0.2, 0.5, 0.8]
             yrs_budget = YEARS[:5]  # Use a fixed 5-year horizon for budget impact
             dfp = mix_data[mix_data["arm"] == "prospective"]
             dfr = mix_data[mix_data["arm"] == "retrospective"]
 
-            for u in uptakes:
-                for yr in yrs_budget:
-                    if yr in dfp["year"].values and yr in dfr["year"].values:
-                        c1 = float(dfp.loc[dfp["year"] == yr, "annual_cost"].item())
-                        c0 = float(dfr.loc[dfr["year"] == yr, "annual_cost"].item())
-                        incremental_cost = c1 - c0
-                        budg.append(
-                            {
-                                "uptake": u,
-                                "year": yr,
-                                "budget_impact": incremental_cost * u,
-                            }
-                        )
+            # Define adoption curve configurations
+            adoption_curves = [
+                {
+                    "type": "logistic",
+                    "max_adoption": 1.0,
+                    "growth_rate": 1.0,
+                    "inflection_point": 3.0,
+                },
+                {"type": "exponential", "max_adoption": 1.0, "decay_rate": 0.5},
+                {"type": "stepwise", "steps": [(1, 0.2), (3, 0.6), (5, 1.0)]},
+            ]
 
-            from lifecourseid.analysis.plotting import (
+            # Extract incremental costs for each year
+            incremental_costs = []
+            for yr in yrs_budget:
+                if yr in dfp["year"].values and yr in dfr["year"].values:
+                    c1 = float(dfp.loc[dfp["year"] == yr, "annual_cost"].item())
+                    c0 = float(dfr.loc[dfr["year"] == yr, "annual_cost"].item())
+                    incremental_costs.append(c1 - c0)
+                else:
+                    incremental_costs.append(0.0)  # Default to 0 if year not found
+
+            incremental_costs = np.array(incremental_costs)
+            years_array = np.array(yrs_budget)
+
+            # Calculate budget impact for each adoption curve
+            for i, curve_config in enumerate(adoption_curves):
+                curve_type = curve_config["type"]
+                curve_name = f"{curve_type}_curve"
+
+                # Extract curve parameters
+                curve_params = {k: v for k, v in curve_config.items() if k != "type"}
+
+                # Calculate budget impact using adoption curve
+                budget_result = calculate_budget_impact_with_adoption(
+                    incremental_costs, years_array, curve_type, **curve_params
+                )
+
+                # Add results to budg list for plotting
+                for j, yr in enumerate(years_array):
+                    budg.append(
+                        {
+                            "curve_type": curve_name,
+                            "year": yr,
+                            "budget_impact": budget_result["adopted_costs"][j],
+                            "adoption_rate": budget_result["adoption_rates"][j],
+                            "cumulative_budget_impact": budget_result[
+                                "cumulative_budget_impact"
+                            ][j],
+                        }
+                    )
+
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -460,7 +533,7 @@ def main():
             budg_df = pd.DataFrame(budg)
             plot_budget_impact(budg_df)
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -483,7 +556,7 @@ def main():
                 labels = [f"Quintile {i+1}" for i in range(5)]
                 plot_ses_equity(ses_vals, labels, simulation_end_year)
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -503,7 +576,7 @@ def main():
             qaly_list = psa_df_pd["dQALY"].tolist()
             plot_psa_histograms(cost_list, qaly_list)
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -595,7 +668,7 @@ def main():
                     {"familial_prop": f_prop, "dCost": dc, "dQALY": dq, "ICER": icer}
                 )
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -643,7 +716,7 @@ def main():
                 "u_diag",
                 "cost_inp_severe",
             ]
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -669,7 +742,7 @@ def main():
 
             plot_evppi_curves(evppi_results, wtp)
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -694,7 +767,7 @@ def main():
             psa_icers_np = (dc / dq).replace([np.inf, -np.inf], np.nan).dropna()
             plot_psa_icer_distribution(psa_icers_np)
 
-            from lifecourseid.analysis.plotting import (
+            from lifecourse.analysis.plotting import (
                 plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
@@ -725,7 +798,7 @@ def main():
 
             # Module 22: Calibration Analysis
             print("\n--- Running Module 22: Calibration Analysis ---")
-            from lifecourseid.analysis.advanced_analysis import run_calibration
+            from lifecourse.analysis.advanced_analysis import run_calibration
 
             calibration_result = run_calibration(
                 base_mean_params,
@@ -739,7 +812,7 @@ def main():
 
             # Module 23: Structural Uncertainty Analysis
             print("\n--- Running Module 23: Structural Uncertainty Analysis ---")
-            from lifecourseid.analysis.advanced_analysis import (
+            from lifecourse.analysis.advanced_analysis import (
                 run_structural_uncertainty,
             )
 
@@ -758,6 +831,279 @@ def main():
             print(
                 "Structural uncertainty results saved to results/structural_uncertainty.csv"
             )
+
+            # Module 24: Expected Value of Sample Information (EVSI) Analysis
+            if current_psa_n > 0:  # Only run EVSI if PSA was performed
+                print(
+                    "\n--- Running Module 24: Expected Value of Sample Information (EVSI) Analysis ---"
+                )
+                from lifecourse.analysis.advanced_analysis import run_evsi_analysis
+
+                evsi_summary = run_evsi_analysis(
+                    base_mean_params,
+                    psa_runs=current_psa_n,  # Use PSA_N from config
+                    wtp_threshold=config.get("WTP_THRESHOLD", 30000),
+                    pop_size=config["POP_SIZE"],
+                    years=YEARS,
+                    debug=args.debug,
+                )
+                print("EVSI analysis completed.")
+
+                # Generate EVSI plots
+                from lifecourse.analysis.plotting import (
+                    plot_evsi_curves,
+                    plot_evsi_vs_sample_size,
+                )
+
+                plot_evsi_curves(evsi_summary["evsi_results"])
+                plot_evsi_vs_sample_size(evsi_summary["evsi_results"])
+                print("EVSI plots saved to results/ directory.")
+            else:
+                print("\n--- Skipping Module 24: EVSI Analysis (PSA not performed) ---")
+
+            # Module 25: Concentration Index Analysis
+            if current_psa_n > 0:  # Only run if PSA was performed
+                print("\n--- Running Module 25: Concentration Index Analysis ---")
+                from lifecourse.analysis.advanced_analysis import (
+                    run_concentration_analysis,
+                )
+
+                ci_results = run_concentration_analysis(
+                    base_mean_params,
+                    psa_runs=current_psa_n,
+                    pop_size=config["POP_SIZE"],
+                    years=YEARS,
+                    debug=args.debug,
+                )
+                print("Concentration index analysis completed.")
+
+                # Generate concentration index plot
+                from lifecourse.analysis.plotting import plot_concentration_indices
+
+                plot_concentration_indices(ci_results)
+                print(
+                    "Concentration index plot saved to results/concentration_indices.png"
+                )
+            else:
+                print(
+                    "\n--- Skipping Module 25: Concentration Index Analysis (PSA not performed) ---"
+                )
+
+            # Module 26: Distributional Impacts Analysis
+            if current_psa_n > 0:  # Only run if PSA was performed
+                print("\n--- Running Module 26: Distributional Impacts Analysis ---")
+                from lifecourse.analysis.advanced_analysis import (
+                    run_distributional_impacts_analysis,
+                )
+                from lifecourse.analysis.plotting import (
+                    plot_concentration_curves,
+                    plot_equity_efficiency_tradeoffs,
+                    plot_distributional_uncertainty,
+                )
+
+                distributional_results = run_distributional_impacts_analysis(
+                    base_mean_params,
+                    psa_runs=current_psa_n,
+                    pop_size=config["POP_SIZE"],
+                    years=YEARS,
+                    debug=args.debug,
+                )
+                print("Distributional impacts analysis completed.")
+
+                # Generate distributional analysis plots
+                plot_concentration_curves(distributional_results)
+                print(
+                    "Concentration curves plot saved to results/distributional_concentration_curves.png"
+                )
+
+                plot_equity_efficiency_tradeoffs(distributional_results)
+                print(
+                    "Equity-efficiency trade-offs plot saved to results/distributional_equity_efficiency.png"
+                )
+
+                plot_distributional_uncertainty(distributional_results)
+                print(
+                    "Distributional uncertainty plot saved to results/distributional_uncertainty.png"
+                )
+
+                # Print key distributional findings
+                print("\nKey Distributional Findings:")
+                dist_stats = distributional_results["distributional_stats"]
+                print(f"ICER Mean: £{dist_stats['overall']['icer_mean']:,.0f}/QALY")
+                print(f"ICER Median: £{dist_stats['overall']['icer_median']:,.0f}/QALY")
+                print(
+                    f"Cost-QALY Correlation: {dist_stats['overall']['joint_distribution_corr']:.3f}"
+                )
+
+                equity_eff = distributional_results["equity_efficiency"]
+                print(
+                    f"Equity-Efficiency Ratio: {equity_eff['equity_metrics']['equity_efficiency_ratio']:.3f}"
+                )
+                print(
+                    f"Efficiency Loss for Equity: {equity_eff['tradeoff_analysis']['efficiency_loss_for_equity']:.1%}"
+                )
+            else:
+                print(
+                    "\n--- Skipping Module 26: Distributional Impacts Analysis (PSA not performed) ---"
+                )
+
+            # Module 27: Value-Based Pricing (VBP) Analysis
+            if current_psa_n > 0:  # Only run if PSA was performed
+                print("\n--- Running Module 27: Value-Based Pricing (VBP) Analysis ---")
+                from lifecourse.analysis.advanced_analysis import run_vbp_analysis
+
+                vbp_results = run_vbp_analysis(
+                    base_mean_params,
+                    psa_runs=current_psa_n,
+                    wtp_range=config.get(
+                        "VBP_WTP_RANGE", np.linspace(10000, 50000, 21)
+                    ),
+                    budget_constraints=config.get(
+                        "VBP_BUDGET_CONSTRAINTS",
+                        {
+                            "max_incremental_budget": 10000000,  # £10M
+                            "population_size": 1000000,  # 1M people
+                        },
+                    ),
+                    pricing_scenarios=config.get(
+                        "VBP_PRICING_SCENARIOS",
+                        [
+                            {
+                                "name": "base_case",
+                                "price_adjustment": 0,
+                                "reimbursement_rate": 1.0,
+                            },
+                            {
+                                "name": "price_increase_10pct",
+                                "price_adjustment": 0.1,
+                                "reimbursement_rate": 1.0,
+                            },
+                            {
+                                "name": "price_increase_25pct",
+                                "price_adjustment": 0.25,
+                                "reimbursement_rate": 1.0,
+                            },
+                            {
+                                "name": "partial_reimbursement",
+                                "price_adjustment": 0,
+                                "reimbursement_rate": 0.8,
+                            },
+                            {
+                                "name": "value_based_pricing",
+                                "price_adjustment": 0.15,
+                                "reimbursement_rate": 0.9,
+                            },
+                        ],
+                    ),
+                    pop_size=config["POP_SIZE"],
+                    years=YEARS,
+                    debug=args.debug,
+                )
+                print("VBP analysis completed.")
+
+                # Generate VBP plots
+                from lifecourse.analysis.plotting import (
+                    plot_vbp_price_thresholds,
+                    plot_vbp_optimal_ranges,
+                    plot_vbp_reimbursement_scenarios,
+                )
+
+                plot_vbp_price_thresholds(vbp_results["price_thresholds"])
+                plot_vbp_optimal_ranges(vbp_results["optimal_price_ranges"])
+                plot_vbp_reimbursement_scenarios(vbp_results["reimbursement_scenarios"])
+                print("VBP plots saved to results/ directory.")
+            else:
+                print("\n--- Skipping Module 27: VBP Analysis (PSA not performed) ---")
+
+            # Module 28: Multi-Criteria Decision Analysis (MCDA)
+            if current_psa_n > 0:  # Only run if PSA was performed
+                print(
+                    "\n--- Running Module 27: Multi-Criteria Decision Analysis (MCDA) ---"
+                )
+                from lifecourse.analysis.advanced_analysis import run_mcda_analysis
+
+                # Create decision matrix from PSA results for MCDA
+                # Use key health economic outcomes as criteria
+                alternatives = [f"PSA_Run_{i+1}" for i in range(len(psa_df_pd))]
+
+                # Define criteria based on PSA results
+                criteria_data = {
+                    "Incremental_Cost": psa_df_pd["dCost"].values,
+                    "Incremental_QALY": psa_df_pd["dQALY"].values,
+                    "ICER": psa_df_pd["ICER"].values
+                    if "ICER" in psa_df_pd.columns
+                    else psa_df_pd["dCost"] / (psa_df_pd["dQALY"] + 1e-10),
+                    "Cost_Effectiveness": -psa_df_pd["ICER"].values
+                    if "ICER" in psa_df_pd.columns
+                    else -psa_df_pd["dCost"]
+                    / (psa_df_pd["dQALY"] + 1e-10),  # Negative ICER for "benefit"
+                    "Efficiency": psa_df_pd["dQALY"].values
+                    / (psa_df_pd["dCost"].values + 1e-10),  # QALYs per £
+                }
+
+                decision_matrix = pd.DataFrame(criteria_data, index=alternatives)
+
+                # Define pairwise comparisons for AHP (example healthcare decision criteria)
+                pairwise_comparisons = {
+                    (
+                        "Incremental_QALY",
+                        "Incremental_Cost",
+                    ): 5,  # QALYs much more important than cost
+                    ("Incremental_QALY", "ICER"): 4,
+                    ("Incremental_QALY", "Cost_Effectiveness"): 3,
+                    ("Incremental_QALY", "Efficiency"): 2,
+                    ("Incremental_Cost", "ICER"): 1
+                    / 3,  # Cost less important than ICER
+                    ("Incremental_Cost", "Cost_Effectiveness"): 1 / 4,
+                    ("Incremental_Cost", "Efficiency"): 1 / 5,
+                    ("ICER", "Cost_Effectiveness"): 2,
+                    ("ICER", "Efficiency"): 3,
+                    ("Cost_Effectiveness", "Efficiency"): 2,
+                }
+
+                # Define value functions for criteria
+                value_functions = {
+                    "Incremental_QALY": {"type": "linear", "direction": "increasing"},
+                    "Incremental_Cost": {
+                        "type": "linear",
+                        "direction": "decreasing",
+                    },  # Lower cost is better
+                    "ICER": {
+                        "type": "linear",
+                        "direction": "decreasing",
+                    },  # Lower ICER is better
+                    "Cost_Effectiveness": {"type": "linear", "direction": "increasing"},
+                    "Efficiency": {"type": "linear", "direction": "increasing"},
+                }
+
+                mcda_results = run_mcda_analysis(
+                    decision_matrix=decision_matrix,
+                    weights=None,  # Will use AHP to determine weights
+                    normalization_method=config.get("MCDA_NORMALIZATION", "linear"),
+                    weight_method="ahp",
+                    pairwise_comparisons=pairwise_comparisons,
+                    value_functions=value_functions,
+                    debug=args.debug,
+                )
+                print("MCDA analysis completed.")
+
+                # Generate MCDA plots
+                from lifecourse.analysis.plotting import (
+                    plot_mcda_weights,
+                    plot_mcda_ranking,
+                    plot_mcda_radar,
+                    plot_mcda_sensitivity_weights,
+                )
+
+                plot_mcda_weights(
+                    mcda_results["weights"], mcda_results.get("ahp_analysis")
+                )
+                plot_mcda_ranking(mcda_results)
+                plot_mcda_radar(mcda_results)
+                plot_mcda_sensitivity_weights(mcda_results)
+                print("MCDA plots saved to results/ directory.")
+            else:
+                print("\n--- Skipping Module 27: MCDA Analysis (PSA not performed) ---")
 
     finally:
         client.close()

@@ -23,19 +23,19 @@ This document provides a comprehensive task breakdown for the lifecourse microsi
 ### 1.1 System Architecture Design
 
 - [x] **High-Level Architecture Design** - Complete system architecture with component decomposition
-  - Status: - [x] Completed
+  - Status: Completed
   - Priority: Critical
   - Complexity: Medium
   - Dependencies: None
 
 - [x] **Data Flow Architecture** - Input → Processing → Output pipeline design
-  - Status: - [x] Completed
+  - Status: Completed
   - Priority: Critical
   - Complexity: Medium
   - Dependencies: High-level architecture
 
 - [x] **Conceptual Architecture** - Mermaid mindmap of system components
-  - Status: - [x] Completed
+  - Status: Completed
   - Priority: High
   - Complexity: Low
   - Dependencies: System architecture
@@ -165,6 +165,83 @@ This document provides a comprehensive task breakdown for the lifecourse microsi
   - Priority: Medium
   - Complexity: Low
   - Dependencies: psutil
+
+### Developer note: Dask DataFrame divisions and helper utilities
+
+When working with Dask DataFrames we frequently construct small pandas
+DataFrames (for example, placeholder empty frames or small factory outputs)
+and then concatenate them into larger Dask graphs. Concatenating frames with
+unknown divisions produces noisy runtime warnings and can lead to unsafe
+assumptions about index alignment.
+
+To keep the codebase quiet and robust we add two small utilities in
+`lifecourse.model.dask_utils` that contributors should use when creating or
+concatenating Dask frames:
+
+- `ensure_known_divisions(ddf)`
+  - Ensures the passed `dd.DataFrame` has explicit, non-overlapping
+    RangeIndex divisions. It computes per-partition lengths (a cheap
+    operation), assigns a global RangeIndex per partition using delayed
+    reindexing, rebuilds the Dask DataFrame with `dd.from_delayed(...)`, and
+    sets the `divisions` tuple. Falls back to returning the original ddf on
+    unexpected graphs.
+
+- `safe_from_pandas(df, npartitions=1)`
+  - Convenience wrapper around `dd.from_pandas(df, npartitions=...)` that
+    immediately runs `ensure_known_divisions` on the produced Dask
+    DataFrame. Use this when a function returns a small pandas DataFrame that
+    will later be concatenated into the simulation graph (factories, empty
+    placeholders, etc.).
+
+Example patterns
+
+1) Factory returning a small pandas DataFrame as a Dask DataFrame (recommended):
+
+```py
+from lifecourse.model.dask_utils import safe_from_pandas
+
+def gen_population_dask(...):
+    df = pd.DataFrame(...)
+    # drop internal-only columns, ensure column order
+    return safe_from_pandas(df, npartitions=4)
+```
+
+2) Before concatenating two Dask DataFrames that may have unknown divisions:
+
+```py
+from lifecourse.model.dask_utils import ensure_known_divisions
+
+left = ensure_known_divisions(left)
+right = ensure_known_divisions(right)
+result = dd.concat([left, right], interleave_partitions=True)
+```
+
+3) Creating small empty placeholders used in analysis pipelines:
+
+```py
+from lifecourse.model.dask_utils import safe_from_pandas
+
+empty_series = safe_from_pandas(pd.Series([], dtype=float), npartitions=1)
+```
+
+Why this matters
+
+- Avoids runtime warnings about "Concatenating dataframes with unknown
+  divisions".
+- Prevents subtle bugs from assuming index alignment across partitions.
+- Keeps Dask graphs lazy while providing stable, explicit partition
+  definitions for safe concatenation.
+
+Contributor guidance
+
+- Prefer `safe_from_pandas` for factory functions that return small Dask
+  DataFrames.
+- Use `ensure_known_divisions` defensively before `dd.concat` when the
+  upstream partitioning could be unknown (e.g., after merges, map_partitions
+  that reset or drop indices, or when building placeholder frames).
+- If in doubt, wrap with a try/except to fall back gracefully in unusual
+  graphs, but prefer adding the helper in upstream producers where possible.
+
 
 ### 3.2 Advanced Analysis (`advanced_analysis.py`)
 
@@ -679,7 +756,28 @@ Next steps for Advanced Dask Optimizations:
 
 - [ ] Evaluate partitioning strategies (number and size of partitions) on a medium-sized cluster replica to find sweet spot for memory vs CPU.
 - [ ] Run targeted Dask profiler (distributed.profile) on full PSA samples with pmap-style scheduling to capture hotspots.
-- [ ] Prototype a custom task graph for the annual progression step that reduces intermediate materialization.
+[x] Run targeted Dask profiler (distributed.profile) on full PSA samples with pmap-style scheduling to capture hotspots.
+
+Recent profiling run (local dev machine): produced HTML and raw profile pickles under `results/`:
+
+`results/dask_profile_pmap_50k.html` and `results/dask_profile_pmap_50k.pkl` — profiling around a PSA-style run (pop_size=50_000, 2 years) using `LocalCluster(processes=False)`.
+
+Note: the raw profile state contained no aggregated frame counts when inspected via `distributed.profile.plot_data` (likely because the sampling window did not capture sustained worker-level stack samples for short-lived tasks). Recommended next step: either increase workload duration (more years or larger populations) or gather worker-level cProfile traces for the per-partition progression function to get line-level hotspots.
+
+- [x] Prototype a custom task graph for the annual progression step that reduces intermediate materialization.
+
+Recent work: A low-risk prototype was added to experiment with fusing the per-year progression into a single per-partition pass.
+
+- Implementation: `src/lifecourse/model/population_system.py::PopulationSystemDask.step_fused` — fused per-partition function performing mortality, diagnosis, age increment and cost/QALY in one pass and generating births from the pre-step population.
+- Benchmark harness: `scripts/benchmark_partitioning.py` — synthetic partitioning/partition-sweep script (short runs produced `results/partition_bench_short.csv`).
+- Profiling artifacts: Dask profiler outputs saved under `results/` (example: `results/dask_profile_pmap_50k.html` / `.pkl`). Note: sampling traces were sparse for short tasks; worker-level cProfile or longer runs recommended.
+
+Next recommended steps:
+
+- Validate correctness: run deterministic comparisons between `step` and `step_fused` on small/medium populations (100, 1k).
+- Performance sweep: run partitioning benchmarks at medium/large sizes (50k, 100k) and compare `step` vs `step_fused` for wall time and peak RSS.
+- Line-level profiling: instrument the fused partition function with cProfile per worker if sampled Dask profiler outputs remain sparse.
+
 - [ ] Add benchmark tests to `tests/` to track wall time and memory for representative pop sizes (10k, 50k, 100k) and add as CI performance checks (optional gated job).
 
 ---

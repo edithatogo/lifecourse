@@ -23,19 +23,19 @@ This document provides a comprehensive task breakdown for the lifecourse microsi
 ### 1.1 System Architecture Design
 
 - [x] **High-Level Architecture Design** - Complete system architecture with component decomposition
-  - Status: Completed
+  - Status: - [x] Completed
   - Priority: Critical
   - Complexity: Medium
   - Dependencies: None
 
 - [x] **Data Flow Architecture** - Input → Processing → Output pipeline design
-  - Status: Completed
+  - Status: - [x] Completed
   - Priority: Critical
   - Complexity: Medium
   - Dependencies: High-level architecture
 
 - [x] **Conceptual Architecture** - Mermaid mindmap of system components
-  - Status: Completed
+  - Status: - [x] Completed
   - Priority: High
   - Complexity: Low
   - Dependencies: System architecture
@@ -684,7 +684,7 @@ Next steps for Advanced Dask Optimizations:
 
 - [ ] Evaluate partitioning strategies (number and size of partitions) on a medium-sized cluster replica to find sweet spot for memory vs CPU.
 - [ ] Run targeted Dask profiler (distributed.profile) on full PSA samples with pmap-style scheduling to capture hotspots.
-[x] Run targeted Dask profiler (distributed.profile) on full PSA samples with pmap-style scheduling to capture hotspots.
+- [x] Run targeted Dask profiler (distributed.profile) on full PSA samples with pmap-style scheduling to capture hotspots.
 
 Recent profiling run (local dev machine): produced HTML and raw profile pickles under `results/`:
 
@@ -729,7 +729,7 @@ Next recommended steps:
 
 ### 12.3 Success Metrics
 
-- **Functional Completeness**: All - [x] tasks working correctly
+- **Functional Completeness**: All [x] tasks working correctly
 - **Performance Targets**: Sub-5 minute runs for 10,000 population scenarios
 - **Code Quality**: >90% test coverage, passing all linting checks
 - **Documentation**: Complete design specification with visual diagrams

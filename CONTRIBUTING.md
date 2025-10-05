@@ -13,6 +13,19 @@ pytest -q tests -k "not slow"  # run quick unit tests; adjust -k as needed
 
 Use `--maxfail=1` for faster feedback on test failures.
 
+### Testing across multiple Python versions
+
+Before pushing changes, test across all supported Python versions (3.10, 3.11, 3.12) using tox:
+
+```bash
+pip install tox
+tox           # run all test environments
+tox -e py312  # run only Python 3.12 tests
+tox -e lint   # run linting checks only
+```
+
+This ensures your changes work on all CI environments before pushing to GitHub.
+
 ## Commit & pre-commit
 
 This repository uses pre-commit hooks (formatting + linting). Please run or let the hooks run automatically on commit. To avoid accidental big commits, stage only relevant files.

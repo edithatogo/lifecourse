@@ -729,7 +729,7 @@ Next recommended steps:
 
 ### 12.3 Success Metrics
 
-- **Functional Completeness**: All - [x] tasks working correctly
+- **Functional Completeness**: All [x] tasks working correctly
 - **Performance Targets**: Sub-5 minute runs for 10,000 population scenarios
 - **Code Quality**: >90% test coverage, passing all linting checks
 - **Documentation**: Complete design specification with visual diagrams

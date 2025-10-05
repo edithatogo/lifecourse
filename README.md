@@ -152,6 +152,23 @@ pytest
 If any required packages are missing, `pytest` will raise `ImportError`
 messages during test collection.
 
+### Testing Across Multiple Python Versions
+
+To test across multiple Python versions locally (matching the CI environment), use tox:
+
+```bash
+pip install tox
+tox
+```
+
+This will run tests on Python 3.10, 3.11, and 3.12. You can also run specific environments:
+
+```bash
+tox -e py312        # Test on Python 3.12 only
+tox -e lint         # Run linting checks
+tox -e coverage     # Run tests with coverage report
+```
+
 ### Scenario Overrides
 
 Values in `config/scenarios.yaml` modify the base parameters. Numeric overrides

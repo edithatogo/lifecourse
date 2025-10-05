@@ -168,7 +168,7 @@ This document provides a comprehensive task breakdown for the lifecourse microsi
 
 ### Developer note: Dask DataFrame divisions and helper utilities
 
-See `CONTRIBUTING.md` for the recommended `lifecourse.model.dask_utils` usage patterns (helpers: `ensure_known_divisions` and `safe_from_pandas`) and the preferred workflows for creating/concatenating Dask DataFrames.
+For detailed guidance on working with Dask DataFrames (including the helpers `ensure_known_divisions` and `safe_from_pandas`), see `CONTRIBUTING.md`.
 
 
 ### 3.2 Advanced Analysis (`advanced_analysis.py`)

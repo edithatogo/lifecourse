@@ -38,6 +38,22 @@ This document distinguishes the repo's current brownfield implementation from th
 - Python package API
 - command-line interfaces for scenario runs and full workflow execution
 
+## Implemented Foundation
+The modernization foundation track has established these parts of the target stack as active project conventions:
+
+### Package and Environment Management
+- `uv` for dependency resolution, environment sync, build, and workflow execution
+- `pyproject.toml` as the central location for runtime and tooling configuration
+
+### Configuration and Validation
+- `pydantic v2` for typed runtime configuration validation
+- `pandera` for dataframe schema validation at data boundaries
+
+### Quality Gates
+- `ruff` as the main formatter and linter for the maintained modernization slice
+- `basedpyright` in strict mode for checked modules
+- `pytest` coverage enforcement above 90% for the maintained foundation scope
+
 ## Target Modernization Direction
 
 ### Package and Environment Management

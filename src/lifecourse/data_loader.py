@@ -1,13 +1,19 @@
+from collections.abc import Mapping
+from typing import Any
+
+import numpy as np
 import pandas as pd
 import yaml
 
+from lifecourse.data_validation import validate_nz_population_distribution
 
-def load_scenarios_from_yaml(file_path):
+
+def load_scenarios_from_yaml(file_path: str) -> dict[str, dict[str, Any]]:
     """Load scenarios and expand any scenario grid definitions and dynamic scenarios."""
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         config = yaml.safe_load(f)
 
-    scenarios = config.get("scenarios", {})
+    scenarios: dict[str, dict[str, Any]] = dict(config.get("scenarios", {}))
 
     # Handle legacy scenario_grid
     grid = config.get("scenario_grid")
@@ -20,7 +26,7 @@ def load_scenarios_from_yaml(file_path):
         for combo in product(*value_lists):
             overrides = {}
             name_parts = []
-            for k, v in zip(keys, combo):
+            for k, v in zip(keys, combo, strict=True):
                 overrides[k] = v
                 safe_v = str(v).replace(".", "_")
                 name_parts.append(f"{k}_{safe_v}")
@@ -42,9 +48,11 @@ def load_scenarios_from_yaml(file_path):
     return scenarios
 
 
-def apply_scenario_overrides(base_params, overrides):
+def apply_scenario_overrides(
+    base_params: Mapping[str, Any], overrides: Mapping[str, Any]
+) -> dict[str, Any]:
     """Apply scenario overrides to a base parameter dictionary."""
-    updated = base_params.copy()
+    updated = dict(base_params)
     for key, value in overrides.items():
         if value is None:
             continue
@@ -66,7 +74,9 @@ def apply_scenario_overrides(base_params, overrides):
     return updated
 
 
-def load_nz_population_distribution(url=None):  # For New Zealand data
+def load_nz_population_distribution(
+    url: str | None = None,
+) -> pd.DataFrame:  # For New Zealand data
     """
     Load NZ population distribution by age and sex from Stats NZ public CSV.
     Returns a DataFrame with columns ['age', 'sex', 'count'].
@@ -82,10 +92,12 @@ def load_nz_population_distribution(url=None):  # For New Zealand data
         pop = pop[pop["Geography"] == "New Zealand"]
     pop = pop.rename(columns={"Age": "age", "Sex": "sex", "Population": "count"})
     pop["age"] = pop["age"].astype(str).str.extract(r"(\d+)")[0].astype(int)
-    return pop[["age", "sex", "count"]]
+    return validate_nz_population_distribution(pop[["age", "sex", "count"]])
 
 
-def load_nz_life_table_hazards(url=None):  # For New Zealand data
+def load_nz_life_table_hazards(
+    url: str | None = None,
+) -> dict[str, np.ndarray]:  # For New Zealand data
     """
     Load NZ life table hazards (central mortality rates) from Stats NZ CSV.
     Returns dict hazards[sex] = array of hazard per age index.

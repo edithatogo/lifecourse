@@ -6,6 +6,8 @@ numpy
 scipy
 pyyaml
 pyarrow
+pandera
+pydantic>=2
 pre-commit
 ruff
 pytest-cov

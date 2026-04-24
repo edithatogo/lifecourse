@@ -24,8 +24,10 @@ keywords = ["microsimulation", "health economics", "cost-effectiveness", "QALY",
 dependencies = [
     "numpy",
     "pandas",
-    "dask",
+    "dask[distributed]",
     "matplotlib",
+    "pandera",
+    "pydantic>=2",
     "pyyaml",
     "scipy",
     "seaborn",
@@ -35,7 +37,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "basedpyright",
+    "build",
+    "hypothesis",
+    "mutmut",
+    "pandas-stubs",
     "pytest",
+    "pytest-cov",
+    "ruff",
+    "scalene",
+    "pre-commit",
 ]
 
 [project.scripts]
@@ -45,3 +56,55 @@ lifecourse-main = "lifecourse.main:main"
 [project.urls]
 "Homepage" = "https://github.com/edithatogo/lifecourse"
 "Bug Tracker" = "https://github.com/edithatogo/lifecourse/issues"
+
+[tool.coverage.run]
+source = [
+    "config",
+    "src/lifecourse/config_validation.py",
+    "src/lifecourse/data_loader.py",
+    "src/lifecourse/data_validation.py",
+]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.pytest.ini_options]
+addopts = "-ra --cov=config --cov=src/lifecourse/config_validation.py --cov=src/lifecourse/data_loader.py --cov=src/lifecourse/data_validation.py --cov-report=term-missing --cov-report=html --cov-fail-under=90"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+exclude = [
+    "archive",
+    "drafts",
+    "Notebooks",
+    "results",
+    "**/*.ipynb",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint]
+extend-select = ["B", "I", "SIM", "UP"]
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+extraPaths = ["src"]
+include = [
+    "config/config_loader.py",
+    "src/lifecourse/config_validation.py",
+    "src/lifecourse/data_validation.py",
+]
+exclude = [
+    "**/__pycache__",
+    "**/.venv",
+    "archive",
+    "conductor",
+    "results",
+]

@@ -1,6 +1,11 @@
 import logging
-import yaml
 import os
+from typing import Any
+
+import yaml
+from lifecourse.config_validation import SimulationConfig
+from pydantic import ValidationError
+
 from .simulation_configs import DEFAULT_CONFIG, MINIMAL_TEST_CONFIG, TEST_PSA_CONFIG
 
 _LOG = logging.getLogger(__name__)
@@ -9,15 +14,42 @@ _LOG = logging.getLogger(__name__)
 # to a best-effort None factory. Tests and local dev should prefer installing
 # the package in editable mode instead of depending on sys.path hacks.
 try:
-    from lifecourseid.model.parameter_factory import get_parameter_factory
+    from lifecourse.model.parameter_factory import get_parameter_factory
 except Exception:  # pragma: no cover - environment dependent
     _LOG.debug(
-        "Could not import lifecourseid.parameter_factory; parameter factory disabled"
+        "Could not import lifecourse.model.parameter_factory; parameter factory disabled"
     )
     get_parameter_factory = None
 
 
-def load_config(config_name=None, config_file_path=None):
+def _legacy_config_error_message(exc: ValidationError) -> str:
+    """Map common validation failures to the repo's legacy error contract."""
+    errors = exc.errors()
+    if len(errors) != 1:
+        return f"Invalid configuration: {exc}"
+
+    error = errors[0]
+    field = str(error.get("loc", ("configuration",))[0])
+    error_type = error.get("type", "")
+
+    if error_type == "missing":
+        return f"Missing required configuration key: {field}"
+
+    if error_type in {"int_parsing", "int_type", "int_from_float"}:
+        return f"{field} must be a non-negative integer."
+
+    if error_type == "greater_than_equal":
+        return f"{field} must be a non-negative integer."
+
+    if error_type == "greater_than":
+        return f"{field} must be a positive integer."
+
+    return f"Invalid configuration: {exc}"
+
+
+def load_config(
+    config_name: str | None = None, config_file_path: str | None = None
+) -> dict[str, Any]:
     """
     Loads simulation configuration.
 
@@ -49,32 +81,17 @@ def load_config(config_name=None, config_file_path=None):
     if config_file_path:
         if not os.path.exists(config_file_path):
             raise FileNotFoundError(f"Configuration file not found: {config_file_path}")
-        with open(config_file_path, "r") as f:
+        with open(config_file_path) as f:
             file_config = yaml.safe_load(f)
         if file_config:
             config.update(file_config)
 
-    # Basic validation: Ensure essential keys are present
-    required_keys = [
-        "POP_SIZE",
-        "PSA_N",
-        "SIMULATION_YEARS",
-        "CALIBRATION_POP_SIZE",
-        "STRUCTURAL_UNCERTAINTY_POP_SIZE",
-        "parameter_set",
-    ]
-    for key in required_keys:
-        if key not in config:
-            raise ValueError(f"Missing required configuration key: {key}")
+    try:
+        validated_config = SimulationConfig.model_validate(config)
+    except ValidationError as exc:
+        raise ValueError(_legacy_config_error_message(exc)) from exc
 
-    # Type validation (example for a few keys)
-    if not isinstance(config["POP_SIZE"], int) or config["POP_SIZE"] < 0:
-        raise ValueError("POP_SIZE must be a non-negative integer.")
-    if (
-        not isinstance(config["SIMULATION_YEARS"], int)
-        or config["SIMULATION_YEARS"] <= 0
-    ):
-        raise ValueError("SIMULATION_YEARS must be a positive integer.")
+    config = validated_config.model_dump()
 
     # Validate parameter_set if parameter factory is available
     if get_parameter_factory is not None:

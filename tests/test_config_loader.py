@@ -1,7 +1,9 @@
-import unittest
 import os
+import unittest
+
 import yaml
-from config.config_loader import load_config
+
+from config.config_loader import _legacy_config_error_message, load_config
 from config.simulation_configs import DEFAULT_CONFIG  # Import DEFAULT_CONFIG
 
 
@@ -129,6 +131,69 @@ class TestConfigLoader(unittest.TestCase):
             FileNotFoundError, "Configuration file not found: non_existent_file.yaml"
         ):
             load_config(config_file_path="non_existent_file.yaml")
+
+    def test_load_test_psa_config(self):
+        config = load_config(config_name="TEST_PSA_CONFIG")
+        self.assertEqual(config["PSA_N"], 50)
+        self.assertEqual(config["SIMULATION_YEARS"], 3)
+
+    def test_load_config_invalid_parameter_set(self):
+        file_content = {
+            "POP_SIZE": 100,
+            "PSA_N": 10,
+            "SIMULATION_YEARS": 5,
+            "CALIBRATION_POP_SIZE": 100,
+            "STRUCTURAL_UNCERTAINTY_POP_SIZE": 100,
+            "parameter_set": "invalid_parameter_set",
+        }
+        file_path = self._create_test_yaml(file_content)
+        with self.assertRaisesRegex(
+            ValueError, "parameter_set 'invalid_parameter_set'"
+        ):
+            load_config(config_file_path=file_path)
+
+    def test_legacy_error_message_multifield_validation(self):
+        class FakeValidationError:
+            def errors(self):
+                return [
+                    {"loc": ("POP_SIZE",), "type": "missing"},
+                    {"loc": ("PSA_N",), "type": "missing"},
+                ]
+
+            def __str__(self):
+                return "fake validation error"
+
+        self.assertEqual(
+            _legacy_config_error_message(FakeValidationError()),
+            "Invalid configuration: fake validation error",
+        )
+
+    def test_legacy_error_message_fallback(self):
+        class FakeValidationError:
+            def errors(self):
+                return [{"loc": ("SIMULATION_YEARS",), "type": "custom"}]
+
+            def __str__(self):
+                return "fake validation error"
+
+        self.assertEqual(
+            _legacy_config_error_message(FakeValidationError()),
+            "Invalid configuration: fake validation error",
+        )
+
+    def test_simulation_years_positive_validation_message(self):
+        file_content = {
+            "POP_SIZE": 100,
+            "PSA_N": 10,
+            "SIMULATION_YEARS": 0,
+            "CALIBRATION_POP_SIZE": 100,
+            "STRUCTURAL_UNCERTAINTY_POP_SIZE": 100,
+        }
+        file_path = self._create_test_yaml(file_content)
+        with self.assertRaisesRegex(
+            ValueError, "SIMULATION_YEARS must be a positive integer"
+        ):
+            load_config(config_file_path=file_path)
 
 
 if __name__ == "__main__":

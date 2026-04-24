@@ -78,22 +78,22 @@ lifecourse/
 
 ## Installation
 
-You can install the `lifecourseid` package using pip:
+The preferred development workflow uses `uv`:
 
 ```bash
-pip install lifecourseid
+uv sync --all-extras --dev
 ```
 
 ## Usage
 
-After installation, you can run the simulation from your terminal using the provided command-line entry points.
+After syncing the environment, you can run the simulation from your terminal using the provided command-line entry points.
 
 ### Full Simulation and Analysis
 
 Run the complete simulation and analysis workflow:
 
 ```bash
-lifecourse-main
+uv run lifecourse-main
 ```
 
 Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
@@ -103,7 +103,7 @@ Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various 
 You can specify a predefined configuration (e.g., `MINIMAL_TEST_CONFIG`) or provide an external YAML configuration file:
 
 ```bash
-lifecourse-main --config_name MINIMAL_TEST_CONFIG
+uv run lifecourse-main --config_name MINIMAL_TEST_CONFIG
 ```
 
 ### Individual Scenario Runs
@@ -111,17 +111,17 @@ lifecourse-main --config_name MINIMAL_TEST_CONFIG
 For quick scenario testing, use the CLI interface:
 
 ```bash
-lifecourse-cli base --pop-size 100 --debug
+uv run lifecourse-cli base --pop-size 100 --debug
 ```
 
 ```bash
-python -m lifecourseid.main --config_name MINIMAL_TEST_CONFIG
+uv run python -m lifecourse.main --config_name MINIMAL_TEST_CONFIG
 ```
 
 Or with a custom YAML file:
 
 ```bash
-python -m lifecourseid.main --config_file path/to/your_config.yaml
+uv run python -m lifecourse.main --config_file path/to/your_config.yaml
 ```
 
 ### Command Line Interface (CLI) for Scenarios
@@ -129,7 +129,7 @@ python -m lifecourseid.main --config_file path/to/your_config.yaml
 You can also run a specific scenario using the lightweight CLI:
 
 ```bash
-python -m lifecourseid.cli base --pop-size 100
+uv run python -m lifecourse.cli base --pop-size 100
 ```
 
 This reads `config/scenarios.yaml` and prints the incremental cost, QALY, and ICER for the chosen scenario.
@@ -137,16 +137,16 @@ This reads `config/scenarios.yaml` and prints the incremental cost, QALY, and IC
 ## Running Tests
 
 Ensure all dependencies are installed before executing the test suite. In a
-clean environment, install packages from `requirements.txt`:
+clean environment, sync the project with `uv`:
 
 ```bash
-pip install -r requirements.txt
+uv sync --all-extras --dev
 ```
 
 Once the dependencies are installed, run the tests with:
 
 ```bash
-pytest
+uv run pytest
 ```
 
 If any required packages are missing, `pytest` will raise `ImportError`
@@ -176,7 +176,7 @@ You can also define a `scenario_grid` section to automatically generate combinat
 After installing the requirements you can run the full test suite with `pytest`:
 
 ```bash
-pytest -q
+uv run pytest -q
 ```
 
 All tests are also executed automatically via the GitHub Actions workflow defined in `.github/workflows/ci.yml`.

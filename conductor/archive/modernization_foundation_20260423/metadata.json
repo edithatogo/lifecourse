@@ -1,0 +1,8 @@
+{
+  "track_id": "modernization_foundation_20260423",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-22T14:10:25Z",
+  "updated_at": "2026-04-22T14:10:25Z",
+  "description": "Establish the modernization foundation: adopt `uv` and `pyproject.toml` as the tooling authority, add strict `ruff` and `basedpyright` gates, enforce `>90%` coverage in CI, and introduce `pydantic v2`/`pandera` validation boundaries."
+}

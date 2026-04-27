@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "lifecourse"
 version = "0.1.2"
 authors = [
-  { name="Dylan Mordaunt", email="dylan.mordaunt@example.com" }, # Placeholder email
+  { name="Dylan Mordaunt" },
 ]
 description = "A microsimulation model for evaluating cost-effectiveness and budget impact of health interventions."
 readme = "README.md"
@@ -19,7 +19,16 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Intended Audience :: Science/Research",
 ]
-keywords = ["microsimulation", "health economics", "cost-effectiveness", "QALY", "budget impact", "Dask"]
+keywords = [
+    "microsimulation",
+    "health economics",
+    "cost-effectiveness",
+    "QALY",
+    "budget impact",
+    "uv",
+    "pydantic",
+    "pandera",
+]
 
 dependencies = [
     "numpy",

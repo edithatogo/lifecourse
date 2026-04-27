@@ -1,6 +1,6 @@
 # Future Project Roadmap
 
-This document outlines the future development plans for the LifeCourseID microsimulation project, moved from the main ROADMAP.md after the initial release.
+This document outlines the future development plans for the lifecourse microsimulation project, moved from the main ROADMAP.md after the initial release.
 
 ## Phase 3: Configuration & Extensibility
 - Explore options for dynamic scenario generation from configuration.

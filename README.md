@@ -2,79 +2,43 @@
 
 ## Overview
 
-lifecourse is a comprehensive microsimulation model designed to evaluate the cost-effectiveness and budget impact of interventions related to a specific health condition. It simulates individual life courses over a defined time horizon, incorporating demographic events, disease progression, associated costs, and quality-adjusted life years (QALYs). The model is built with a modular Python package structure and leverages Dask for efficient parallel processing of simulations, particularly for probabilistic sensitivity analysis.
+`lifecourse` is a Python microsimulation model for evaluating the cost-effectiveness and budget impact of genomic testing interventions across simulated life courses. It models individual-level trajectories, uncertainty, and scenario comparisons for research and policy evaluation.
 
-## Features
+The maintained implementation is a standard Python package under `src/lifecourse/`. It currently uses `uv` for environment management and package execution, `pydantic v2` and `pandera` for validation boundaries, `ruff` for linting and formatting, `basedpyright` for strict type checking, and `pytest` for tests.
 
--   **Microsimulation Core:** Simulates individual life trajectories, including age progression, mortality, fertility, and diagnosis.
--   **Economic Evaluation:** Calculates health, education, social care, and employment-related costs, as well as QALYs.
--   **Parameter Uncertainty:** Incorporates probabilistic sampling of uncertain parameters from various statistical distributions (Beta, Gamma, Lognormal, Normal, Uniform).
--   **Scenario Analysis:** Supports running deterministic and subgroup scenarios defined in external YAML configuration files, allowing for flexible definition of intervention yields, familial prevalence, age-at-test, and time horizons.
--   **Probabilistic Sensitivity Analysis (PSA):** Performs Monte Carlo simulations to quantify the impact of parameter uncertainty on outcomes, utilizing Dask for parallel execution.
--   **Comprehensive Visualizations:** Generates a suite of plots for economic evaluation and sensitivity analysis:
-    -   Cost-Effectiveness Plane
-    -   Cost-Effectiveness Acceptability Curve (CEAC)
-    -   Expected Value of Perfect Information (EVPI)
-    -   Expected Net Monetary Benefit (ENMB) Curve
-    -   One-Way Sensitivity (Tornado) Analysis
-    -   Cost-Mix Stacked Area Plots (Prospective and Retrospective arms)
-    -   PSA Histograms for Incremental Cost and QALYs
-    -   Cost-Effectiveness Acceptability Frontier (CEAF)
-    -   Sensitivity to Familial ID Prevalence
-    -   Expected Value of Partial Perfect Information (EVPPI) Curves
--   **Budget Impact Analysis:** Estimates the incremental budget impact of interventions over a 5-year horizon.
--   **Equity Analysis:** Assesses the distribution of outcomes by socioeconomic quintile.
--   **Publication Comparison:** Facilitates comparison of simulation results with external published data.
+## Current Capabilities
 
-## Project Structure
+- Individual-level microsimulation with retrospective and prospective arms
+- Deterministic scenario analysis and scenario grids
+- Probabilistic sensitivity analysis
+- Budget impact and equity-related analysis
+- Publication-oriented plots and summary outputs
+- CLI entry points for scenario runs and full workflow execution
 
-The project is organized into a modular Python package to enhance maintainability, reusability, and scalability:
+## Repository Layout
 
-```
+```text
 lifecourse/
 ├── src/
-│   └── lifecourseid/
-│       ├── __init__.py
+│   └── lifecourse/
 │       ├── cli.py
 │       ├── main.py
 │       ├── data_loader.py
-│       ├── model/
-│       │   ├── __init__.py
-│       │   ├── parameters.py
-│       │   ├── cohort.py
-│       │   └── population_system.py
-│       └── analysis/
-│           ├── __init__.py
-│           ├── run_helpers.py
-│           ├── plotting.py
-│           └── advanced_analysis.py
+│       ├── data_validation.py
+│       ├── config_validation.py
+│       ├── analysis/
+│       └── model/
 ├── config/
-│   ├── simulation_configs.py
+│   ├── config_loader.py
 │   ├── scenarios.yaml
-│   └── config_loader.py
-├── results/              # All generated output CSVs and plots
-├── tests/                # Unit and integration tests
-├── archive/              # Contains older versions of notebooks and scripts
-│   └── old_notebooks/
-├── .gitignore
-├── LICENSE
-├── README.md
-├── ROADMAP.md
-└── CHANGELOG.md
+│   └── simulation_configs.py
+├── conductor/
+├── tests/
+├── scripts/
+├── docs/
+├── archive/
+└── pyproject.toml
 ```
-
-### Module Breakdown:
-
--   **`src/lifecourseid/model/parameters.py`**: Defines all global constants, fixed parameters, and the statistical distributions for uncertain parameters used in the microsimulation. It also includes helper functions for parameter sampling.
--   **`src/lifecourseid/model/cohort.py`**: Contains functions responsible for generating the initial synthetic population cohort based on demographic distributions and other baseline characteristics.
--   **`src/lifecourseid/model/population_system.py`**: Implements the core logic of the microsimulation. This class manages the population state and defines the annual step-by-step processes, including mortality, fertility, diagnosis, and the calculation of costs and QALYs for each individual.
--   **`src/lifecourseid/analysis/run_helpers.py`**: Provides high-level functions (`run_sim` and `run_scenario`) to orchestrate the execution of the microsimulation model for different analytical purposes (e.g., single runs, scenario comparisons, data collection for detailed outputs).
--   **`src/lifecourseid/analysis/plotting.py`**: Contains functions for generating various plots and visualizations for economic evaluation and sensitivity analysis.
--   **`src/lifecourseid/analysis/advanced_analysis.py`**: Implements advanced analytical methods including calibration, structural uncertainty analysis, and equity analysis.
--   **`src/lifecourseid/cli.py`**: Command-line interface for running individual scenarios with various options.
--   **`src/lifecourseid/main.py`**: The primary entry point for the full simulation and analysis workflow, orchestrating the entire analysis pipeline.
--   **`src/lifecourseid/data_loader.py`**: Utilities for loading and processing external data files and scenario configurations.
--   **`config/`**: Contains configuration files and loaders for simulation settings and scenario definitions.
 
 ## Installation
 
@@ -84,110 +48,66 @@ The preferred development workflow uses `uv`:
 uv sync --all-extras --dev
 ```
 
-## Usage
+## Running the Model
 
-After syncing the environment, you can run the simulation from your terminal using the provided command-line entry points.
-
-### Full Simulation and Analysis
-
-Run the complete simulation and analysis workflow:
+Run the full workflow:
 
 ```bash
 uv run lifecourse-main
 ```
 
-Output files (e.g., `deterministic_summary.csv`, `psa_samples.csv`, and various `.png` plots) will be saved in the `results/` directory.
-
-### Running with specific configurations
-
-You can specify a predefined configuration (e.g., `MINIMAL_TEST_CONFIG`) or provide an external YAML configuration file:
-
-```bash
-uv run lifecourse-main --config_name MINIMAL_TEST_CONFIG
-```
-
-### Individual Scenario Runs
-
-For quick scenario testing, use the CLI interface:
+Run the lightweight scenario CLI:
 
 ```bash
 uv run lifecourse-cli base --pop-size 100 --debug
 ```
 
+Run the main module directly:
+
 ```bash
 uv run python -m lifecourse.main --config_name MINIMAL_TEST_CONFIG
 ```
 
-Or with a custom YAML file:
+Provide an external configuration file:
 
 ```bash
 uv run python -m lifecourse.main --config_file path/to/your_config.yaml
 ```
 
-### Command Line Interface (CLI) for Scenarios
+## Testing
 
-You can also run a specific scenario using the lightweight CLI:
-
-```bash
-uv run python -m lifecourse.cli base --pop-size 100
-```
-
-This reads `config/scenarios.yaml` and prints the incremental cost, QALY, and ICER for the chosen scenario.
-
-## Running Tests
-
-Ensure all dependencies are installed before executing the test suite. In a
-clean environment, sync the project with `uv`:
-
-```bash
-uv sync --all-extras --dev
-```
-
-Once the dependencies are installed, run the tests with:
+Run the test suite:
 
 ```bash
 uv run pytest
 ```
 
-If any required packages are missing, `pytest` will raise `ImportError`
-messages during test collection.
+The repository also enforces linting, type checking, and coverage gates in CI. The current modernization foundation uses:
 
-### Scenario Overrides
+- `ruff`
+- `basedpyright`
+- `pytest-cov`
+- a `>90%` coverage threshold for the maintained foundation scope
 
-Values in `config/scenarios.yaml` modify the base parameters. Numeric overrides
-within ±0.5 are treated as relative adjustments and added to the existing value.
-Larger magnitudes replace the value entirely. Non-numeric entries are always
-applied as absolute overrides.
+## Configuration
 
-Example entries from `config/scenarios.yaml`:
+Simulation settings live in `config/simulation_configs.py`, `config/config_loader.py`, and `config/scenarios.yaml`.
 
-```yaml
-scenarios:
-  high_familial_prop:
-    familial_prop: +0.05  # relative increase to the base value
-    yield_wgs: null
-  high_coverage:
-    yield_wgs: 0.70       # absolute override for the parameter
-```
-You can also define a `scenario_grid` section to automatically generate combinations of parameter values. Each combination forms a scenario named using the parameter names and values.
+- Numeric scenario overrides within `±0.5` are treated as relative adjustments.
+- Larger numeric values replace the base value.
+- Non-numeric values are applied as absolute overrides.
 
-### Running Tests
+## Documentation
 
-After installing the requirements you can run the full test suite with `pytest`:
+- `conductor/` contains the project context, tech stack, workflow, and completed track history.
+- `ROADMAP.md` contains future product direction.
+- `CHANGELOG.md` captures released changes.
+- `CONTRIBUTING.md` describes collaboration expectations.
 
-```bash
-uv run pytest -q
-```
+## Notes
 
-All tests are also executed automatically via the GitHub Actions workflow defined in `.github/workflows/ci.yml`.
-
-## Roadmap
-
-For future development plans and upcoming features, please refer to the [ROADMAP.md](ROADMAP.md) file.
-
-## Changelog
-
-For a detailed history of changes and updates, please refer to the [CHANGELOG.md](CHANGELOG.md) file.
+- `archive/old_notebooks/` contains historical research material and should be treated as reference only.
+- The repository is actively being modernized, so the live implementation should be treated as the source of truth over archived notebooks and drafts.
 
 ## License
 

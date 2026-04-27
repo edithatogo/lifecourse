@@ -1,28 +1,15 @@
-"""
-End-to-End Integration Tests for LifeCourseID Microsimulation Model
-
-This module provides comprehensive integration testing for the complete
-analysis pipeline from configuration loading to results generation.
-"""
+"""End-to-end integration tests for the `lifecourse` microsimulation model."""
 
 import os
 import shutil
-
-# Add src to path for testing
-import sys
 import tempfile
 import time
-from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
 import yaml
-
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "src"))
-
 from lifecourse.analysis.run_helpers import run_scenario, run_sim
 from lifecourse.data_loader import load_scenarios_from_yaml
 from lifecourse.model.parameter_loader import get_parameter_attributes, load_parameters
@@ -43,8 +30,6 @@ class TestEndToEndPipeline:
         os.makedirs(self.results_dir, exist_ok=True)
 
         # Copy config directory to test directory
-        import shutil
-
         config_src = os.path.join(os.path.dirname(__file__), "..", "config")
         config_dst = os.path.join(self.test_dir, "config")
         if os.path.exists(config_src):
@@ -124,8 +109,8 @@ class TestEndToEndPipeline:
         dc, dq = run_sim(params, pop_size=50, years=years, debug=True)
 
         # Verify results are reasonable
-        assert isinstance(dc, (int, float))
-        assert isinstance(dq, (int, float))
+        assert isinstance(dc, int | float)
+        assert isinstance(dq, int | float)
         # Note: dq can be negative if prospective arm has lower QALYs than retrospective
         # This is a difference between arms, not absolute QALYs
 
@@ -155,8 +140,8 @@ class TestEndToEndPipeline:
         (dc, dq), results_df = run_scenario(scenario_params, pop_size=50, years=years)
 
         # Verify results structure
-        assert isinstance(dc, (int, float))
-        assert isinstance(dq, (int, float))
+        assert isinstance(dc, int | float)
+        assert isinstance(dq, int | float)
         assert isinstance(results_df, pd.DataFrame)
         assert len(results_df) > 0
         assert "arm" in results_df.columns
@@ -172,7 +157,7 @@ class TestEndToEndPipeline:
         # Should include dynamic scenarios
         dynamic_scenarios = [
             name
-            for name in scenarios.keys()
+            for name in scenarios
             if any(
                 prefix in name
                 for prefix in ["sample_", "coverage_sensitivity_", "testing_strategy_"]
@@ -256,9 +241,6 @@ class TestEndToEndPipeline:
         with pytest.raises(ValueError, match="Unknown parameter set"):
             load_parameters(invalid_config)
 
-        # Test missing required config keys
-        incomplete_config = {"POP_SIZE": 100}  # Missing required keys
-
         # load_parameters doesn't validate config completeness, only parameter_set
         # This test would need to be updated if validation is added
 
@@ -297,8 +279,8 @@ class TestEndToEndPipeline:
         ), f"Small simulation took too long: {execution_time:.2f}s"
 
         # Results should be valid
-        assert isinstance(dc, (int, float))
-        assert isinstance(dq, (int, float))
+        assert isinstance(dc, int | float)
+        assert isinstance(dq, int | float)
 
 
 class TestRegressionTesting:
@@ -306,9 +288,6 @@ class TestRegressionTesting:
 
     def test_performance_regression_small_simulation(self):
         """Test for performance regression in small simulations."""
-        from lifecourse.analysis.performance_profiler import get_performance_profiler
-
-        profiler = get_performance_profiler()
         config = load_config("MINIMAL_TEST_CONFIG")
         DISTRIBUTIONS, START_YEAR, sample_params_from_dist, get_mean_params = (
             get_parameter_attributes(
@@ -467,10 +446,10 @@ class TestLoadTesting:
         for scenario_name, result in results.items():
             (dc, dq), results_df = result
             assert isinstance(
-                dc, (int, float)
+                dc, int | float
             ), f"Scenario {scenario_name} has invalid cost results"
             assert isinstance(
-                dq, (int, float)
+                dq, int | float
             ), f"Scenario {scenario_name} has invalid QALY results"
             assert isinstance(
                 results_df, pd.DataFrame

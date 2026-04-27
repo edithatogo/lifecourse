@@ -1,6 +1,6 @@
-# Project TODO List
+# Legacy TODO List
 
-This file tracks pending tasks and future work items for the LifeCourseID microsimulation project.
+This file is preserved for historical context. Current tracked work lives in `ROADMAP.md` and the Conductor workspace under `conductor/`.
 
 ## High Priority
 
@@ -16,7 +16,7 @@ This file tracks pending tasks and future work items for the LifeCourseID micros
 ## Medium Priority
 
 - **Investigate dQALY Discrepancies:**
-  - Meticulously compare QALY-related parameter definitions (means and distributions from `DISTRIBUTIONS` dict) between current `src/model/parameters.py` and `archive/old_notebooks/LifeCourseID, v7, 20250623.py`.
+  - Meticulously compare QALY-related parameter definitions (means and distributions from `DISTRIBUTIONS` dict) between the current model code and a validated archived notebook version.
   - Use short (2-year) validation runs to test the impact of aligning any identified QALY parameter discrepancies one by one.
   - If parameter alignment doesn't resolve dQALY sign flips, perform a more intense line-by-line re-comparison of the QALY calculation logic within `_cost_qaly` (current vs. v7).
 
@@ -39,5 +39,5 @@ This file tracks pending tasks and future work items for the LifeCourseID micros
 
 ## Backlog / Future Ideas
 
-- See `ROADMAP.md` for longer-term feature development.
-- Add pre-commit hooks.
+- See `ROADMAP.md` and `conductor/` for the maintained planning surface.
+- Treat the items above as archival notes unless they are re-entered into active planning.

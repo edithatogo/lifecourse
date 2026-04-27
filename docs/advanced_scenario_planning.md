@@ -1,6 +1,6 @@
 # Advanced Scenario Planning for Genomic Testing
 
-This document outlines detailed considerations for implementing more sophisticated scenarios related to diagnostic genetic/genomic testing in the LifeCourseID microsimulation model. These plans are conceptual and intended for future development when the execution environment is stable and allows for coding and testing.
+This document outlines detailed considerations for implementing more sophisticated scenarios related to diagnostic genetic/genomic testing in the lifecourse microsimulation model. These plans are conceptual and intended for future development when the execution environment is stable and allows for coding and testing.
 
 ## Scenario 1: Modeling Different Genomic Test Types
 
@@ -126,4 +126,4 @@ For each test type (e.g., identifiers: `panel`, `exome`, `genome`):
 
 ---
 
-These outlines provide a starting point for enhancing the scenario analysis capabilities of the LifeCourseID model concerning genomic testing. Implementation would require careful consideration of interactions with existing model logic and thorough testing (once the environment permits).
+These outlines provide a starting point for enhancing the scenario analysis capabilities of the lifecourse model concerning genomic testing. Implementation would require careful consideration of interactions with existing model logic and thorough testing (once the environment permits).

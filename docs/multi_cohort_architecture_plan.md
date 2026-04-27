@@ -1,6 +1,6 @@
 # Design Plan: Multi-Cohort Model Architecture
 
-This document outlines a proposed architecture for refactoring the LifeCourseID microsimulation model to support multiple, distinct disease cohorts in a modular and extensible way. This plan addresses the limitations of the current architecture, which is tightly coupled to a single disease model.
+This document outlines a proposed architecture for refactoring the lifecourse microsimulation model to support multiple, distinct disease cohorts in a modular and extensible way. This plan addresses the limitations of the current architecture, which is tightly coupled to a single disease model.
 
 ## 1. Goals
 

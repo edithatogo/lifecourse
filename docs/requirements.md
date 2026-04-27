@@ -1,10 +1,10 @@
-# LifeCourseID Microsimulation Model - Requirements Specification
+# lifecourse Microsimulation Model - Requirements Specification
 
 ## 1. Introduction
 
 ### 1.1 Purpose
 
-LifeCourseID is a comprehensive microsimulation model designed to evaluate the cost-effectiveness and budget impact of interventions related to a specific health condition. The model simulates individual life courses over a defined time horizon, incorporating demographic events, disease progression, associated costs, and quality-adjusted life years (QALYs).
+lifecourse is a comprehensive microsimulation model designed to evaluate the cost-effectiveness and budget impact of interventions related to a specific health condition. The model simulates individual life courses over a defined time horizon, incorporating demographic events, disease progression, associated costs, and quality-adjusted life years (QALYs).
 
 ### 1.2 Scope
 
@@ -306,13 +306,13 @@ The system will provide:
 
 ### 9.1 Project Overview
 
-This repository implements a microsimulation model (LifeCourseID) for health economic evaluation. Core logic lives under `src/lifecourseid/`.
+This repository implements a microsimulation model (lifecourse) for health economic evaluation. Core logic lives under `src/lifecourse/`.
 
 **Major components:**
 
-- `src/lifecourseid/model/` — parameter definitions (`parameters.py`), cohort generation (`cohort.py`), and the simulation engine (`population_system.py`).
-- `src/lifecourseid/analysis/` — orchestration helpers (`run_helpers.py`), plotting and advanced analyses.
-- `src/lifecourseid/cli.py` and `src/lifecourseid/main.py` — entrypoints used for CI, ad-hoc runs, and `python -m lifecourseid.main`.
+- `src/lifecourse/model/` — parameter definitions (`parameters.py`), cohort generation (`cohort.py`), and the simulation engine (`population_system.py`).
+- `src/lifecourse/analysis/` — orchestration helpers (`run_helpers.py`), plotting and advanced analyses.
+- `src/lifecourse/cli.py` and `src/lifecourse/main.py` — entrypoints used for CI, ad-hoc runs, and `python -m lifecourse.main`.
 
 **Data flow:** configuration -> parameter sampling (DISTRIBUTIONS) -> prepare dask params -> PopulationSystemDask instances -> run per-year steps -> aggregate outputs (deterministic & PSA CSVs in `results/`). See `main.py` and `analysis/run_helpers.py` for examples.
 
@@ -320,9 +320,9 @@ This repository implements a microsimulation model (LifeCourseID) for health eco
 
 - Install deps: `pip install -r requirements.txt` (project requires Python >=3.10, see `pyproject.toml`).
 - Run full analysis locally (single-process debug):
-  - `python -m lifecourseid.main --config_name MINIMAL_TEST_CONFIG --debug`
+  - `python -m lifecourse.main --config_name MINIMAL_TEST_CONFIG --debug`
 - Run a single scenario via CLI (fast, small pop):
-  - `python -m lifecourseid.cli base --pop-size 100 --debug`
+  - `python -m lifecourse.cli base --pop-size 100 --debug`
 - Run tests: `pytest -q` (tests rely on `src` being importable; the test harness already adjusts sys.path in `run_tests.py`).
 - Use `--debug` flags to force single-threaded execution and verbose memory prints — helpful for reproducing or diagnosing issues (see `main.py` and `analysis/run_helpers.py`).
 
@@ -354,10 +354,10 @@ When editing code, prefer small, well-scoped changes:
 
 - `README.md` — high-level overview and common commands.
 - `pyproject.toml` — Python requirements, scripts, and metadata.
-- `src/lifecourseid/main.py` — full-analysis entrypoint, Dask config, PSA orchestration.
-- `src/lifecourseid/cli.py` — lightweight scenario CLI used in quick runs and CI.
-- `src/lifecourseid/analysis/run_helpers.py` — canonical patterns for seeding, Dask scheduling, memory checks, and how run_sim/run_scenario return values are shaped.
-- `src/lifecourseid/model/parameters.py` and `src/lifecourseid/model/population_system.py` — parameter names and the main simulation primitives.
+- `src/lifecourse/main.py` — full-analysis entrypoint, Dask config, PSA orchestration.
+- `src/lifecourse/cli.py` — lightweight scenario CLI used in quick runs and CI.
+- `src/lifecourse/analysis/run_helpers.py` — canonical patterns for seeding, Dask scheduling, memory checks, and how run_sim/run_scenario return values are shaped.
+- `src/lifecourse/model/parameters.py` and `src/lifecourse/model/population_system.py` — parameter names and the main simulation primitives.
 - `config/scenarios.yaml` — scenario examples and grid definitions.
 
 ### 9.7 Safety and Testing Guidance
@@ -368,6 +368,6 @@ When editing code, prefer small, well-scoped changes:
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: October 2025*  
-*Author: LifeCourseID Development Team*
+*Document Version: 1.0*
+*Last Updated: October 2025*
+*Author: lifecourse Development Team*

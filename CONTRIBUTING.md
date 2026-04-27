@@ -1,57 +1,56 @@
-# Contributing to Lifecourse
+# Contributing to `lifecourse`
 
-Thanks for contributing! This file contains the minimal developer guidance to get started, test changes, and follow repository conventions.
+Thanks for contributing. This guide covers the current developer workflow, test expectations, and repository conventions for the maintained codebase.
 
-## Quick start
+## Start Here
 
-- Install dependencies: `pip install -r requirements.txt` (or use the preferred environment described in `pyproject.toml`).
-- Run the fast tests locally:
+Use `uv` for local setup:
 
 ```bash
-pytest -q tests -k "not slow"  # run quick unit tests; adjust -k as needed
+uv sync --all-extras --dev
 ```
 
-Use `--maxfail=1` for faster feedback on test failures.
+Run the main checks locally before opening a pull request:
 
-## Commit & pre-commit
-
-This repository uses pre-commit hooks (formatting + linting). Please run or let the hooks run automatically on commit. To avoid accidental big commits, stage only relevant files.
-
-If your local environment has a pre-commit configuration that interferes with the working tree during partial commits, consider creating a focused branch for your change.
-
-## Dask DataFrame guidance (important)
-
-To avoid noisy runtime warnings and unsafe index alignment assumptions when concatenating Dask DataFrames, follow these patterns.
-
-- Use `lifecourse.model.dask_utils.safe_from_pandas(df, npartitions=...)` when returning small pandas DataFrames from factories. This wraps `dd.from_pandas` and ensures explicit RangeIndex divisions.
-- Before concatenating Dask DataFrames that might have lost division metadata (for example after merges or `map_partitions` that reset indices), call `lifecourse.model.dask_utils.ensure_known_divisions(ddf)` on each input.
-
-Examples:
-
-```py
-from lifecourse.model.dask_utils import safe_from_pandas, ensure_known_divisions
-
-# Factory returning small pandas frame as Dask
-def gen_population_dask(...):
-    df = pd.DataFrame(...)
-    return safe_from_pandas(df, npartitions=4)
-
-# Before concat
-left = ensure_known_divisions(left)
-right = ensure_known_divisions(right)
-result = dd.concat([left, right], interleave_partitions=True)
+```bash
+uv run pytest -q
+uv run ruff check .
+uv run basedpyright
 ```
 
-If you find a new source of Dask "unknown divisions" warnings, add a regression test (see `tests/test_dask_warnings.py` for an example) and fix the origin by ensuring known divisions at producers where possible.
+If you are working on a focused change, it is fine to run the smallest relevant test subset first, then finish with the full checks above.
 
-## PR process
+## Workflow
 
-- Open a pull request against `main` with a short description and link any relevant issue.
-- Small docs or test-only changes may be auto-merged after approvals; feature changes should include tests.
+- Prefer Conductor for spec-driven work when a change is being planned or tracked.
+- Keep task scope small and commit only the files needed for the current change.
+- Update tests alongside implementation changes.
+- Preserve the current `uv`- and `pyproject.toml`-based workflow unless a follow-up track explicitly changes it.
 
-## Coding conventions
+## Commit Hooks
 
-- Use the `src/` layout — put packages under `src/lifecourse/`.
-- Keep large generated artifacts (plots, results) out of commits — use `results/` and keep only `results/.gitkeep` tracked.
+This repository uses pre-commit hooks for formatting and linting.
 
-Thanks for improving Lifecourse! If you're unsure where to make a change, open an issue first.
+- Let the hooks run automatically on commit, or run them manually before committing.
+- If a partial commit is causing hook noise, stage only the files for the current change.
+
+## Dask Guidance
+
+The model still uses Dask in the maintained simulation path, so keep Dask-specific code defensive.
+
+- Use `lifecourse.model.dask_utils.safe_from_pandas(df, npartitions=...)` when returning small pandas DataFrames from factories.
+- Before concatenating Dask DataFrames that may have lost division metadata, call `lifecourse.model.dask_utils.ensure_known_divisions(ddf)` on each input.
+- If you introduce a new source of unknown-division warnings, add a regression test and fix the producer rather than masking the symptom.
+
+## Repository Conventions
+
+- Use the `src/` layout and put application code under `src/lifecourse/`.
+- Keep generated artifacts out of commits. Results belong in `results/`.
+- Prefer descriptive docstrings and explicit types on public functions.
+- Follow the code style in `conductor/code_styleguides/`.
+
+## Pull Requests
+
+- Open a pull request against `main` with a concise description.
+- Include tests for behavior changes.
+- Mention any follow-up work that should become a separate track if the change grows beyond the current scope.

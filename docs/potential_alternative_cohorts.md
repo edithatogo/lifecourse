@@ -1,6 +1,6 @@
 # Potential Alternative Cohorts for Genomic Testing Microsimulation
 
-This document outlines initial research and thoughts on alternative disease cohorts or conditions where diagnostic or PGT-guided genomic testing is impactful and which could be considered for future modeling within a framework similar to LifeCourseID. This research was conducted under sandbox limitations that prevented extensive web data retrieval.
+This document outlines initial research and thoughts on alternative disease cohorts or conditions where diagnostic or PGT-guided genomic testing is impactful and which could be considered for future modeling within a framework similar to lifecourse. This research was conducted under sandbox limitations that prevented extensive web data retrieval.
 
 ## 1. Lynch Syndrome
 
@@ -99,4 +99,4 @@ This document outlines initial research and thoughts on alternative disease coho
     *   **Blocked** due to sandbox environment issues.
 
 ---
-This initial exploration suggests several promising avenues for expanding the LifeCourseID framework or developing new, related models. However, further progress on parameterization would heavily depend on resolving the web access issues in the sandbox or being provided with specific data sources.
+This initial exploration suggests several promising avenues for expanding the lifecourse framework or developing new, related models. However, further progress on parameterization would heavily depend on resolving the web access issues in the sandbox or being provided with specific data sources.

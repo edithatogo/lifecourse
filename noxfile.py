@@ -3,7 +3,7 @@ from __future__ import annotations
 import nox
 
 nox.options.default_venv_backend = "none"
-nox.options.sessions = ["lint", "typecheck", "version", "tests", "build"]
+nox.options.sessions = ["lint", "typecheck", "version", "docs", "tests", "build"]
 
 
 def _uv(session: nox.Session, *args: str) -> None:
@@ -30,6 +30,13 @@ def version(session: nox.Session) -> None:
     """Check release version metadata consistency."""
 
     _uv(session, "run", "python", "scripts/check_version.py")
+
+
+@nox.session
+def docs(session: nox.Session) -> None:
+    """Run repository docs checks."""
+
+    _uv(session, "run", "python", "scripts/check_docs.py")
 
 
 @nox.session

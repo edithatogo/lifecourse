@@ -14,11 +14,11 @@
 ## Phase 2: Architecture And User Documentation
 
 - [ ] Task: Update architecture documentation.
-    - [ ] Identify Python reference behavior, optional bindings, Rust candidates, and current defaults.
-    - [ ] Explain why wrapper-first binding paths precede native bindings.
+    - [x] Identify Python reference behavior, optional bindings, Rust candidates, and current defaults.
+    - [x] Explain why wrapper-first binding paths precede native bindings.
 - [ ] Task: Maintain the documentation plan.
     - [x] Define user, contributor, architecture, scientific/model, API/contract, and release documentation responsibilities.
-    - [ ] Add docs checks for stale links or missing required sections before adding a generated docs site.
+    - [x] Add docs checks for stale links or missing required sections before adding a generated docs site.
 - [x] Task: Add adapter examples.
     - [x] Include installation assumptions, minimal run, expected output, and limitations for each supported runtime.
 - [ ] Task: Conductor - Automated Review and Checkpoint 'Architecture And User Documentation' (Protocol in workflow.md)

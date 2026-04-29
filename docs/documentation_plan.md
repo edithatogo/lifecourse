@@ -29,6 +29,7 @@ features are production-ready.
 1. Stabilize markdown docs and fix stale references.
 2. Add docs checks for broken links, required sections, stale roadmap names, and
    lightweight prose linting.
+   The current repo-local check is `uv run python scripts/check_docs.py`.
 3. Add contract and schema docs when the model contract track is implemented.
 4. Add simulation-engine docs before non-default engines become user-facing.
 5. Add parameter provenance and validation target docs before claiming external

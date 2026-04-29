@@ -16,6 +16,7 @@ Run the main checks locally before opening a pull request:
 uv run pytest -q
 uv run ruff check .
 uv run basedpyright
+uv run python scripts/check_docs.py
 ```
 
 If you are working on a focused change, it is fine to run the smallest relevant test subset first, then finish with the full checks above.
@@ -26,6 +27,7 @@ If you are working on a focused change, it is fine to run the smallest relevant 
 - Keep task scope small and commit only the files needed for the current change.
 - Update tests alongside implementation changes.
 - Preserve the current `uv`- and `pyproject.toml`-based workflow unless a follow-up track explicitly changes it.
+- Run `uv run python scripts/check_docs.py` when you touch docs, docs links, or release/support policy pages.
 
 ## Commit Hooks
 

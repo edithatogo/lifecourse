@@ -82,6 +82,18 @@ Promote an optional pilot to a production default only when it has:
   microsimulation. They are not production defaults until their Conductor plans
   and acceptance criteria are completed.
 
+## Language Bindings And Rust
+
+- Python remains the reference implementation and the current default execution
+  path.
+- The R, Julia, Go, TypeScript, C#, and Rust scaffolds under `bindings/` are
+  wrapper-first and experimental; they invoke the Python reference contract
+  rather than reimplementing model logic.
+- Rust kernel candidates should stay limited to pure, deterministic kernels
+  until parity, benchmarks, and support policy are in place.
+- Native bindings are deferred until the contract, release policy, and
+  cross-runtime quality gates are stable enough to justify them.
+
 ## Simulation Approach Direction
 
 - The current production model is an annual discrete-time individual
@@ -118,6 +130,8 @@ Promote an optional pilot to a production default only when it has:
   `FUTURE_ROADMAP.md`.
 - `docs/stack_strategy.md` is the dependency and migration-policy reference.
 - `docs/documentation_plan.md` is the documentation roadmap.
+- `scripts/check_docs.py` is the repo-local markdown docs check, and `nox -s docs`
+  runs it.
 - `conductor/tracks/documentation_stack_readiness_20260428/plan.md` is the
   executable plan for docs checks, docs tooling, and stack-change documentation
   requirements.

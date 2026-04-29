@@ -44,16 +44,16 @@
 
 ## Phase 4: Generated Docs Site Decision
 
-- [ ] Task: Define docs site adoption criteria.
-    - [ ] Add MkDocs Material only when markdown-first docs become hard to navigate or public API/contract docs need a site.
-    - [ ] Add `mkdocstrings` only when Python API reference pages are useful and stable.
-    - [ ] Add tested snippets for examples that users are expected to copy.
-- [ ] Task: Add optional docs extra if tooling is adopted.
-    - [ ] Keep docs tooling out of the default runtime dependencies.
-    - [ ] Add Renovate and CI coverage for docs tooling.
-- [ ] Task: Document the decision.
-    - [ ] Record whether generated docs are adopted or explicitly deferred with rationale.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Generated Docs Site Decision' (Protocol in workflow.md)
+- [x] Task: Define docs site adoption criteria.
+    - [x] Add MkDocs Material only when markdown-first docs become hard to navigate or public API/contract docs need a site.
+    - [x] Add `mkdocstrings` only when Python API reference pages are useful and stable.
+    - [x] Add tested snippets for examples that users are expected to copy.
+- [x] Task: Add optional docs extra if tooling is adopted.
+    - [x] Keep docs tooling out of the default runtime dependencies.
+    - [x] Add Renovate and CI coverage for docs tooling.
+- [x] Task: Document the decision.
+    - [x] Record whether generated docs are adopted or explicitly deferred with rationale.
+- [x] Task: Conductor - Automated Review and Checkpoint 'Generated Docs Site Decision' (Protocol in workflow.md)
 
 ## Phase 5: Public-Surface Documentation
 

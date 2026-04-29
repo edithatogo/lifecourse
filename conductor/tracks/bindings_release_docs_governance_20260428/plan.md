@@ -9,7 +9,7 @@
     - [x] Define generated client and adapter version alignment.
 - [x] Task: Document support tiers.
     - [x] Distinguish reference, experimental, smoke-tested, production-supported, deprecated, and unsupported surfaces.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Versioning And Support Policy' (Protocol in workflow.md)
+- [x] Task: Conductor - Automated Review and Checkpoint 'Versioning And Support Policy' (Protocol in workflow.md) [checkpoint: ee68c41]
 
 ## Phase 2: Architecture And User Documentation
 
@@ -21,7 +21,7 @@
     - [x] Add docs checks for stale links or missing required sections before adding a generated docs site.
 - [x] Task: Add adapter examples.
     - [x] Include installation assumptions, minimal run, expected output, and limitations for each supported runtime.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Architecture And User Documentation' (Protocol in workflow.md)
+- [x] Task: Conductor - Automated Review and Checkpoint 'Architecture And User Documentation' (Protocol in workflow.md) [checkpoint: 229adbd]
 
 ## Phase 3: Release Governance
 

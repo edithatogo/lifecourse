@@ -55,7 +55,7 @@
     - [x] Record whether generated docs are adopted or explicitly deferred with rationale.
 - [x] Task: Conductor - Automated Review and Checkpoint 'Generated Docs Site Decision' (Protocol in workflow.md)
 
-## Phase 5: Public-Surface Documentation
+## Phase 5: Public-Surface Documentation [checkpoint: 7259470]
 
 - [x] Task: Add contract and schema docs when the contract track lands.
     - [x] Document request and response schemas, artifact formats, engine metadata, seed policy, and diagnostics.

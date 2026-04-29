@@ -34,6 +34,28 @@ jobs:
     - name: Run Vale
       run: vale --minAlertLevel=suggestion README.md docs heoml specs conductor
 
+  docs:
+    name: Repo Docs Checks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Sync environment
+      run: uv sync --all-extras --dev
+
+    - name: Run docs checks
+      run: uv run nox -s docs
+
   lint:
     runs-on: ubuntu-latest
     steps:

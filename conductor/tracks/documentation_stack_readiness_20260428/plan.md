@@ -42,7 +42,7 @@
     - [x] Ensure each track says whether it needs user, contributor, architecture, scientific/model, API/contract, or release docs.
 - [x] Task: Conductor - Automated Review and Checkpoint 'Stack Change Checklist' (Protocol in workflow.md)
 
-## Phase 4: Generated Docs Site Decision
+## Phase 4: Generated Docs Site Decision [checkpoint: 646066b]
 
 - [x] Task: Define docs site adoption criteria.
     - [x] Add MkDocs Material only when markdown-first docs become hard to navigate or public API/contract docs need a site.

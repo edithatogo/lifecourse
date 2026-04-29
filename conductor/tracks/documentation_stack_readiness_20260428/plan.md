@@ -31,7 +31,7 @@
     - [x] Keep docs-check dependencies out of the runtime dependency set.
 - [x] Task: Conductor - Automated Review and Checkpoint 'Lightweight Docs Checks' (Protocol in workflow.md)
 
-## Phase 3: Stack Change Checklist
+## Phase 3: Stack Change Checklist [checkpoint: 1f49bea]
 
 - [x] Task: Add stack-change checklist documentation.
     - [x] Require updates to `docs/architecture_status.md`, `docs/stack_strategy.md`, `conductor/tech-stack.md`, relevant Conductor plans, README when user-facing, and CHANGELOG when behavior or dependencies change.

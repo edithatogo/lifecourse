@@ -2,8 +2,8 @@
 
 ## Phase 1: Versioning And Support Policy
 
-- [ ] Task: Add docs checks for versioning and support policy.
-    - [ ] Verify schema, Python, Rust, and adapter version relationships are documented.
+- [x] Task: Add docs checks for versioning and support policy.
+    - [x] Verify schema, Python, Rust, and adapter version relationships are documented.
 - [ ] Task: Document semantic versioning rules.
     - [ ] Define contract schema compatibility rules.
     - [ ] Define generated client and adapter version alignment.

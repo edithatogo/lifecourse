@@ -69,6 +69,8 @@ Promote an optional pilot to a production default only when it has:
 - Language adapter scaffolds now exist under `bindings/` for R, Julia, Go,
   TypeScript, C#, and Rust. They are wrapper-first placeholders that consume
   the core API contract and shared fixtures.
+- Bindings versioning, support tiers, and release governance are documented in
+  `docs/bindings_versioning.md` and the bindings release governance track.
 - Broader ecosystem modules are planned through an incubation strategy:
   `innovate` remains the diffusion/adoption sibling, `mars` remains the
   fixed-API surrogate/metamodel sibling, and new advanced concerns should move

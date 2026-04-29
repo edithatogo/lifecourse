@@ -17,10 +17,10 @@
     - [ ] Identify Python reference behavior, optional bindings, Rust candidates, and current defaults.
     - [ ] Explain why wrapper-first binding paths precede native bindings.
 - [ ] Task: Maintain the documentation plan.
-    - [ ] Define user, contributor, architecture, scientific/model, API/contract, and release documentation responsibilities.
+    - [x] Define user, contributor, architecture, scientific/model, API/contract, and release documentation responsibilities.
     - [ ] Add docs checks for stale links or missing required sections before adding a generated docs site.
-- [ ] Task: Add adapter examples.
-    - [ ] Include installation assumptions, minimal run, expected output, and limitations for each supported runtime.
+- [x] Task: Add adapter examples.
+    - [x] Include installation assumptions, minimal run, expected output, and limitations for each supported runtime.
 - [ ] Task: Conductor - Automated Review and Checkpoint 'Architecture And User Documentation' (Protocol in workflow.md)
 
 ## Phase 3: Release Governance

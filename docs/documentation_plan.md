@@ -34,6 +34,8 @@ features are production-ready.
 5. Add parameter provenance and validation target docs before claiming external
    validation or jurisdiction-specific evidence maturity.
 6. Add binding-specific docs only after adapter scaffolds exist.
+   The current binding-specific docs include adapter examples and release
+   governance for the wrapper-first scaffolds.
 7. Add `voiage` integration docs only after the artifact contract and optional
    adapter exist.
 

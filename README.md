@@ -119,6 +119,8 @@ Language adapter scaffolds live under `bindings/` and locate shared schemas and
 fixtures from `specs/core-api/` rather than duplicating model logic.
 Bindings versioning and support tiers are documented in
 [docs/bindings_versioning.md](docs/bindings_versioning.md).
+Adapter examples and invocation assumptions are documented in
+[docs/bindings_examples.md](docs/bindings_examples.md).
 
 Runtime diagnostics use standard-library logging. CLI entry points configure
 logging from `--log-level`, `--debug`, or `LIFECOURSE_LOG_LEVEL`.

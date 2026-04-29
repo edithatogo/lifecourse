@@ -2,24 +2,24 @@
 
 Documentation scope: architecture, scientific/model, API/contract, and release docs.
 
-## Phase 1: Engine Contract And Taxonomy
+## Phase 1: Engine Contract And Taxonomy [checkpoint: 921fc93]
 
-- [ ] Task: Add tests for simulation engine metadata and selection.
-    - [ ] Cover default engine selection, invalid engine names, seed policy, and diagnostic metadata.
-    - [ ] Verify the current discrete-time engine can be selected without changing existing CLI behavior.
-- [ ] Task: Document the simulation approach taxonomy.
-    - [ ] Compare static decision models, cohort Markov, semi-Markov, individual discrete-time microsimulation, continuous-time simulation, discrete-event simulation, agent-based/network simulation, and hybrid models.
-    - [ ] Explain when each approach is appropriate for genomic testing health-economic evaluation.
-    - [ ] Call out DES as the operational modelling choice for pathways, queues, waiting times, and capacity constraints.
-    - [ ] Call out TreeAge as a feature reference taxonomy rather than a required runtime dependency.
-- [ ] Task: Define typed simulation engine interfaces.
-    - [ ] Include run inputs, run outputs, artifact metadata, diagnostics, seed policy, and capability declarations.
-    - [ ] Keep Dask-specific details behind the current engine implementation.
-- [ ] Task: Define simulation-engine dependency policy.
-    - [ ] Keep current discrete-time microsimulation dependencies as the only production default.
-    - [ ] Classify candidate dependencies for static, Markov, continuous-time, DES, agent-based, network, and hybrid engines as core, optional, experimental, or deferred.
-    - [ ] Require optional extras, Renovate coverage, CI smoke checks, and documentation for any new engine package.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Engine Contract And Taxonomy' (Protocol in workflow.md)
+- [x] Task: Add tests for simulation engine metadata and selection.
+    - [x] Cover default engine selection, invalid engine names, seed policy, and diagnostic metadata.
+    - [x] Verify the current discrete-time engine can be selected without changing existing CLI behavior.
+- [x] Task: Document the simulation approach taxonomy.
+    - [x] Compare static decision models, cohort Markov, semi-Markov, individual discrete-time microsimulation, continuous-time simulation, discrete-event simulation, agent-based/network simulation, and hybrid models.
+    - [x] Explain when each approach is appropriate for genomic testing health-economic evaluation.
+    - [x] Call out DES as the operational modelling choice for pathways, queues, waiting times, and capacity constraints.
+    - [x] Call out TreeAge as a feature reference taxonomy rather than a required runtime dependency.
+- [x] Task: Define typed simulation engine interfaces.
+    - [x] Include run inputs, run outputs, artifact metadata, diagnostics, seed policy, and capability declarations.
+    - [x] Keep Dask-specific details behind the current engine implementation.
+- [x] Task: Define simulation-engine dependency policy.
+    - [x] Keep current discrete-time microsimulation dependencies as the only production default.
+    - [x] Classify candidate dependencies for static, Markov, continuous-time, DES, agent-based, network, and hybrid engines as core, optional, experimental, or deferred.
+    - [x] Require optional extras, Renovate coverage, CI smoke checks, and documentation for any new engine package.
+- [x] Task: Conductor - Automated Review and Checkpoint 'Engine Contract And Taxonomy' (Protocol in workflow.md)
 
 ## Phase 2: Current Engine Adapter
 

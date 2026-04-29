@@ -21,18 +21,18 @@ Documentation scope: architecture, scientific/model, API/contract, and release d
     - [x] Require optional extras, Renovate coverage, CI smoke checks, and documentation for any new engine package.
 - [x] Task: Conductor - Automated Review and Checkpoint 'Engine Contract And Taxonomy' (Protocol in workflow.md)
 
-## Phase 2: Current Engine Adapter
+## Phase 2: Current Engine Adapter [checkpoint: 472a798]
 
-- [ ] Task: Add parity tests for the current annual discrete-time engine adapter.
-    - [ ] Compare direct `run_sim` behavior with registry-mediated execution for fixed seeds.
-    - [ ] Cover retrospective and prospective arms.
-- [ ] Task: Implement the discrete-time microsimulation engine adapter.
-    - [ ] Wrap the current `PopulationSystemDask` and run-helper behavior.
-    - [ ] Expose engine metadata and diagnostics through the shared contract.
-- [ ] Task: Add engine registry and configuration selection.
-    - [ ] Support default selection without requiring users to specify an engine.
-    - [ ] Keep CLI parsing thin and delegate to the Python reference API.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Current Engine Adapter' (Protocol in workflow.md)
+- [x] Task: Add parity tests for the current annual discrete-time engine adapter.
+    - [x] Compare direct `run_sim` behavior with registry-mediated execution for fixed seeds.
+    - [x] Cover retrospective and prospective arms.
+- [x] Task: Implement the discrete-time microsimulation engine adapter.
+    - [x] Wrap the current `PopulationSystemDask` and run-helper behavior.
+    - [x] Expose engine metadata and diagnostics through the shared contract.
+- [x] Task: Add engine registry and configuration selection.
+    - [x] Support default selection without requiring users to specify an engine.
+    - [x] Keep CLI parsing thin and delegate to the Python reference API.
+- [x] Task: Conductor - Automated Review and Checkpoint 'Current Engine Adapter' (Protocol in workflow.md)
 
 ## Phase 3: Non-Default Engine Scaffold
 

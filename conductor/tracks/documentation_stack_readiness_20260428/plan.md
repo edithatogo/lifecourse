@@ -33,14 +33,14 @@
 
 ## Phase 3: Stack Change Checklist
 
-- [ ] Task: Add stack-change checklist documentation.
-    - [ ] Require updates to `docs/architecture_status.md`, `docs/stack_strategy.md`, `conductor/tech-stack.md`, relevant Conductor plans, README when user-facing, and CHANGELOG when behavior or dependencies change.
-    - [ ] Include dependency classification as core, optional, experimental, or deferred.
-    - [ ] Include CI, Renovate, security, and ownership requirements for new dependencies.
-- [ ] Task: Add docs requirements to active migration tracks.
-    - [ ] Cover model contract/schema, language adapters, Rust kernel migration, cross-runtime CI, simulation-engine modularity, multi-cohort architecture, parameter provenance, validation targets, and reporting bundles.
-    - [ ] Ensure each track says whether it needs user, contributor, architecture, scientific/model, API/contract, or release docs.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Stack Change Checklist' (Protocol in workflow.md)
+- [x] Task: Add stack-change checklist documentation.
+    - [x] Require updates to `docs/architecture_status.md`, `docs/stack_strategy.md`, `conductor/tech-stack.md`, relevant Conductor plans, README when user-facing, and CHANGELOG when behavior or dependencies change.
+    - [x] Include dependency classification as core, optional, experimental, or deferred.
+    - [x] Include CI, Renovate, security, and ownership requirements for new dependencies.
+- [x] Task: Add docs requirements to active migration tracks.
+    - [x] Cover model contract/schema, language adapters, Rust kernel migration, cross-runtime CI, simulation-engine modularity, multi-cohort architecture, parameter provenance, validation targets, and reporting bundles.
+    - [x] Ensure each track says whether it needs user, contributor, architecture, scientific/model, API/contract, or release docs.
+- [x] Task: Conductor - Automated Review and Checkpoint 'Stack Change Checklist' (Protocol in workflow.md)
 
 ## Phase 4: Generated Docs Site Decision
 

@@ -1,5 +1,7 @@
 # Evidence Parameter Provenance Plan
 
+Documentation scope: scientific/model, architecture, API/contract, and release docs.
+
 ## Phase 1: Provenance Schema
 
 - [ ] Task: Add tests for parameter provenance validation.

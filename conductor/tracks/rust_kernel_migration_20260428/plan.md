@@ -1,5 +1,7 @@
 # Rust Kernel Migration Plan
 
+Documentation scope: architecture, scientific/model, and release docs.
+
 ## Phase 1: Candidate Ranking And Rust Workspace
 
 - [ ] Task: Add tests or checks for candidate inventory documentation.

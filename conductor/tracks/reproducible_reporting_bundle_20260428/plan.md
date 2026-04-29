@@ -1,5 +1,7 @@
 # Reproducible Reporting Bundle Plan
 
+Documentation scope: API/contract, architecture, and release docs.
+
 ## Phase 1: Manifest And Output Index
 
 - [ ] Task: Add tests for run manifest creation.

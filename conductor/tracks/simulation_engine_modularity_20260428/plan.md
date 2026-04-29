@@ -1,5 +1,7 @@
 # Simulation Engine Modularity Plan
 
+Documentation scope: architecture, scientific/model, API/contract, and release docs.
+
 ## Phase 1: Engine Contract And Taxonomy
 
 - [ ] Task: Add tests for simulation engine metadata and selection.

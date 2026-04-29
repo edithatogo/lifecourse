@@ -128,7 +128,10 @@ Promote an optional pilot to a production default only when it has:
 - Documentation is currently markdown-first and lives in `README.md`, `docs/`,
   `conductor/`, `CONTRIBUTING.md`, `RELEASE.md`, `CHANGELOG.md`, and
   `FUTURE_ROADMAP.md`.
+- The maintained documentation map and status labels live in
+  `docs/documentation_plan.md`.
 - `docs/stack_strategy.md` is the dependency and migration-policy reference.
+- `docs/stack_change_checklist.md` is the stack-change update checklist.
 - `docs/documentation_plan.md` is the documentation roadmap.
 - `scripts/check_docs.py` is the repo-local markdown docs check, and `nox -s docs`
   runs it.

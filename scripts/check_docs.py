@@ -21,6 +21,7 @@ REQUIRED_FILES = [
     "FUTURE_ROADMAP.md",
     "docs/architecture_status.md",
     "docs/stack_strategy.md",
+    "docs/stack_change_checklist.md",
     "docs/documentation_plan.md",
     "docs/bindings_versioning.md",
     "docs/bindings_examples.md",
@@ -47,8 +48,15 @@ REQUIRED_SECTIONS = {
         "C#",
         "Rust",
     ],
+    "docs/stack_change_checklist.md": [
+        "Required Updates",
+        "Dependency Classification",
+        "Governance Requirements",
+        "Track Documentation Expectations",
+    ],
     "docs/documentation_plan.md": [
         "Goal",
+        "Documentation Map",
         "Documentation Sets",
         "Implementation Plan",
         "Maintenance Rules",
@@ -59,6 +67,10 @@ REQUIRED_SECTIONS = {
         "Planned Migration Tracks",
         "Documentation Status",
     ],
+}
+
+STALE_REFERENCES = {
+    "ROADMAP.md": "FUTURE_ROADMAP.md",
 }
 
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
@@ -137,11 +149,33 @@ def _check_internal_links() -> list[str]:
     return errors
 
 
+def _check_stale_references() -> list[str]:
+    errors: list[str] = []
+    docs_to_scan = [
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "CONTRIBUTING.md",
+        REPO_ROOT / "RELEASE.md",
+        REPO_ROOT / "docs" / "architecture_status.md",
+        REPO_ROOT / "docs" / "documentation_plan.md",
+        REPO_ROOT / "docs" / "stack_strategy.md",
+    ]
+
+    for doc_path in docs_to_scan:
+        content = doc_path.read_text(encoding="utf-8")
+        for stale, replacement in STALE_REFERENCES.items():
+            if stale in content and replacement not in content:
+                errors.append(
+                    f"stale reference in {doc_path.relative_to(REPO_ROOT)}: {stale} should be {replacement}"
+                )
+    return errors
+
+
 def run_checks() -> list[str]:
     errors = []
     errors.extend(_check_required_files())
     errors.extend(_check_required_sections())
     errors.extend(_check_internal_links())
+    errors.extend(_check_stale_references())
     return errors
 
 

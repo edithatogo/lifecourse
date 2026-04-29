@@ -8,6 +8,27 @@ analysis. Documentation should make current behavior clear, label experimental
 work honestly, and provide migration guidance without implying that planned
 features are production-ready.
 
+## Documentation Map
+
+This map is the maintained status index for the repository's documentation.
+Status labels are intentionally narrow:
+
+- `current` means the docs are maintained for the current supported workflow.
+- `experimental` means the docs describe an opt-in or wrapper-first surface.
+- `planned` means the docs belong to an approved track but are not yet
+  complete.
+- `deferred` means the docs are intentionally out of scope for now.
+
+| Documentation set | Status | Primary files | Notes |
+| --- | --- | --- | --- |
+| User docs | current | `README.md`, `docs/architecture_status.md` | Installation, execution, outputs, and troubleshooting. |
+| Contributor docs | current | `CONTRIBUTING.md`, `docs/stack_change_checklist.md`, `scripts/check_docs.py` | Workflow, quality gates, and doc hygiene. |
+| Architecture docs | current | `docs/architecture_status.md`, `docs/stack_strategy.md` | Production defaults, pilots, and dependency policy. |
+| Scientific/model docs | planned | `docs/` track pages, Conductor plans | Assumptions, provenance, calibration, and validation detail. |
+| API/contract docs | experimental | `docs/bindings_examples.md`, `docs/bindings_versioning.md`, `specs/core-api/` | Wrapper-first bindings and the reference contract surface. |
+| Release docs | current | `RELEASE.md`, `CHANGELOG.md` | Versioning, support tiers, and release prerequisites. |
+| Generated docs site | deferred | none | Keep markdown-first documentation until site navigation becomes necessary. |
+
 ## Documentation Sets
 
 - User docs: installation, running scenarios, interpreting outputs, result
@@ -31,6 +52,7 @@ features are production-ready.
 2. Add docs checks for broken links, required sections, stale roadmap names, and
    lightweight prose linting.
    The current repo-local check is `uv run python scripts/check_docs.py`.
+   The stack-change checklist lives in `docs/stack_change_checklist.md`.
 3. Add contract and schema docs when the model contract track is implemented.
 4. Add simulation-engine docs before non-default engines become user-facing.
 5. Add parameter provenance and validation target docs before claiming external

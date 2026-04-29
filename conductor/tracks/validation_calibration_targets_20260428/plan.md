@@ -1,5 +1,7 @@
 # Validation Calibration Targets Plan
 
+Documentation scope: scientific/model, architecture, and release docs.
+
 ## Phase 1: Target Schema
 
 - [ ] Task: Add tests for calibration and validation target schemas.

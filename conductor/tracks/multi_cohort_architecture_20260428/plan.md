@@ -1,5 +1,7 @@
 # Multi-Cohort Architecture Plan
 
+Documentation scope: architecture and scientific/model docs.
+
 ## Phase 1: Cohort Strategy Contract
 
 - [ ] Task: Add tests for the cohort strategy contract.

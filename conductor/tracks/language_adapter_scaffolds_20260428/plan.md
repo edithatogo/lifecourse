@@ -1,5 +1,7 @@
 # Language Adapter Scaffolds Plan
 
+Documentation scope: contributor, architecture, API/contract, and release docs.
+
 ## Phase 1: Adapter Layout And Shared Fixtures
 
 - [x] Task: Add tests that validate adapter scaffolds can locate shared schemas and fixtures.

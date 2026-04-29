@@ -128,6 +128,9 @@ logging from `--log-level`, `--debug`, or `LIFECOURSE_LOG_LEVEL`.
 Version checks require `project.version` in `pyproject.toml` to have a matching
 `CHANGELOG.md` section before release work proceeds.
 
+The maintained documentation map and status labels live in
+[docs/documentation_plan.md](docs/documentation_plan.md).
+
 Common workflow sessions:
 
 ```bash

@@ -58,6 +58,7 @@ Each stack change must update:
 
 - `docs/architecture_status.md` for current/default/experimental status.
 - `conductor/tech-stack.md` for stack policy and migration rationale.
+- `docs/stack_change_checklist.md` for the update checklist itself.
 - `README.md` only when user-facing setup or usage changes.
 - The relevant Conductor track `spec.md` and `plan.md`.
 - `CHANGELOG.md` when behavior, dependencies, or workflows change.

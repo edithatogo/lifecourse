@@ -1,5 +1,7 @@
 # Cross-Runtime Quality and CI Plan
 
+Documentation scope: contributor, architecture, and release docs.
+
 ## Phase 1: Quality Matrix
 
 - [ ] Task: Add tests or docs checks for the quality matrix.

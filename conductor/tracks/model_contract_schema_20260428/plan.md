@@ -1,5 +1,7 @@
 # Model Contract and Schema Artifacts Plan
 
+Documentation scope: API/contract, architecture, and release docs.
+
 ## Phase 1: Contract Models
 
 - [x] Task: Add tests for request and response model validation.

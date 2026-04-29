@@ -2,16 +2,16 @@
 
 ## Phase 1: Documentation Map And Status
 
-- [ ] Task: Add tests or checks for required documentation files.
-    - [ ] Verify `README.md`, `CONTRIBUTING.md`, `RELEASE.md`, `CHANGELOG.md`, `FUTURE_ROADMAP.md`, `docs/architecture_status.md`, `docs/stack_strategy.md`, and `docs/documentation_plan.md` exist.
-    - [ ] Verify stale references such as missing roadmap filenames are reported.
-- [ ] Task: Expand the documentation plan into a maintained documentation map.
-    - [ ] Identify user, contributor, architecture, scientific/model, API/contract, and release docs.
-    - [ ] Mark each documentation set as current, experimental, planned, or deferred.
-    - [ ] Define which docs each major Conductor track must update.
-- [ ] Task: Update README and architecture status from the documentation map.
-    - [ ] Keep user-facing links short and accurate.
-    - [ ] Keep planned features separate from production defaults.
+- [x] Task: Add tests or checks for required documentation files.
+    - [x] Verify `README.md`, `CONTRIBUTING.md`, `RELEASE.md`, `CHANGELOG.md`, `FUTURE_ROADMAP.md`, `docs/architecture_status.md`, `docs/stack_strategy.md`, and `docs/documentation_plan.md` exist.
+    - [x] Verify stale references such as missing roadmap filenames are reported.
+- [x] Task: Expand the documentation plan into a maintained documentation map.
+    - [x] Identify user, contributor, architecture, scientific/model, API/contract, and release docs.
+    - [x] Mark each documentation set as current, experimental, planned, or deferred.
+    - [x] Define which docs each major Conductor track must update.
+- [x] Task: Update README and architecture status from the documentation map.
+    - [x] Keep user-facing links short and accurate.
+    - [x] Keep planned features separate from production defaults.
 - [ ] Task: Conductor - Automated Review and Checkpoint 'Documentation Map And Status' (Protocol in workflow.md)
 
 ## Phase 2: Lightweight Docs Checks

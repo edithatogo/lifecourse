@@ -4,11 +4,11 @@
 
 - [x] Task: Add docs checks for versioning and support policy.
     - [x] Verify schema, Python, Rust, and adapter version relationships are documented.
-- [ ] Task: Document semantic versioning rules.
-    - [ ] Define contract schema compatibility rules.
-    - [ ] Define generated client and adapter version alignment.
-- [ ] Task: Document support tiers.
-    - [ ] Distinguish reference, experimental, smoke-tested, production-supported, deprecated, and unsupported surfaces.
+- [x] Task: Document semantic versioning rules.
+    - [x] Define contract schema compatibility rules.
+    - [x] Define generated client and adapter version alignment.
+- [x] Task: Document support tiers.
+    - [x] Distinguish reference, experimental, smoke-tested, production-supported, deprecated, and unsupported surfaces.
 - [ ] Task: Conductor - Automated Review and Checkpoint 'Versioning And Support Policy' (Protocol in workflow.md)
 
 ## Phase 2: Architecture And User Documentation

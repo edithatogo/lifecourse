@@ -6,11 +6,16 @@ language adapters, and Rust migration surfaces.
 ## Versioning Rules
 
 - The Python reference package is the source of truth for the contract runtime.
-- The contract schema version must change when request or response fields
-  change incompatibly.
-- Generated clients and wrapper adapters should track the contract major
-  version and may release patch or minor updates independently when they only
-  change wrapper behavior or documentation.
+- The contract schema version follows semantic versioning:
+  - `MAJOR` changes for incompatible request or response shape changes.
+  - `MINOR` changes for backward-compatible additions to the contract or new
+    optional fields.
+  - `PATCH` changes for documentation fixes, wrapper-only fixes, and other
+    backward-compatible refinements that do not alter the contract payload.
+- Generated clients and wrapper adapters should align their `MAJOR` version
+  with the contract schema `MAJOR` version when they encode contract-shape
+  assumptions. They may release `MINOR` or `PATCH` updates independently when
+  they only change wrapper behavior, build metadata, or documentation.
 - Rust core migration work must remain behind explicit parity and benchmark
   gates before it can be treated as a default execution path.
 

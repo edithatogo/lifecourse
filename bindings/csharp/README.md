@@ -1,6 +1,6 @@
 # C# Adapter Scaffold
 
-Support tier: documented scaffold targeting .NET 11.
+Support tier: experimental, smoke-tested scaffold targeting .NET 11.
 
 Current package shape:
 

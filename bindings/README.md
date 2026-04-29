@@ -8,9 +8,9 @@ by duplicating model logic.
 
 The current support tiers are:
 
-- `r`: documented scaffold
-- `julia`: documented scaffold
-- `go`: documented scaffold
-- `typescript`: documented scaffold
-- `csharp`: documented scaffold targeting .NET 11
-- `rust`: documented scaffold and future contract consumer
+- `r`: experimental, smoke-tested scaffold
+- `julia`: experimental, smoke-tested scaffold
+- `go`: experimental, smoke-tested scaffold
+- `typescript`: experimental, smoke-tested scaffold
+- `csharp`: experimental, smoke-tested scaffold targeting .NET 11
+- `rust`: experimental, smoke-tested scaffold and future contract consumer

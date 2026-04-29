@@ -1,6 +1,6 @@
 # Rust Adapter Scaffold
 
-Support tier: documented scaffold and future contract consumer.
+Support tier: experimental, smoke-tested scaffold and future contract consumer.
 
 Current package shape:
 

@@ -1,6 +1,6 @@
 # Julia Adapter Scaffold
 
-Support tier: documented scaffold.
+Support tier: experimental, smoke-tested scaffold.
 
 Recommended invocation path:
 

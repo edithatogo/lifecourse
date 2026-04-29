@@ -24,7 +24,7 @@ Status labels are intentionally narrow:
 | User docs | current | `README.md`, `docs/architecture_status.md` | Installation, execution, outputs, and troubleshooting. |
 | Contributor docs | current | `CONTRIBUTING.md`, `docs/stack_change_checklist.md`, `scripts/check_docs.py` | Workflow, quality gates, and doc hygiene. |
 | Architecture docs | current | `docs/architecture_status.md`, `docs/stack_strategy.md` | Production defaults, pilots, and dependency policy. |
-| Scientific/model docs | planned | `docs/` track pages, Conductor plans | Assumptions, provenance, calibration, and validation detail. |
+| Scientific/model docs | current | `docs/scientific_model_status.md`, `docs/` track pages, Conductor plans | Assumptions, provenance, calibration, and validation detail. |
 | API/contract docs | experimental | `docs/bindings_examples.md`, `docs/bindings_versioning.md`, `specs/core-api/` | Wrapper-first bindings and the reference contract surface. |
 | Release docs | current | `RELEASE.md`, `CHANGELOG.md` | Versioning, support tiers, and release prerequisites. |
 | Generated docs site | deferred | none | Keep markdown-first documentation until site navigation becomes necessary. |
@@ -62,6 +62,8 @@ Status labels are intentionally narrow:
    governance for the wrapper-first scaffolds.
 7. Add `voiage` integration docs only after the artifact contract and optional
    adapter exist.
+8. Keep the simulation-engine and scientific/model status pages aligned with
+   any new engine or evidence track.
 
 ## Implementation Plan
 

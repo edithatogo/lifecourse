@@ -276,6 +276,8 @@ Simulation settings live in `config/simulation_configs.py`, `config/config_loade
 - `docs/architecture_status.md` describes production defaults, optional pilots, quality gates, and promotion criteria.
 - `docs/stack_strategy.md` clarifies production dependencies, optional migration tools, async boundaries, and promotion rules.
 - `docs/documentation_plan.md` describes the documentation roadmap and maintenance rules.
+- `docs/simulation_engine_status.md` describes the current engine boundary and future engine candidates.
+- `docs/scientific_model_status.md` describes parameter provenance, jurisdiction evidence, calibration, and validation documentation.
 - `docs/interchange/model_interchange_strategy.md` describes portable bundle and VOI interchange expectations.
 - `docs/ecosystem/module_incubation_strategy.md` describes how sibling modules,
   embedded subtrees, adapters, and future repos should be separated.

@@ -23,6 +23,8 @@ REQUIRED_FILES = [
     "docs/stack_strategy.md",
     "docs/stack_change_checklist.md",
     "docs/documentation_plan.md",
+    "docs/simulation_engine_status.md",
+    "docs/scientific_model_status.md",
     "docs/bindings_versioning.md",
     "docs/bindings_examples.md",
 ]
@@ -60,6 +62,20 @@ REQUIRED_SECTIONS = {
         "Documentation Sets",
         "Implementation Plan",
         "Maintenance Rules",
+    ],
+    "docs/simulation_engine_status.md": [
+        "Scope",
+        "Current Production Engine",
+        "Future Engine Candidates",
+        "Dependency Policy",
+        "Promotion Criteria",
+    ],
+    "docs/scientific_model_status.md": [
+        "Scope",
+        "Parameter Provenance",
+        "Jurisdiction Evidence",
+        "Calibration And Validation",
+        "Limitations And Maturity",
     ],
     "docs/architecture_status.md": [
         "Production Defaults",
@@ -129,6 +145,8 @@ def _check_internal_links() -> list[str]:
         REPO_ROOT / "CONTRIBUTING.md",
         REPO_ROOT / "docs" / "architecture_status.md",
         REPO_ROOT / "docs" / "documentation_plan.md",
+        REPO_ROOT / "docs" / "simulation_engine_status.md",
+        REPO_ROOT / "docs" / "scientific_model_status.md",
         REPO_ROOT / "docs" / "bindings_versioning.md",
         REPO_ROOT / "docs" / "bindings_examples.md",
         REPO_ROOT / "docs" / "stack_strategy.md",
@@ -157,6 +175,8 @@ def _check_stale_references() -> list[str]:
         REPO_ROOT / "RELEASE.md",
         REPO_ROOT / "docs" / "architecture_status.md",
         REPO_ROOT / "docs" / "documentation_plan.md",
+        REPO_ROOT / "docs" / "simulation_engine_status.md",
+        REPO_ROOT / "docs" / "scientific_model_status.md",
         REPO_ROOT / "docs" / "stack_strategy.md",
     ]
 

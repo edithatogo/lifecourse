@@ -133,6 +133,8 @@ Promote an optional pilot to a production default only when it has:
 - `docs/stack_strategy.md` is the dependency and migration-policy reference.
 - `docs/stack_change_checklist.md` is the stack-change update checklist.
 - `docs/documentation_plan.md` is the documentation roadmap.
+- `docs/simulation_engine_status.md` and `docs/scientific_model_status.md`
+  capture the current simulation and scientific/model documentation boundary.
 - `scripts/check_docs.py` is the repo-local markdown docs check, and `nox -s docs`
   runs it.
 - CI runs both the repo docs check and Markdown prose linting.

@@ -34,6 +34,31 @@ def test_documentation_plan_has_status_map() -> None:
         assert section in content
 
 
+def test_status_pages_have_required_sections() -> None:
+    simulation = (REPO_ROOT / "docs" / "simulation_engine_status.md").read_text(
+        encoding="utf-8"
+    )
+    scientific = (REPO_ROOT / "docs" / "scientific_model_status.md").read_text(
+        encoding="utf-8"
+    )
+    for section in [
+        "## Scope",
+        "## Current Production Engine",
+        "## Future Engine Candidates",
+        "## Dependency Policy",
+        "## Promotion Criteria",
+    ]:
+        assert section in simulation
+    for section in [
+        "## Scope",
+        "## Parameter Provenance",
+        "## Jurisdiction Evidence",
+        "## Calibration And Validation",
+        "## Limitations And Maturity",
+    ]:
+        assert section in scientific
+
+
 def test_docs_check_flags_stale_roadmap_reference(tmp_path, monkeypatch) -> None:
     from scripts import check_docs
 
@@ -43,6 +68,8 @@ def test_docs_check_flags_stale_roadmap_reference(tmp_path, monkeypatch) -> None
         "RELEASE.md",
         "docs/architecture_status.md",
         "docs/documentation_plan.md",
+        "docs/simulation_engine_status.md",
+        "docs/scientific_model_status.md",
         "docs/stack_strategy.md",
     ]:
         docs_file = tmp_path / relpath

@@ -1,0 +1,8 @@
+{
+  "track_id": "simulation_engine_modularity_20260428",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T13:45:43Z",
+  "updated_at": "2026-04-28T13:45:43Z",
+  "description": "Introduce a modular simulation-engine architecture supporting discrete-time microsimulation now and future continuous-time, Markov, static, DES, and hybrid model approaches."
+}

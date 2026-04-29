@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMultipleMajorReleases"
+  ],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    },
+    {
+      "matchPackageNames": ["ruff", "basedpyright", "pytest", "pytest-cov", "hypothesis", "mutmut", "nox", "scalene", "pre-commit"],
+      "groupName": "python-dev-tooling"
+    },
+    {
+      "matchPackageNames": ["numpy", "pandas", "scipy", "dask", "pyarrow", "pandera", "pydantic"],
+      "groupName": "scientific-runtime"
+    },
+    {
+      "matchPackageNames": ["jax", "jaxlib", "blackjax", "polars", "plotnine"],
+      "groupName": "optional-backends"
+    }
+  ],
+  "schedule": ["before 6am on monday"],
+  "timezone": "Australia/Sydney",
+  "rangeStrategy": "bump"
+}

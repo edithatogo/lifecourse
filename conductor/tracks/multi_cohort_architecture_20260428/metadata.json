@@ -1,0 +1,8 @@
+{
+  "track_id": "multi_cohort_architecture_20260428",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T13:37:14Z",
+  "updated_at": "2026-04-28T13:37:14Z",
+  "description": "Refactor toward a multi-cohort architecture with disease-specific strategy modules and cohort-specific parameter packages."
+}

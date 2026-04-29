@@ -1,0 +1,8 @@
+{
+  "track_id": "evidence_parameter_provenance_20260428",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T13:37:14Z",
+  "updated_at": "2026-04-28T13:37:14Z",
+  "description": "Add parameter provenance, evidence metadata, source traceability, and assumption audit outputs for health-economic model inputs."
+}

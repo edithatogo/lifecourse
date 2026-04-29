@@ -1,13 +1,19 @@
+import os
+import sys
 import unittest
+
 import numpy as np
 import pandas as pd
-import sys
-import os
 
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from lifecourse.analysis.run_helpers import run_sim, run_scenario, get_memory_usage
+from lifecourse.analysis.run_helpers import (
+    get_memory_usage,
+    run_scenario,
+    run_sim,
+    select_dask_scheduler,
+)
 from lifecourse.model.parameters import (
     DISTRIBUTIONS,
     START_YEAR,
@@ -22,6 +28,26 @@ class TestRunHelpersIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=123)
+
+    def test_select_dask_scheduler_uses_synchronous_for_debug(self):
+        self.assertEqual(
+            select_dask_scheduler(
+                pop_size=100_000, years=range(2020, 2030), debug=True
+            ),
+            "synchronous",
+        )
+
+    def test_select_dask_scheduler_uses_synchronous_for_small_runs(self):
+        self.assertEqual(
+            select_dask_scheduler(pop_size=250, years=range(2020, 2022)),
+            "synchronous",
+        )
+
+    def test_select_dask_scheduler_preserves_threads_for_larger_runs(self):
+        self.assertEqual(
+            select_dask_scheduler(pop_size=5_000, years=range(2020, 2030)),
+            "threads",
+        )
 
     def test_run_sim_output_type_and_values(self):
         dc, dq = run_sim(self.sampled_params, pop_size=TEST_POP_SIZE, years=TEST_YEARS)
@@ -162,18 +188,6 @@ class TestRunHelpersIntegration(unittest.TestCase):
                 f"Cumulative QALYs for {arm_name} arm should be non-decreasing",
             )
 
-    def test_run_scenario_empty_population(self):
-        # Test with an empty population (pop_size=0)
-        (dc_empty, dq_empty), df_output_empty = run_scenario(
-            self.sampled_params, pop_size=0, years=TEST_YEARS
-        )
-        self.assertEqual(dc_empty, 0.0, "d_cost should be 0 for empty population")
-        self.assertEqual(dq_empty, 0.0, "d_qaly should be 0 for empty population")
-        self.assertTrue(
-            df_output_empty.empty,
-            "DataFrame output should be empty for empty population",
-        )
-
     def test_run_scenario_with_overrides(self):
         # Create a dummy scenario with overrides
         overridden_params = self.sampled_params.copy()
@@ -232,7 +246,6 @@ class TestRunHelpersIntegration(unittest.TestCase):
     def test_run_sim_debug_mode(self):
         """Test run_sim with debug=True to cover debug code paths."""
         import io
-        import sys
         from contextlib import redirect_stdout
 
         # Capture stdout to verify debug output
@@ -242,7 +255,7 @@ class TestRunHelpersIntegration(unittest.TestCase):
                 self.sampled_params,
                 pop_size=TEST_POP_SIZE,
                 years=TEST_YEARS,
-                debug=True
+                debug=True,
             )
 
         output = f.getvalue()
@@ -264,9 +277,23 @@ class TestRunHelpersIntegration(unittest.TestCase):
 
         # Check DataFrame structure for empty population
         expected_cols = [
-            "arm", "year", "annual_cost", "cost_health", "cost_edu", "cost_respite",
-            "cost_mobility", "cost_welfare", "cost_emp", "cost_morbidity", "costs",
-            "qalys", "ses_q0_pct", "ses_q1_pct", "ses_q2_pct", "ses_q3_pct", "ses_q4_pct"
+            "arm",
+            "year",
+            "annual_cost",
+            "cost_health",
+            "cost_edu",
+            "cost_respite",
+            "cost_mobility",
+            "cost_welfare",
+            "cost_emp",
+            "cost_morbidity",
+            "costs",
+            "qalys",
+            "ses_q0_pct",
+            "ses_q1_pct",
+            "ses_q2_pct",
+            "ses_q3_pct",
+            "ses_q4_pct",
         ]
         for col in expected_cols:
             self.assertIn(col, df_output.columns)

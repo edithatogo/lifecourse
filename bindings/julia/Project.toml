@@ -1,0 +1,11 @@
+name = "LifecourseContract"
+uuid = "7a7a7c90-2d0b-4f29-8c5b-4f38d7d4c001"
+authors = ["Dylan Mordaunt"]
+version = "0.0.0"
+
+[deps]
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+
+[compat]
+julia = "1.10"
+JSON = "0.21"

@@ -1,29 +1,30 @@
 import unittest
+
 import numpy as np
 import pandas as pd
 from lifecourse.model.parameters import (
-    get_gamma_params,
-    get_beta_params,
-    sample_params_from_dist,
-    prepare_dask_params,
-    DISTRIBUTIONS,
-    INFLATION_FACTOR,
-    DISCOUNT,
-    MORB_KEYS,
-    EMP_NP,  # Added for checking in prepare_dask_params
-    NDIS_COST,
+    AGE_BAND_P,
+    AGE_BANDS,
     CARER_HOURS_NP,
-    WAGE_HR,
+    DISCOUNT,
+    DISTRIBUTIONS,
+    EDUCATION_LEVELS,  # Added
+    EMP_NP,  # Added for checking in prepare_dask_params
+    FERT_AGE_SPEC,  # Added
     HOSP_COST,
     HOSP_RATE_NP,  # Added
-    MENTAL_HEALTH_COST,
-    INFORMAL_CARE_COST,
     INCOME_PARAMS,
-    EDUCATION_LEVELS,  # Added
-    AGE_BANDS,
-    AGE_BAND_P,
-    FERT_AGE_SPEC,  # Added
+    INFLATION_FACTOR,
+    INFORMAL_CARE_COST,
+    MENTAL_HEALTH_COST,
+    MORB_KEYS,
+    NDIS_COST,
+    WAGE_HR,
+    get_beta_params,
+    get_gamma_params,
     get_mean_params,
+    prepare_dask_params,
+    sample_params_from_dist,
 )
 
 
@@ -237,7 +238,7 @@ class TestParameterFunctions(unittest.TestCase):
                 np.testing.assert_array_equal(
                     dask_params[key], expected_value, f"Mismatch for global param {key}"
                 )
-            elif isinstance(expected_value, dict) or isinstance(expected_value, list):
+            elif isinstance(expected_value, dict | list):
                 self.assertEqual(
                     dask_params[key], expected_value, f"Mismatch for global param {key}"
                 )

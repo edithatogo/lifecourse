@@ -1,0 +1,8 @@
+{
+  "track_id": "heoml_interchange_profile_20260429",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T14:17:18Z",
+  "updated_at": "2026-04-28T14:17:18Z",
+  "description": "Create the embedded HEOML interchange profile subtree for portable health-economic model artifacts, schemas, examples, fixtures, governance, and future extraction into its own repository."
+}

@@ -1,0 +1,361 @@
+{
+  "$defs": {
+    "AnalysisOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "budget_impact": {
+          "default": false,
+          "title": "Budget Impact",
+          "type": "boolean"
+        },
+        "calculate_enbs": {
+          "default": false,
+          "title": "Calculate Enbs",
+          "type": "boolean"
+        },
+        "calculate_evpi": {
+          "default": false,
+          "title": "Calculate Evpi",
+          "type": "boolean"
+        },
+        "calculate_evppi": {
+          "default": false,
+          "title": "Calculate Evppi",
+          "type": "boolean"
+        },
+        "calculate_evsi": {
+          "default": false,
+          "title": "Calculate Evsi",
+          "type": "boolean"
+        },
+        "confidence_level": {
+          "default": 0.95,
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Confidence Level",
+          "type": "number"
+        },
+        "equity_analysis": {
+          "default": false,
+          "title": "Equity Analysis",
+          "type": "boolean"
+        },
+        "subgroup_analysis": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Subgroup Analysis",
+          "type": "array"
+        }
+      },
+      "title": "AnalysisOptions",
+      "type": "object"
+    },
+    "EngineCapabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_time": {
+          "default": false,
+          "title": "Continuous Time",
+          "type": "boolean"
+        },
+        "des": {
+          "default": false,
+          "title": "Des",
+          "type": "boolean"
+        },
+        "discrete_time": {
+          "default": true,
+          "title": "Discrete Time",
+          "type": "boolean"
+        },
+        "hybrid": {
+          "default": false,
+          "title": "Hybrid",
+          "type": "boolean"
+        },
+        "markov": {
+          "default": false,
+          "title": "Markov",
+          "type": "boolean"
+        },
+        "semi_markov": {
+          "default": false,
+          "title": "Semi Markov",
+          "type": "boolean"
+        },
+        "static": {
+          "default": false,
+          "title": "Static",
+          "type": "boolean"
+        },
+        "supports_parallel_psa": {
+          "default": true,
+          "title": "Supports Parallel Psa",
+          "type": "boolean"
+        }
+      },
+      "title": "EngineCapabilities",
+      "type": "object"
+    },
+    "EngineMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "$ref": "#/$defs/EngineCapabilities"
+        },
+        "engine_id": {
+          "minLength": 1,
+          "title": "Engine Id",
+          "type": "string"
+        },
+        "engine_name": {
+          "minLength": 1,
+          "title": "Engine Name",
+          "type": "string"
+        },
+        "engine_version": {
+          "minLength": 1,
+          "title": "Engine Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "engine_id",
+        "engine_name",
+        "engine_version",
+        "capabilities"
+      ],
+      "title": "EngineMetadata",
+      "type": "object"
+    },
+    "ParameterOverride": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter_id": {
+          "minLength": 1,
+          "title": "Parameter Id",
+          "type": "string"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "parameter_id",
+        "value"
+      ],
+      "title": "ParameterOverride",
+      "type": "object"
+    },
+    "RunMode": {
+      "enum": [
+        "deterministic",
+        "probabilistic",
+        "calibration",
+        "validation",
+        "diagnostic"
+      ],
+      "title": "RunMode",
+      "type": "string"
+    },
+    "ScenarioSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "overrides": {
+          "items": {
+            "$ref": "#/$defs/ParameterOverride"
+          },
+          "title": "Overrides",
+          "type": "array"
+        },
+        "scenario_id": {
+          "minLength": 1,
+          "title": "Scenario Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scenario_id"
+      ],
+      "title": "ScenarioSelection",
+      "type": "object"
+    },
+    "SeedPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "replicate_count": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Replicate Count",
+          "type": "integer"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "strategy": {
+          "$ref": "#/$defs/SeedStrategy",
+          "default": "fixed"
+        }
+      },
+      "title": "SeedPolicy",
+      "type": "object"
+    },
+    "SeedStrategy": {
+      "enum": [
+        "fixed",
+        "derived",
+        "random"
+      ],
+      "title": "SeedStrategy",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Language-neutral contract for a lifecourse model execution request.",
+  "properties": {
+    "analysis_options": {
+      "$ref": "#/$defs/AnalysisOptions"
+    },
+    "contract_version": {
+      "const": "v1",
+      "default": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "engine": {
+      "$ref": "#/$defs/EngineMetadata"
+    },
+    "model_id": {
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "parameter_overrides": {
+      "items": {
+        "$ref": "#/$defs/ParameterOverride"
+      },
+      "title": "Parameter Overrides",
+      "type": "array"
+    },
+    "parameter_set": {
+      "default": "australia",
+      "minLength": 1,
+      "title": "Parameter Set",
+      "type": "string"
+    },
+    "population_size": {
+      "exclusiveMinimum": 0,
+      "title": "Population Size",
+      "type": "integer"
+    },
+    "request_id": {
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "run_mode": {
+      "$ref": "#/$defs/RunMode"
+    },
+    "scenarios": {
+      "items": {
+        "$ref": "#/$defs/ScenarioSelection"
+      },
+      "title": "Scenarios",
+      "type": "array"
+    },
+    "seed_policy": {
+      "$ref": "#/$defs/SeedPolicy"
+    },
+    "time_horizon_years": {
+      "exclusiveMinimum": 0,
+      "title": "Time Horizon Years",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request_id",
+    "model_id",
+    "engine",
+    "run_mode",
+    "population_size",
+    "time_horizon_years",
+    "seed_policy"
+  ],
+  "title": "ModelRunRequest",
+  "type": "object"
+}

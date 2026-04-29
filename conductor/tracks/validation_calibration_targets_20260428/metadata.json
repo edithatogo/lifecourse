@@ -1,0 +1,8 @@
+{
+  "track_id": "validation_calibration_targets_20260428",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T13:37:14Z",
+  "updated_at": "2026-04-28T13:37:14Z",
+  "description": "Add calibration targets, external validation checks, baseline comparison artifacts, and acceptance thresholds for model credibility."
+}

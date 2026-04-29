@@ -1,7 +1,7 @@
 import time
 
-from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params
 from lifecourse.analysis.run_helpers import run_sim
+from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params
 
 
 def test_full_simulation_performance_small_pop():
@@ -18,7 +18,7 @@ def test_full_simulation_performance_small_pop():
     elapsed = time.time() - start
 
     assert elapsed >= 0
-    assert isinstance(dc, (int, float)) or hasattr(dc, "__array__")
-    assert isinstance(dq, (int, float)) or hasattr(dq, "__array__")
+    assert isinstance(dc, int | float) or hasattr(dc, "__array__")
+    assert isinstance(dq, int | float) or hasattr(dq, "__array__")
 
     # We don't enforce a strict performance bound in CI, only sanity.

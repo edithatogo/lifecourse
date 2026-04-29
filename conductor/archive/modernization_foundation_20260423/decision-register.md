@@ -25,13 +25,21 @@ This file keeps the first modernization track focused. It records which proposed
 - `Hypothesis` where it materially improves validation-boundary confidence
   - Reason: better fit for property-based boundary testing than example-only tests.
 
-## Evaluate During This Track, But Only Adopt If Clearly Needed
+## Resolved During This Track
 - `nox` or `tox`
-  - Decision needed: pick one if session orchestration meaningfully reduces CI and local workflow ambiguity; otherwise defer both.
+  - Decision: defer both for this foundation track.
+  - Reason: documented `uv` commands and explicit GitHub Actions jobs are sufficient
+    for the current workflow; adding a session runner would increase scope without
+    removing a concrete bottleneck.
 - build smoke tooling
-  - Decision needed: use the simplest reproducible path that validates package build and install behavior.
+  - Decision: use the simplest reproducible build smoke path.
+  - Reason: `tests/test_packaging_smoke.py` validates wheel and sdist builds, and
+    CI runs `uv build`.
 - version-source strategy
-  - Decision needed: make package version ownership explicit without overengineering release automation.
+  - Decision: keep package version ownership in `[project]` metadata in
+    `pyproject.toml`.
+  - Reason: this makes the source of truth explicit without adopting release
+    automation before the repository needs it.
 
 ## Explicitly Deferred To Follow-Up Tracks
 - `polars`

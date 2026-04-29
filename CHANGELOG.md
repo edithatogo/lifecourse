@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.2
+
+### Added
+- Modernized tooling around `uv`, `pyproject.toml`, `nox`, strict linting,
+  strict typing for maintained boundary modules, and coverage gates.
+- Optional backend pilots for Polars ingestion/scenario expansion, JAX numerical
+  kernels, plotnine visualization, and backend benchmark evidence.
+- Dry-run release automation, Renovate grouping, CodeQL, scoped mutation-test
+  configuration, Scalene profiling workloads, package version exports, and CLI
+  `--version` flags.
+- Pydantic and Pandera validation boundaries for runtime config, scenario YAML,
+  and dataframe inputs.
+
+### Changed
+- Consolidated pytest configuration into `pyproject.toml`.
+- Kept the production runtime on NumPy, pandas, and Dask while documenting
+  promotion criteria for optional backend pilots.
+
 ## Unreleased (Current Date - Please fill in)
 
 ### Added

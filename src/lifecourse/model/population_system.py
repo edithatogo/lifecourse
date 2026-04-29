@@ -1,12 +1,14 @@
 import logging
+
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
 import psutil
+
 from .cohort import gen_population_dask
-from .parameters import START_YEAR, ABS_MORT, LIFE_EXP_NP, EMP_NP
-from .rng_utils import bernoulli, poisson, normal
 from .dask_utils import ensure_known_divisions, safe_from_pandas
+from .parameters import ABS_MORT, EMP_NP, LIFE_EXP_NP, START_YEAR
+from .rng_utils import bernoulli, normal, poisson
 
 _LOG = logging.getLogger(__name__)
 

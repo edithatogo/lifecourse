@@ -1,0 +1,40 @@
+name: Release Dry Run
+
+"on":
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-dry-run:
+    name: Build and inspect package artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install project
+        run: uv sync --all-extras --dev
+
+      - name: Run package smoke tests
+        run: uv run pytest tests/test_packaging_smoke.py tests/test_release_automation.py --no-cov
+
+      - name: Build package artifacts
+        run: uv build
+
+      - name: Inspect source distribution
+        run: uv run python -m tarfile --list dist/*.tar.gz
+
+      - name: Inspect wheel
+        run: uv run python -m zipfile --list dist/*.whl

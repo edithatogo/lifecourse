@@ -1,0 +1,8 @@
+{
+  "track_id": "repro_release_automation_20260428",
+  "type": "feature",
+  "status": "complete",
+  "created_at": "2026-04-28T00:00:00+10:00",
+  "updated_at": "2026-04-28T00:00:00+10:00",
+  "description": "Add selected reproducibility, dependency, and release automation after backend migration decisions stabilize."
+}

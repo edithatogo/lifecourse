@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,12 +13,13 @@ readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Scientific/Engineering",
     "Intended Audience :: Science/Research",
 ]
+license = "MIT"
+license-files = ["LICENSE"]
 keywords = [
     "microsimulation",
     "health economics",
@@ -28,6 +29,8 @@ keywords = [
     "uv",
     "pydantic",
     "pandera",
+    "polars",
+    "jax",
 ]
 
 dependencies = [
@@ -45,11 +48,30 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+tabular = [
+    "polars",
+]
+jax = [
+    "blackjax",
+    "jax",
+    "jaxlib",
+]
+visualization = [
+    "plotnine",
+]
+backends = [
+    "blackjax",
+    "jax",
+    "jaxlib",
+    "plotnine",
+    "polars",
+]
 dev = [
     "basedpyright",
     "build",
     "hypothesis",
     "mutmut",
+    "nox",
     "pandas-stubs",
     "pytest",
     "pytest-cov",
@@ -69,9 +91,10 @@ lifecourse-main = "lifecourse.main:main"
 [tool.coverage.run]
 source = [
     "config",
-    "src/lifecourse/config_validation.py",
-    "src/lifecourse/data_loader.py",
-    "src/lifecourse/data_validation.py",
+    "lifecourse.config_validation",
+    "lifecourse.data_loader",
+    "lifecourse.data_validation",
+    "lifecourse.model_contract",
 ]
 
 [tool.coverage.report]
@@ -79,7 +102,7 @@ fail_under = 90
 show_missing = true
 
 [tool.pytest.ini_options]
-addopts = "-ra --cov=config --cov=src/lifecourse/config_validation.py --cov=src/lifecourse/data_loader.py --cov=src/lifecourse/data_validation.py --cov-report=term-missing --cov-report=html --cov-fail-under=90"
+addopts = "-ra --cov=config --cov=lifecourse.config_validation --cov=lifecourse.data_loader --cov=lifecourse.data_validation --cov=lifecourse.model_contract --cov-report=term-missing --cov-report=html --cov-fail-under=90"
 testpaths = ["tests"]
 pythonpath = ["src"]
 
@@ -108,7 +131,10 @@ extraPaths = ["src"]
 include = [
     "config/config_loader.py",
     "src/lifecourse/config_validation.py",
+    "src/lifecourse/backend_evaluation.py",
+    "src/lifecourse/data_loader.py",
     "src/lifecourse/data_validation.py",
+    "src/lifecourse/model_contract.py",
 ]
 exclude = [
     "**/__pycache__",
@@ -117,3 +143,14 @@ exclude = [
     "conductor",
     "results",
 ]
+
+[tool.mutmut]
+paths_to_mutate = [
+    "src/lifecourse/backend_evaluation.py",
+    "src/lifecourse/config_validation.py",
+    "src/lifecourse/data_loader.py",
+    "src/lifecourse/data_validation.py",
+    "src/lifecourse/model_contract.py",
+]
+tests_dir = ["tests"]
+runner = "uv run pytest --no-cov tests/test_backend_evaluation.py tests/test_config_validation.py tests/test_data_loader.py tests/test_data_validation.py tests/test_model_contract_schema.py"

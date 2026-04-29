@@ -6,11 +6,16 @@ from lifecourse.analysis.advanced_analysis import (
 )
 from lifecourse.analysis.run_helpers import run_sim
 from lifecourse.data_loader import apply_scenario_overrides, load_scenarios_from_yaml
+from lifecourse.diagnostics import configure_logging
 from lifecourse.model.parameter_loader import get_parameter_attributes
+from lifecourse.version import __version__
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run lifecourse scenarios")
+    parser.add_argument(
+        "--version", action="version", version=f"lifecourse {__version__}"
+    )
     parser.add_argument(
         "scenario", nargs="?", help="Scenario name defined in config/scenarios.yaml"
     )
@@ -34,7 +39,13 @@ def main() -> None:
     parser.add_argument(
         "--debug", action="store_true", help="Enable debug mode with detailed output"
     )
+    parser.add_argument(
+        "--log-level",
+        default=None,
+        help="Logging level. Defaults to LIFECOURSE_LOG_LEVEL or INFO.",
+    )
     args = parser.parse_args()
+    configure_logging(level=args.log_level, debug=args.debug)
 
     # If no scenario specified and no special analysis requested, show help
     if not args.scenario and not (args.calibration or args.structural_uncertainty):

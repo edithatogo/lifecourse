@@ -1,0 +1,8 @@
+{
+  "track_id": "voiage_integration_20260428",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T13:57:56Z",
+  "updated_at": "2026-04-28T13:57:56Z",
+  "description": "Integrate lifecourse with the separate edithatogo/voiage Value of Information library through optional artifact-based adapters and shared VOI schemas."
+}

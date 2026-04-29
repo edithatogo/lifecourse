@@ -12,12 +12,8 @@ def test_qaly_fix_small_run():
     dc, dq = run_sim(mean_params, pop_size=500, years=list(range(2020, 2025)))
 
     # Basic sanity checks
-    assert isinstance(dc, (int, float)) or hasattr(dc, "__array__")
-    assert isinstance(dq, (int, float)) or hasattr(dq, "__array__")
+    assert isinstance(dc, int | float) or hasattr(dc, "__array__")
+    assert isinstance(dq, int | float) or hasattr(dq, "__array__")
 
     # dQALY should not be NaN
-    try:
-        assert dq is not None
-    except AssertionError:
-        # keep the assertion simple for CI readability
-        assert False
+    assert dq is not None, "dQALY should not be None"

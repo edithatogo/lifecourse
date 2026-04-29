@@ -1,16 +1,17 @@
 import unittest
+
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
-from lifecourse.model.population_system import PopulationSystemDask
-from lifecourse.model.parameters import (
-    sample_params_from_dist,
-    prepare_dask_params,
-    DISTRIBUTIONS,
-    START_YEAR,
-    LIFE_EXP_NP,
-)
 from lifecourse.model.dask_utils import safe_from_pandas
+from lifecourse.model.parameters import (
+    DISTRIBUTIONS,
+    LIFE_EXP_NP,
+    START_YEAR,
+    prepare_dask_params,
+    sample_params_from_dist,
+)
+from lifecourse.model.population_system import PopulationSystemDask
 
 
 def get_test_params_for_system(
@@ -285,11 +286,10 @@ class TestPopulationSystem(unittest.TestCase):
             # A simple check: if any original individuals survived, their age should be initial_age + 1
             # This requires matching individuals.
             # For now, just check that 'age' column exists and some basic properties.
-            if initial_len > 0 and current_len > 0:
+            if initial_len > 0 and current_len > 0 and initial_ages_computed.max() > 0:
                 # If we had some people with age > 0 before, and some people still exist,
                 # it's likely max age increased or mean age changed plausibly.
-                if initial_ages_computed.max() > 0:
-                    pass  # Max age could decrease if all oldest die.
+                pass  # Max age could decrease if all oldest die.
 
             self.assertTrue(
                 pop_after_step_df["annual_cost"].sum() >= 0 if current_len > 0 else True

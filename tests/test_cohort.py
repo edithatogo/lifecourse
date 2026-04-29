@@ -1,14 +1,15 @@
 import unittest
+
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
-from lifecourse.model.cohort import gen_population_dask, sample_ages, FERT_RATES_DF
+from lifecourse.model.cohort import FERT_RATES_DF, gen_population_dask, sample_ages
 from lifecourse.model.parameters import (
-    AGE_DIST,
     AGE_BREAKS,
-    sample_params_from_dist,
-    prepare_dask_params,
+    AGE_DIST,
     DISTRIBUTIONS,
+    prepare_dask_params,
+    sample_params_from_dist,
 )
 
 
@@ -170,7 +171,9 @@ class TestCohort(unittest.TestCase):
             # When yield_wgs = 1.0, all familial individuals should be diagnosed
             familial_mask = pop_retro_yield_one_df["familial"]
             if familial_mask.any():
-                self.assertTrue(pop_retro_yield_one_df.loc[familial_mask, "diagnosed"].all())
+                self.assertTrue(
+                    pop_retro_yield_one_df.loc[familial_mask, "diagnosed"].all()
+                )
 
         original_yield = self.current_params["yield_wgs"]
         if 0 < original_yield < 1 and self.N_POP > 50:

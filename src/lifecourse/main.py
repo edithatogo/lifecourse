@@ -1,10 +1,11 @@
-import pandas as pd
-import numpy as np
 import argparse
 import os
 import sys
+
+import numpy as np
+import pandas as pd
 import psutil
-from dask.distributed import LocalCluster, Client
+from dask.distributed import Client, LocalCluster
 
 # Try to import the config loader normally. When running this module directly
 # from a checkout (instead of an installed package), the package imports may
@@ -34,10 +35,12 @@ except Exception:
             "mode (`pip install -e .`) or set PYTHONPATH to the repository root."
         ) from e
 
-from lifecourse.model.parameter_loader import get_parameter_attributes
-from lifecourse.analysis.run_helpers import run_sim, run_scenario
-from lifecourse.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
 from lifecourse.analysis.advanced_analysis import calculate_budget_impact_with_adoption
+from lifecourse.analysis.run_helpers import run_scenario, run_sim
+from lifecourse.data_loader import apply_scenario_overrides, load_scenarios_from_yaml
+from lifecourse.diagnostics import configure_logging
+from lifecourse.model.parameter_loader import get_parameter_attributes
+from lifecourse.version import __version__
 
 
 def get_system_resources():
@@ -50,6 +53,9 @@ def get_system_resources():
 def main():
     parser = argparse.ArgumentParser(
         description="Run lifecourse Simulation and Analysis."
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"lifecourse {__version__}"
     )
     parser.add_argument(
         "--config_name",
@@ -67,7 +73,13 @@ def main():
         action="store_true",
         help="Enable debug mode with detailed output and single-threaded execution.",
     )
+    parser.add_argument(
+        "--log-level",
+        default=None,
+        help="Logging level. Defaults to LIFECOURSE_LOG_LEVEL or INFO.",
+    )
     args = parser.parse_args()
+    configure_logging(level=args.log_level, debug=args.debug)
 
     # Load configuration using the new robust loader
     config = load_config(
@@ -219,11 +231,11 @@ def main():
             print("PSA results saved to results/psa_samples.csv")
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
+                plot_deterministic_icers,
                 plot_enmb,
+                plot_evpi,
             )
 
             # Module 8: CE-Plane, CEAC, EVPI & ENMB
@@ -304,11 +316,11 @@ def main():
                     )
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
+                plot_deterministic_icers,
                 plot_enmb,
+                plot_evpi,
                 plot_tornado,
             )
 
@@ -343,9 +355,9 @@ def main():
                     for param_name, value in overrides.items():
                         if value is not None:
                             if (
-                                isinstance(value, (int, float))
+                                isinstance(value, int | float)
                                 and param_name in p_temp
-                                and isinstance(p_temp[param_name], (int, float))
+                                and isinstance(p_temp[param_name], int | float)
                             ):
                                 if (
                                     value < -0.5 or value > 0.5
@@ -412,13 +424,13 @@ def main():
                     )
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
+                plot_deterministic_icers,
                 plot_enmb,
-                plot_tornado,
+                plot_evpi,
                 plot_subgroup_analysis,
+                plot_tornado,
             )
 
             sg_df = pd.DataFrame(sg)
@@ -435,14 +447,14 @@ def main():
             plot_subgroup_analysis(sg_df, base_icer_subgroup)
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
                 plot_cost_mix_stacked_area,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             # Module 11: Cost-Mix Stacked Area (Prospective)
@@ -492,7 +504,7 @@ def main():
             years_array = np.array(yrs_budget)
 
             # Calculate budget impact for each adoption curve
-            for i, curve_config in enumerate(adoption_curves):
+            for curve_config in adoption_curves:
                 curve_type = curve_config["type"]
                 curve_name = f"{curve_type}_curve"
 
@@ -519,31 +531,31 @@ def main():
                     )
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
+                plot_budget_impact,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
                 plot_cost_mix_stacked_area,
-                plot_budget_impact,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             budg_df = pd.DataFrame(budg)
             plot_budget_impact(budg_df)
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
+                plot_budget_impact,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
                 plot_cost_mix_stacked_area,
-                plot_budget_impact,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
                 plot_ses_equity,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             # Module 13: Equity by SES Quintile
@@ -553,21 +565,21 @@ def main():
                 row_series = bas[bas["year"] == simulation_end_year].iloc[0]
                 ses_cols = [f"ses_q{i}_pct" for i in range(5)]
                 ses_vals = [float(row_series[col]) for col in ses_cols]
-                labels = [f"Quintile {i+1}" for i in range(5)]
+                labels = [f"Quintile {i + 1}" for i in range(5)]
                 plot_ses_equity(ses_vals, labels, simulation_end_year)
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
+                plot_budget_impact,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
                 plot_cost_mix_stacked_area,
-                plot_budget_impact,
-                plot_ses_equity,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
                 plot_psa_histograms,
+                plot_ses_equity,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             # Module 14: PSA Histograms
@@ -577,18 +589,18 @@ def main():
             plot_psa_histograms(cost_list, qaly_list)
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
+                plot_budget_impact,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
-                plot_cost_mix_stacked_area,
-                plot_budget_impact,
-                plot_ses_equity,
-                plot_psa_histograms,
                 plot_ceaf,
+                plot_cost_mix_stacked_area,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
+                plot_psa_histograms,
+                plot_ses_equity,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             # Module 15: CEAF (Cost-Effectiveness Acceptability Frontier)
@@ -669,19 +681,19 @@ def main():
                 )
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
+                plot_budget_impact,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
-                plot_cost_mix_stacked_area,
-                plot_budget_impact,
-                plot_ses_equity,
-                plot_psa_histograms,
                 plot_ceaf,
+                plot_cost_mix_stacked_area,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
                 plot_familial_prevalence_sensitivity,
+                plot_psa_histograms,
+                plot_ses_equity,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             familial_sens_df = pd.DataFrame(familial_sens_results)
@@ -717,20 +729,20 @@ def main():
                 "cost_inp_severe",
             ]
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
+                plot_budget_impact,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
-                plot_cost_mix_stacked_area,
-                plot_budget_impact,
-                plot_ses_equity,
-                plot_psa_histograms,
                 plot_ceaf,
-                plot_familial_prevalence_sensitivity,
+                plot_cost_mix_stacked_area,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
                 plot_evppi_curves,
+                plot_familial_prevalence_sensitivity,
+                plot_psa_histograms,
+                plot_ses_equity,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             evppi_results = {}
@@ -743,21 +755,21 @@ def main():
             plot_evppi_curves(evppi_results, wtp)
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
+                plot_budget_impact,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
-                plot_cost_mix_stacked_area,
-                plot_budget_impact,
-                plot_ses_equity,
-                plot_psa_histograms,
                 plot_ceaf,
-                plot_familial_prevalence_sensitivity,
+                plot_cost_mix_stacked_area,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
                 plot_evppi_curves,
+                plot_familial_prevalence_sensitivity,
+                plot_psa_histograms,
                 plot_psa_icer_distribution,
+                plot_ses_equity,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             # Module 20: PSA ICER Distribution
@@ -768,21 +780,21 @@ def main():
             plot_psa_icer_distribution(psa_icers_np)
 
             from lifecourse.analysis.plotting import (
-                plot_deterministic_icers,
+                plot_budget_impact,
                 plot_ce_plane,
                 plot_ceac,
-                plot_evpi,
-                plot_enmb,
-                plot_tornado,
-                plot_subgroup_analysis,
-                plot_cost_mix_stacked_area,
-                plot_budget_impact,
-                plot_ses_equity,
-                plot_psa_histograms,
                 plot_ceaf,
-                plot_familial_prevalence_sensitivity,
+                plot_cost_mix_stacked_area,
+                plot_deterministic_icers,
+                plot_enmb,
+                plot_evpi,
                 plot_evppi_curves,
+                plot_familial_prevalence_sensitivity,
+                plot_psa_histograms,
                 plot_psa_icer_distribution,
+                plot_ses_equity,
+                plot_subgroup_analysis,
+                plot_tornado,
             )
 
             # Module 21: Cost-Mix Stacked Area (Retrospective)
@@ -897,8 +909,8 @@ def main():
                 )
                 from lifecourse.analysis.plotting import (
                     plot_concentration_curves,
-                    plot_equity_efficiency_tradeoffs,
                     plot_distributional_uncertainty,
+                    plot_equity_efficiency_tradeoffs,
                 )
 
                 distributional_results = run_distributional_impacts_analysis(
@@ -1003,8 +1015,8 @@ def main():
 
                 # Generate VBP plots
                 from lifecourse.analysis.plotting import (
-                    plot_vbp_price_thresholds,
                     plot_vbp_optimal_ranges,
+                    plot_vbp_price_thresholds,
                     plot_vbp_reimbursement_scenarios,
                 )
 
@@ -1024,7 +1036,7 @@ def main():
 
                 # Create decision matrix from PSA results for MCDA
                 # Use key health economic outcomes as criteria
-                alternatives = [f"PSA_Run_{i+1}" for i in range(len(psa_df_pd))]
+                alternatives = [f"PSA_Run_{i + 1}" for i in range(len(psa_df_pd))]
 
                 # Define criteria based on PSA results
                 criteria_data = {
@@ -1089,10 +1101,10 @@ def main():
 
                 # Generate MCDA plots
                 from lifecourse.analysis.plotting import (
-                    plot_mcda_weights,
-                    plot_mcda_ranking,
                     plot_mcda_radar,
+                    plot_mcda_ranking,
                     plot_mcda_sensitivity_weights,
+                    plot_mcda_weights,
                 )
 
                 plot_mcda_weights(

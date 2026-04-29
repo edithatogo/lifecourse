@@ -1,34 +1,38 @@
+import os
+import sys
 import unittest
 from unittest.mock import patch
-import pandas as pd
+
 import numpy as np
-import sys
-import os
+import pandas as pd
 
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from lifecourse.analysis.advanced_analysis import (
-    run_calibration,
-    run_structural_uncertainty,
-    calculate_evpi,
-    calculate_evsi,
-    run_evsi_analysis,
-    run_psa,
+    analytic_hierarchy_process,
+    analyze_reimbursement_scenarios,
+    apply_weights,
     calculate_concentration_index,
     calculate_concentration_indices,
-    run_concentration_analysis,
-    calculate_price_thresholds,
+    calculate_distributional_statistics,
+    calculate_evpi,
+    calculate_evsi,
     calculate_optimal_price_ranges,
-    analyze_reimbursement_scenarios,
-    run_vbp_analysis,
-    create_decision_matrix,
-    normalize_decision_matrix,
-    apply_weights,
+    calculate_price_thresholds,
     calculate_weighted_sum,
-    analytic_hierarchy_process,
-    value_function_model,
+    create_decision_matrix,
+    evaluate_calibration_backend_options,
+    normalize_decision_matrix,
+    run_calibration,
+    run_concentration_analysis,
+    run_deterministic_calibration_search,
+    run_evsi_analysis,
     run_mcda_analysis,
+    run_psa,
+    run_structural_uncertainty,
+    run_vbp_analysis,
+    value_function_model,
 )
 
 TEST_YEARS = range(2020, 2022)
@@ -111,6 +115,46 @@ class TestAdvancedAnalysis(unittest.TestCase):
         self.assertIn("sim_cost", result)
         self.assertIn("error_pct", result)
 
+    def test_evaluate_calibration_backend_options_records_decision(self):
+        result = evaluate_calibration_backend_options(
+            use_case="parameter_search",
+            stochastic_model=False,
+            requires_posterior_sampling=False,
+        )
+
+        self.assertEqual(result["recommended_backend"], "deterministic_search")
+        self.assertEqual(result["decision"], "pilot_internal_grid_search")
+        self.assertIn("BlackJAX", result["not_selected"])
+        self.assertIn("Optuna", result["not_selected"])
+
+    def test_evaluate_calibration_backend_options_identifies_bayesian_future(self):
+        result = evaluate_calibration_backend_options(
+            use_case="bayesian_posterior",
+            stochastic_model=True,
+            requires_posterior_sampling=True,
+        )
+
+        self.assertEqual(result["recommended_backend"], "blackjax")
+        self.assertEqual(result["decision"], "defer_until_posterior_model_exists")
+
+    def test_run_deterministic_calibration_search_is_reproducible(self):
+        candidates = [
+            {"mort_hr_mild": 1.0, "mort_hr_severe": 2.0},
+            {"mort_hr_mild": 1.2, "mort_hr_severe": 2.4},
+        ]
+
+        def objective(params):
+            return abs(params["mort_hr_mild"] - 1.2) + abs(
+                params["mort_hr_severe"] - 2.4
+            )
+
+        result = run_deterministic_calibration_search(candidates, objective)
+
+        self.assertEqual(result["backend"], "deterministic_search")
+        self.assertEqual(result["best_params"], candidates[1])
+        self.assertEqual(result["best_score"], 0.0)
+        self.assertEqual(len(result["trials"]), 2)
+
     @patch(
         "lifecourse.analysis.advanced_analysis.DISTRIBUTIONS",
         new_callable=lambda: {
@@ -143,16 +187,18 @@ class TestEVSIAnalysis(unittest.TestCase):
     def setUp(self):
         # Create mock PSA results for testing
         np.random.seed(42)  # For reproducible tests
-        self.psa_results = pd.DataFrame({
-            'dCost': np.random.normal(10000, 2000, 100),
-            'dQALY': np.random.normal(0.5, 0.1, 100),
-            'ICER': np.random.normal(20000, 5000, 100),
-            'net_benefit': np.random.normal(5000, 2000, 100)
-        })
+        self.psa_results = pd.DataFrame(
+            {
+                "dCost": np.random.normal(10000, 2000, 100),
+                "dQALY": np.random.normal(0.5, 0.1, 100),
+                "ICER": np.random.normal(20000, 5000, 100),
+                "net_benefit": np.random.normal(5000, 2000, 100),
+            }
+        )
 
         self.research_designs = [
-            {'name': 'small_study', 'sample_size': 50},
-            {'name': 'large_study', 'sample_size': 200}
+            {"name": "small_study", "sample_size": 50},
+            {"name": "large_study", "sample_size": 200},
         ]
 
         # Define base parameters for testing
@@ -162,6 +208,44 @@ class TestEVSIAnalysis(unittest.TestCase):
             "mort_hr_mild": 1.5,
             "mort_hr_severe": 2.5,
         }
+
+    def test_calculate_distributional_statistics_default_backend(self):
+        """Test distributional net-benefit statistics use the default backend."""
+        psa_results = pd.DataFrame(
+            {
+                "dCost": [10000.0, 12000.0, 8000.0],
+                "dQALY": [0.5, 0.6, 0.4],
+            }
+        )
+
+        result = calculate_distributional_statistics(psa_results)
+
+        self.assertIn("wtp_30000", result)
+        self.assertAlmostEqual(result["wtp_30000"]["mean_net_benefit"], 5000.0)
+        self.assertAlmostEqual(result["wtp_30000"]["prob_cost_effective"], 1.0)
+
+    @patch("lifecourse.analysis.advanced_analysis.calculate_net_monetary_benefit")
+    def test_calculate_distributional_statistics_uses_requested_backend(
+        self, mock_net_benefit
+    ):
+        """Test JAX-class analysis paths route through the backend utility."""
+        mock_net_benefit.side_effect = [
+            np.array([1000.0, 2000.0]),
+            np.array([3000.0, 4000.0]),
+            np.array([5000.0, 6000.0]),
+        ]
+        psa_results = pd.DataFrame(
+            {
+                "dCost": [10000.0, 12000.0],
+                "dQALY": [0.5, 0.6],
+            }
+        )
+
+        result = calculate_distributional_statistics(psa_results, backend="jax")
+
+        self.assertEqual(mock_net_benefit.call_count, 3)
+        self.assertEqual(mock_net_benefit.call_args.kwargs["backend"], "jax")
+        self.assertAlmostEqual(result["wtp_50000"]["mean_net_benefit"], 5500.0)
 
     def test_calculate_evpi(self):
         """Test EVPI calculation."""
@@ -173,26 +257,45 @@ class TestEVSIAnalysis(unittest.TestCase):
         # EVPI should be a float
         self.assertIsInstance(evpi, (float, np.floating))
 
+    @patch("lifecourse.analysis.advanced_analysis.calculate_evpi_value")
+    def test_calculate_evpi_uses_requested_backend(self, mock_evpi_value):
+        """Test EVPI routes pure vector work through requested backend."""
+        mock_evpi_value.return_value = 123.0
+
+        evpi = calculate_evpi(self.psa_results, wtp_threshold=30000, backend="jax")
+
+        self.assertEqual(evpi, 123.0)
+        self.assertEqual(mock_evpi_value.call_args.kwargs["backend"], "jax")
+
     def test_calculate_evsi(self):
         """Test EVSI calculation for research designs."""
-        evsi_results = calculate_evsi(self.psa_results, self.research_designs, wtp_threshold=30000)
+        evsi_results = calculate_evsi(
+            self.psa_results, self.research_designs, wtp_threshold=30000
+        )
 
         # Should return results for each design
         self.assertEqual(len(evsi_results), len(self.research_designs))
 
         # Each result should have required keys
-        required_keys = ['sample_size', 'evsi', 'expected_posterior_nb',
-                        'current_expected_nb', 'info_value', 'current_evpi']
-        for design_name, results in evsi_results.items():
+        required_keys = [
+            "sample_size",
+            "evsi",
+            "expected_posterior_nb",
+            "current_expected_nb",
+            "info_value",
+            "current_evpi",
+        ]
+        for _design_name, results in evsi_results.items():
             for key in required_keys:
                 self.assertIn(key, results)
             # EVSI should be non-negative
-            self.assertGreaterEqual(results['evsi'], 0)
+            self.assertGreaterEqual(results["evsi"], 0)
 
     def test_calculate_evsi_with_debug(self):
         """Test EVSI calculation with debug output."""
-        evsi_results = calculate_evsi(self.psa_results, self.research_designs,
-                                     wtp_threshold=30000, debug=True)
+        evsi_results = calculate_evsi(
+            self.psa_results, self.research_designs, wtp_threshold=30000, debug=True
+        )
 
         # Should still work with debug=True
         self.assertEqual(len(evsi_results), len(self.research_designs))
@@ -208,18 +311,18 @@ class TestEVSIAnalysis(unittest.TestCase):
             psa_runs=50,
             research_designs=self.research_designs,
             wtp_threshold=30000,
-            debug=False
+            debug=False,
         )
 
         # Check structure of results
-        self.assertIn('psa_results', result)
-        self.assertIn('evsi_results', result)
-        self.assertIn('research_designs', result)
-        self.assertIn('wtp_threshold', result)
-        self.assertIn('psa_runs', result)
+        self.assertIn("psa_results", result)
+        self.assertIn("evsi_results", result)
+        self.assertIn("research_designs", result)
+        self.assertIn("wtp_threshold", result)
+        self.assertIn("psa_runs", result)
 
         # EVSI results should exist
-        self.assertEqual(len(result['evsi_results']), len(self.research_designs))
+        self.assertEqual(len(result["evsi_results"]), len(self.research_designs))
 
     @patch("lifecourse.analysis.advanced_analysis.DISTRIBUTIONS")
     @patch("lifecourse.analysis.advanced_analysis.run_sim")
@@ -227,9 +330,9 @@ class TestEVSIAnalysis(unittest.TestCase):
         """Test PSA execution."""
         # Mock distributions
         mock_distributions.__getitem__ = lambda self, key: {
-            'type': 'normal',
-            'loc': 10000,
-            'scale': 1000
+            "type": "normal",
+            "loc": 10000,
+            "scale": 1000,
         }
 
         # Mock simulation results
@@ -240,23 +343,23 @@ class TestEVSIAnalysis(unittest.TestCase):
         # Should return DataFrame with correct structure
         self.assertIsInstance(psa_results, pd.DataFrame)
         self.assertEqual(len(psa_results), 10)
-        required_cols = ['run', 'dCost', 'dQALY', 'ICER', 'net_benefit']
+        required_cols = ["run", "dCost", "dQALY", "ICER", "net_benefit"]
         for col in required_cols:
             self.assertIn(col, psa_results.columns)
 
     def test_evsi_properties(self):
         """Test mathematical properties of EVSI."""
         # EVSI should increase with sample size (generally)
-        small_design = [{'name': 'small', 'sample_size': 10}]
-        large_design = [{'name': 'large', 'sample_size': 100}]
+        small_design = [{"name": "small", "sample_size": 10}]
+        large_design = [{"name": "large", "sample_size": 100}]
 
         evsi_small = calculate_evsi(self.psa_results, small_design, wtp_threshold=30000)
         evsi_large = calculate_evsi(self.psa_results, large_design, wtp_threshold=30000)
 
         # Large study should generally have higher or equal EVSI
         # (This might not always be true due to randomness, but test the logic)
-        small_evsi = evsi_small['small']['evsi']
-        large_evsi = evsi_large['large']['evsi']
+        small_evsi = evsi_small["small"]["evsi"]
+        large_evsi = evsi_large["large"]["evsi"]
 
         # Both should be non-negative
         self.assertGreaterEqual(small_evsi, 0)
@@ -283,44 +386,41 @@ class TestEVSIAnalysis(unittest.TestCase):
     def test_calculate_concentration_indices(self):
         """Test concentration indices calculation for PSA results."""
         # Create mock PSA results
-        psa_results = pd.DataFrame({
-            'dCost': [10000, 12000, 8000, 15000, 9000],
-            'dQALY': [0.5, 0.6, 0.4, 0.7, 0.45]
-        })
+        psa_results = pd.DataFrame(
+            {
+                "dCost": [10000, 12000, 8000, 15000, 9000],
+                "dQALY": [0.5, 0.6, 0.4, 0.7, 0.45],
+            }
+        )
 
         ci_results = calculate_concentration_indices(psa_results)
 
         # Check required keys exist
-        required_keys = ['cost_ci', 'qaly_ci', 'net_benefit_ci', 'interpretation']
+        required_keys = ["cost_ci", "qaly_ci", "net_benefit_ci", "interpretation"]
         for key in required_keys:
             self.assertIn(key, ci_results)
 
         # Check CI values are within valid range [-1, 1]
-        for key in ['cost_ci', 'qaly_ci', 'net_benefit_ci']:
+        for key in ["cost_ci", "qaly_ci", "net_benefit_ci"]:
             self.assertGreaterEqual(ci_results[key], -1.0)
             self.assertLessEqual(ci_results[key], 1.0)
 
         # Check interpretation exists
-        self.assertIsInstance(ci_results['interpretation'], dict)
+        self.assertIsInstance(ci_results["interpretation"], dict)
 
     @patch("lifecourse.analysis.advanced_analysis.run_psa")
     def test_run_concentration_analysis(self, mock_run_psa):
         """Test concentration analysis workflow."""
         # Mock PSA results
-        mock_psa_results = pd.DataFrame({
-            'dCost': [10000, 12000, 8000],
-            'dQALY': [0.5, 0.6, 0.4]
-        })
+        mock_psa_results = pd.DataFrame(
+            {"dCost": [10000, 12000, 8000], "dQALY": [0.5, 0.6, 0.4]}
+        )
         mock_run_psa.return_value = mock_psa_results
 
-        result = run_concentration_analysis(
-            self.base_params,
-            psa_runs=10,
-            debug=False
-        )
+        result = run_concentration_analysis(self.base_params, psa_runs=10, debug=False)
 
         # Check result structure
-        required_keys = ['cost_ci', 'qaly_ci', 'net_benefit_ci', 'interpretation']
+        required_keys = ["cost_ci", "qaly_ci", "net_benefit_ci", "interpretation"]
         for key in required_keys:
             self.assertIn(key, result)
 
@@ -334,18 +434,20 @@ class TestVBP(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for VBP tests."""
         # Mock PSA results for VBP analysis
-        self.mock_psa_results = pd.DataFrame({
-            'dCost': [10000, 12000, 8000, 15000, 9000],
-            'dQALY': [0.5, 0.6, 0.4, 0.8, 0.3],
-            'ICER': [20000, 20000, 20000, 18750, 30000]
-        })
+        self.mock_psa_results = pd.DataFrame(
+            {
+                "dCost": [10000, 12000, 8000, 15000, 9000],
+                "dQALY": [0.5, 0.6, 0.4, 0.8, 0.3],
+                "ICER": [20000, 20000, 20000, 18750, 30000],
+            }
+        )
 
         # Mock base parameters
         self.base_params = {
-            'base_cost': 50000,
-            'population_size': 100000,
-            'wtp_threshold': 30000,
-            'budget_constraint': 50000000
+            "base_cost": 50000,
+            "population_size": 100000,
+            "wtp_threshold": 30000,
+            "budget_constraint": 50000000,
         }
 
     def test_calculate_price_thresholds(self):
@@ -355,110 +457,142 @@ class TestVBP(unittest.TestCase):
         result = calculate_price_thresholds(self.mock_psa_results, wtp_range=wtp_range)
 
         # Check result structure
-        self.assertIn('thresholds', result)
-        self.assertIn('wtp_range', result)
-        self.assertIn('target_population', result)
+        self.assertIn("thresholds", result)
+        self.assertIn("wtp_range", result)
+        self.assertIn("target_population", result)
 
         # Check that all WTP values are present
         for wtp in wtp_range:
-            self.assertIn(wtp, result['thresholds'])
+            self.assertIn(wtp, result["thresholds"])
 
         # Check threshold structure for each WTP
-        for wtp_data in result['thresholds'].values():
-            self.assertIn('price_threshold', wtp_data)
-            self.assertIn('expected_net_benefit', wtp_data)
-            self.assertIn('probability_cost_effective', wtp_data)
+        for wtp_data in result["thresholds"].values():
+            self.assertIn("price_threshold", wtp_data)
+            self.assertIn("expected_net_benefit", wtp_data)
+            self.assertIn("probability_cost_effective", wtp_data)
 
     def test_calculate_optimal_price_ranges(self):
         """Test optimal price range calculation under budget constraints."""
         budget_constraints = {
-            'max_incremental_budget': 50000000,
-            'population_size': 100000
+            "max_incremental_budget": 50000000,
+            "population_size": 100000,
         }
         wtp_threshold = 30000
 
         result = calculate_optimal_price_ranges(
             self.mock_psa_results,
             budget_constraints=budget_constraints,
-            wtp_threshold=wtp_threshold
+            wtp_threshold=wtp_threshold,
         )
 
         # Check result structure
-        self.assertIn('optimal_range', result)
-        self.assertIn('budget_constraints', result)
-        self.assertIn('wtp_threshold', result)
+        self.assertIn("optimal_range", result)
+        self.assertIn("budget_constraints", result)
+        self.assertIn("wtp_threshold", result)
 
         # Check optimal range components
-        opt_range = result['optimal_range']
-        self.assertIn('min_price', opt_range)
-        self.assertIn('max_price_budget', opt_range)
-        self.assertIn('max_price_cost_effective', opt_range)
-        self.assertIn('expected_base_cost', opt_range)
+        opt_range = result["optimal_range"]
+        self.assertIn("min_price", opt_range)
+        self.assertIn("max_price_budget", opt_range)
+        self.assertIn("max_price_cost_effective", opt_range)
+        self.assertIn("expected_base_cost", opt_range)
 
         # Check budget constraints
-        budget_result = result['budget_constraints']
-        self.assertEqual(budget_result['max_incremental_budget'], budget_constraints['max_incremental_budget'])
-        self.assertEqual(budget_result['population_size'], budget_constraints['population_size'])
+        budget_result = result["budget_constraints"]
+        self.assertEqual(
+            budget_result["max_incremental_budget"],
+            budget_constraints["max_incremental_budget"],
+        )
+        self.assertEqual(
+            budget_result["population_size"], budget_constraints["population_size"]
+        )
 
         # Check WTP threshold
-        self.assertEqual(result['wtp_threshold'], wtp_threshold)
+        self.assertEqual(result["wtp_threshold"], wtp_threshold)
 
     def test_analyze_reimbursement_scenarios(self):
         """Test reimbursement scenario analysis."""
         scenarios = [
-            {'name': 'full_reimbursement', 'reimbursement_rate': 1.0, 'price_adjustment': 0.0},
-            {'name': 'partial_reimbursement', 'reimbursement_rate': 0.8, 'price_adjustment': -0.1},
-            {'name': 'risk_sharing', 'reimbursement_rate': 0.9, 'price_adjustment': -0.05}
+            {
+                "name": "full_reimbursement",
+                "reimbursement_rate": 1.0,
+                "price_adjustment": 0.0,
+            },
+            {
+                "name": "partial_reimbursement",
+                "reimbursement_rate": 0.8,
+                "price_adjustment": -0.1,
+            },
+            {
+                "name": "risk_sharing",
+                "reimbursement_rate": 0.9,
+                "price_adjustment": -0.05,
+            },
         ]
 
         result = analyze_reimbursement_scenarios(
-            self.mock_psa_results,
-            scenarios,
-            wtp_threshold=30000
+            self.mock_psa_results, scenarios, wtp_threshold=30000
         )
 
         # Check result structure
-        self.assertIn('scenario_results', result)
-        self.assertIn('pricing_scenarios', result)
-        self.assertIn('wtp_threshold', result)
+        self.assertIn("scenario_results", result)
+        self.assertIn("pricing_scenarios", result)
+        self.assertIn("wtp_threshold", result)
 
         # Check that all scenarios are analyzed
-        scenario_results = result['scenario_results']
+        scenario_results = result["scenario_results"]
         for scenario in scenarios:
-            scenario_name = scenario['name']
+            scenario_name = scenario["name"]
             self.assertIn(scenario_name, scenario_results)
 
         # Check scenario result structure
         for scenario_data in scenario_results.values():
-            self.assertIn('icer', scenario_data)
-            self.assertIn('probability_cost_effective', scenario_data)
-            self.assertIn('budget_impact', scenario_data)
-            self.assertIn('expected_reimbursed_cost', scenario_data)
-            self.assertIn('reimbursement_rate', scenario_data)
-            self.assertIn('price_adjustment', scenario_data)
+            self.assertIn("icer", scenario_data)
+            self.assertIn("probability_cost_effective", scenario_data)
+            self.assertIn("budget_impact", scenario_data)
+            self.assertIn("expected_reimbursed_cost", scenario_data)
+            self.assertIn("reimbursement_rate", scenario_data)
+            self.assertIn("price_adjustment", scenario_data)
 
-    @patch('lifecourse.analysis.advanced_analysis.run_psa')
-    @patch('lifecourse.analysis.advanced_analysis.calculate_price_thresholds')
-    @patch('lifecourse.analysis.advanced_analysis.calculate_optimal_price_ranges')
-    @patch('lifecourse.analysis.advanced_analysis.analyze_reimbursement_scenarios')
-    def test_run_vbp_analysis(self, mock_reimbursement, mock_optimal_ranges, mock_price_thresholds, mock_run_psa):
+    @patch("lifecourse.analysis.advanced_analysis.run_psa")
+    @patch("lifecourse.analysis.advanced_analysis.calculate_price_thresholds")
+    @patch("lifecourse.analysis.advanced_analysis.calculate_optimal_price_ranges")
+    @patch("lifecourse.analysis.advanced_analysis.analyze_reimbursement_scenarios")
+    def test_run_vbp_analysis(
+        self,
+        mock_reimbursement,
+        mock_optimal_ranges,
+        mock_price_thresholds,
+        mock_run_psa,
+    ):
         """Test the complete VBP analysis workflow."""
         # Configure mocks
         mock_run_psa.return_value = self.mock_psa_results
 
         mock_price_thresholds.return_value = {
-            'thresholds': {30000: {'price_threshold': 25000, 'probability_cost_effective': 0.8}},
-            'wtp_range': [20000, 30000, 40000]
+            "thresholds": {
+                30000: {"price_threshold": 25000, "probability_cost_effective": 0.8}
+            },
+            "wtp_range": [20000, 30000, 40000],
         }
 
         mock_optimal_ranges.return_value = {
-            'optimal_range': {'min_price': 20000, 'max_price_budget': 30000, 'max_price_cost_effective': 35000},
-            'budget_constraints': {'max_incremental_budget': 50000000, 'population_size': 100000}
+            "optimal_range": {
+                "min_price": 20000,
+                "max_price_budget": 30000,
+                "max_price_cost_effective": 35000,
+            },
+            "budget_constraints": {
+                "max_incremental_budget": 50000000,
+                "population_size": 100000,
+            },
         }
 
         mock_reimbursement.return_value = {
-            'scenario_results': {'full': {'icer': 25000, 'probability_cost_effective': 0.8}},
-            'pricing_scenarios': [{'name': 'full', 'reimbursement_rate': 1.0}]
+            "scenario_results": {
+                "full": {"icer": 25000, "probability_cost_effective": 0.8}
+            },
+            "pricing_scenarios": [{"name": "full", "reimbursement_rate": 1.0}],
         }
 
         # Run VBP analysis
@@ -466,15 +600,20 @@ class TestVBP(unittest.TestCase):
             self.base_params,
             psa_runs=100,
             wtp_range=[20000, 30000, 40000],
-            budget_constraints={'max_incremental_budget': 50000000, 'population_size': 100000},
-            pricing_scenarios=[{'name': 'full', 'reimbursement_rate': 1.0, 'price_adjustment': 0.0}]
+            budget_constraints={
+                "max_incremental_budget": 50000000,
+                "population_size": 100000,
+            },
+            pricing_scenarios=[
+                {"name": "full", "reimbursement_rate": 1.0, "price_adjustment": 0.0}
+            ],
         )
 
         # Check result structure
-        self.assertIn('psa_results', result)
-        self.assertIn('price_thresholds', result)
-        self.assertIn('optimal_price_ranges', result)
-        self.assertIn('reimbursement_scenarios', result)
+        self.assertIn("psa_results", result)
+        self.assertIn("price_thresholds", result)
+        self.assertIn("optimal_price_ranges", result)
+        self.assertIn("reimbursement_scenarios", result)
 
         # Verify all functions were called
         mock_run_psa.assert_called_once()
@@ -489,25 +628,20 @@ class TestMCDA(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for MCDA tests."""
         # Create sample decision matrix
-        self.alternatives = ['Alternative_A', 'Alternative_B', 'Alternative_C']
-        self.criteria = ['Cost', 'Quality', 'Time', 'Risk']
+        self.alternatives = ["Alternative_A", "Alternative_B", "Alternative_C"]
+        self.criteria = ["Cost", "Quality", "Time", "Risk"]
         self.scores = {
-            'Cost': [100, 80, 120],
-            'Quality': [8, 9, 7],
-            'Time': [10, 12, 8],
-            'Risk': [3, 2, 4]
+            "Cost": [100, 80, 120],
+            "Quality": [8, 9, 7],
+            "Time": [10, 12, 8],
+            "Risk": [3, 2, 4],
         }
 
         # Create decision matrix
         self.decision_matrix = pd.DataFrame(self.scores, index=self.alternatives)
 
         # Sample weights
-        self.weights = {
-            'Cost': 0.3,
-            'Quality': 0.4,
-            'Time': 0.2,
-            'Risk': 0.1
-        }
+        self.weights = {"Cost": 0.3, "Quality": 0.4, "Time": 0.2, "Risk": 0.1}
 
     def test_create_decision_matrix(self):
         """Test decision matrix creation."""
@@ -520,12 +654,12 @@ class TestMCDA(unittest.TestCase):
         self.assertListEqual(list(result.columns), self.criteria)
 
         # Check values
-        self.assertEqual(result.loc['Alternative_A', 'Cost'], 100)
-        self.assertEqual(result.loc['Alternative_B', 'Quality'], 9)
+        self.assertEqual(result.loc["Alternative_A", "Cost"], 100)
+        self.assertEqual(result.loc["Alternative_B", "Quality"], 9)
 
     def test_normalize_decision_matrix_linear(self):
         """Test linear normalization of decision matrix."""
-        result = normalize_decision_matrix(self.decision_matrix, 'linear')
+        result = normalize_decision_matrix(self.decision_matrix, "linear")
 
         # Check that each column sums to 1 (linear normalization)
         for column in result.columns:
@@ -536,7 +670,7 @@ class TestMCDA(unittest.TestCase):
 
     def test_normalize_decision_matrix_vector(self):
         """Test vector normalization of decision matrix."""
-        result = normalize_decision_matrix(self.decision_matrix, 'vector')
+        result = normalize_decision_matrix(self.decision_matrix, "vector")
 
         # Check that each column has unit norm
         for column in result.columns:
@@ -545,18 +679,20 @@ class TestMCDA(unittest.TestCase):
 
     def test_apply_weights(self):
         """Test weight application to normalized matrix."""
-        normalized = normalize_decision_matrix(self.decision_matrix, 'linear')
+        normalized = normalize_decision_matrix(self.decision_matrix, "linear")
         result = apply_weights(normalized, self.weights)
 
         # Check that weights are applied correctly
         for criterion in result.columns:
             expected_weight = self.weights[criterion]
             # Check that the weighted values are correct
-            self.assertTrue(all(result[criterion] == normalized[criterion] * expected_weight))
+            self.assertTrue(
+                all(result[criterion] == normalized[criterion] * expected_weight)
+            )
 
     def test_calculate_weighted_sum(self):
         """Test weighted sum calculation."""
-        normalized = normalize_decision_matrix(self.decision_matrix, 'linear')
+        normalized = normalize_decision_matrix(self.decision_matrix, "linear")
         weighted = apply_weights(normalized, self.weights)
         result = calculate_weighted_sum(weighted)
 
@@ -565,26 +701,26 @@ class TestMCDA(unittest.TestCase):
         self.assertEqual(len(result), len(self.alternatives))
 
         # Check that Alternative_C has highest score (balanced performance)
-        self.assertEqual(result.idxmax(), 'Alternative_C')
+        self.assertEqual(result.idxmax(), "Alternative_C")
 
     def test_analytic_hierarchy_process(self):
         """Test AHP weight calculation."""
-        criteria = ['Cost', 'Quality', 'Time']
+        criteria = ["Cost", "Quality", "Time"]
         pairwise_comparisons = {
-            ('Cost', 'Quality'): 1/3,  # Cost much less important than Quality
-            ('Cost', 'Time'): 2,       # Cost more important than Time
-            ('Quality', 'Time'): 5     # Quality much more important than Time
+            ("Cost", "Quality"): 1 / 3,  # Cost much less important than Quality
+            ("Cost", "Time"): 2,  # Cost more important than Time
+            ("Quality", "Time"): 5,  # Quality much more important than Time
         }
 
         result = analytic_hierarchy_process(criteria, pairwise_comparisons)
 
         # Check result structure
-        self.assertIn('weights', result)
-        self.assertIn('consistency_ratio', result)
-        self.assertIn('consistent', result)
+        self.assertIn("weights", result)
+        self.assertIn("consistency_ratio", result)
+        self.assertIn("consistent", result)
 
         # Check weights sum to 1
-        weights = result['weights']
+        weights = result["weights"]
         self.assertAlmostEqual(sum(weights.values()), 1.0, places=6)
 
         # Check all criteria have weights
@@ -594,79 +730,85 @@ class TestMCDA(unittest.TestCase):
     def test_value_function_model_linear(self):
         """Test linear value function modeling."""
         values = [10, 20, 30, 40]
-        result = value_function_model(values, 'linear', 'increasing')
+        result = value_function_model(values, "linear", "increasing")
 
         # Check result is normalized to 0-1
         self.assertTrue(all(result >= 0))
         self.assertTrue(all(result <= 1))
 
         # Check monotonicity
-        self.assertTrue(all(result[i] <= result[i+1] for i in range(len(result)-1)))
+        self.assertTrue(all(result[i] <= result[i + 1] for i in range(len(result) - 1)))
 
     def test_value_function_model_decreasing(self):
         """Test decreasing preference value function."""
         values = [10, 20, 30, 40]
-        result = value_function_model(values, 'linear', 'decreasing')
+        result = value_function_model(values, "linear", "decreasing")
 
         # Check result is normalized to 0-1
         self.assertTrue(all(result >= 0))
         self.assertTrue(all(result <= 1))
 
         # Check decreasing monotonicity (higher input -> lower utility)
-        self.assertTrue(all(result[i] >= result[i+1] for i in range(len(result)-1)))
+        self.assertTrue(all(result[i] >= result[i + 1] for i in range(len(result) - 1)))
 
     def test_run_mcda_analysis_equal_weights(self):
         """Test complete MCDA analysis with equal weights."""
         result = run_mcda_analysis(
             decision_matrix=self.decision_matrix,
             weights=None,
-            weight_method='equal',
-            normalization_method='linear'
+            weight_method="equal",
+            normalization_method="linear",
         )
 
         # Check result structure
-        required_keys = ['original_matrix', 'normalized_matrix', 'weighted_matrix',
-                        'weights', 'final_scores', 'ranking']
+        required_keys = [
+            "original_matrix",
+            "normalized_matrix",
+            "weighted_matrix",
+            "weights",
+            "final_scores",
+            "ranking",
+        ]
         for key in required_keys:
             self.assertIn(key, result)
 
         # Check weights are equal
-        weights = result['weights']
+        weights = result["weights"]
         expected_weight = 1.0 / len(self.criteria)
         for weight in weights.values():
             self.assertAlmostEqual(weight, expected_weight, places=6)
 
         # Check ranking is a Series
-        self.assertIsInstance(result['ranking'], pd.Series)
-        self.assertEqual(len(result['ranking']), len(self.alternatives))
+        self.assertIsInstance(result["ranking"], pd.Series)
+        self.assertEqual(len(result["ranking"]), len(self.alternatives))
 
     def test_run_mcda_analysis_ahp(self):
         """Test complete MCDA analysis with AHP weights."""
         pairwise_comparisons = {
-            ('Cost', 'Quality'): 1/3,
-            ('Cost', 'Time'): 2,
-            ('Cost', 'Risk'): 1,
-            ('Quality', 'Time'): 5,
-            ('Quality', 'Risk'): 3,
-            ('Time', 'Risk'): 1/2
+            ("Cost", "Quality"): 1 / 3,
+            ("Cost", "Time"): 2,
+            ("Cost", "Risk"): 1,
+            ("Quality", "Time"): 5,
+            ("Quality", "Risk"): 3,
+            ("Time", "Risk"): 1 / 2,
         }
 
         result = run_mcda_analysis(
             decision_matrix=self.decision_matrix,
             weights=None,
-            weight_method='ahp',
+            weight_method="ahp",
             pairwise_comparisons=pairwise_comparisons,
-            normalization_method='linear'
+            normalization_method="linear",
         )
 
         # Check AHP analysis is included
-        self.assertIn('ahp_analysis', result)
-        ahp = result['ahp_analysis']
-        self.assertIn('consistency_ratio', ahp)
-        self.assertIn('consistent', ahp)
+        self.assertIn("ahp_analysis", result)
+        ahp = result["ahp_analysis"]
+        self.assertIn("consistency_ratio", ahp)
+        self.assertIn("consistent", ahp)
 
         # Check weights sum to 1
-        weights = result['weights']
+        weights = result["weights"]
         self.assertAlmostEqual(sum(weights.values()), 1.0, places=6)
 
 

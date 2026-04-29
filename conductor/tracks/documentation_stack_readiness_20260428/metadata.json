@@ -1,0 +1,8 @@
+{
+  "track_id": "documentation_stack_readiness_20260428",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-04-28T13:55:49Z",
+  "updated_at": "2026-04-28T13:55:49Z",
+  "description": "Create the documentation and stack-readiness plan for markdown hygiene, docs checks, docs tooling, stack policy, and public-surface documentation."
+}

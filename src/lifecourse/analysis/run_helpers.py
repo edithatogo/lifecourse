@@ -1,16 +1,18 @@
 import logging
 import random  # Added for setting Python's global random seed
+import time
+from contextlib import suppress
+
+import dask
+import dask.array as da
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
-import dask.array as da
-import dask
 import psutil
-import time
 
-from lifecourse.model.population_system import PopulationSystemDask
-from lifecourse.model.parameters import POP_SIZE, prepare_dask_params
 from lifecourse.model.dask_utils import ensure_known_divisions, safe_from_pandas
+from lifecourse.model.parameters import POP_SIZE, prepare_dask_params
+from lifecourse.model.population_system import PopulationSystemDask
 
 _LOG = logging.getLogger(__name__)
 
@@ -21,6 +23,19 @@ def get_memory_usage():
     return process.memory_info().rss / 1024 / 1024
 
 
+def select_dask_scheduler(pop_size, years=None, debug=False):
+    """Choose a Dask scheduler for simulation orchestration."""
+
+    if debug:
+        return "synchronous"
+
+    year_count = len(list(years)) if years is not None else 1
+    if pop_size < 1_000 and year_count <= 2:
+        return "synchronous"
+
+    return "threads"
+
+
 def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=False):
     actual_seed = 42
     if seed_idx is not None:
@@ -29,12 +44,7 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
     np.random.seed(actual_seed)
     random.seed(actual_seed)  # Also seed Python's built-in random module
 
-    # Only use synchronous scheduler for debugging
-    if debug:
-        dask.config.set(scheduler="synchronous")
-    else:
-        # Use default Dask scheduler for better performance
-        dask.config.set(scheduler="threads")
+    dask.config.set(scheduler=select_dask_scheduler(pop_size, years, debug))
 
     dask_params = prepare_dask_params(sampled_params)
 
@@ -266,22 +276,18 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
                 )
             )
             # ensure known divisions for the placeholder annual series
-            try:
+            with suppress(Exception):
                 annual_series_r_dask_list[-1] = ensure_known_divisions(
                     annual_series_r_dask_list[-1]
                 )
-            except Exception:
-                pass
             ses_r_dask_list.append(
                 safe_from_pandas(
                     pd.Series([0] * pop_size, dtype=int, name=f"ses_{yr}_r"),
                     npartitions=1,
                 )
             )
-            try:
+            with suppress(Exception):
                 ses_r_dask_list[-1] = ensure_known_divisions(ses_r_dask_list[-1])
-            except Exception:
-                pass
 
         sim_p.step(yr)
         if sim_p.pop.npartitions > 0:
@@ -296,22 +302,18 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
                     npartitions=1,
                 )
             )
-            try:
+            with suppress(Exception):
                 annual_series_p_dask_list[-1] = ensure_known_divisions(
                     annual_series_p_dask_list[-1]
                 )
-            except Exception:
-                pass
             ses_p_dask_list.append(
                 safe_from_pandas(
                     pd.Series([0] * pop_size, dtype=int, name=f"ses_{yr}_p"),
                     npartitions=1,
                 )
             )
-            try:
+            with suppress(Exception):
                 ses_p_dask_list[-1] = ensure_known_divisions(ses_p_dask_list[-1])
-            except Exception:
-                pass
 
     all_dask_objects = (
         annual_series_r_dask_list
@@ -334,7 +336,7 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
     outputs = []
     final_totals = {}
 
-    for arm_idx, (arm, annual_computed_series_list, ses_computed_list) in enumerate(
+    for _arm_idx, (arm, annual_computed_series_list, ses_computed_list) in enumerate(
         [
             ("retrospective", all_annual_r_computed_series, ses_r_computed_list),
             ("prospective", all_annual_p_computed_series, ses_p_computed_list),

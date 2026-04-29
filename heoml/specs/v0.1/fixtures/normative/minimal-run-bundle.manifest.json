@@ -1,0 +1,81 @@
+{
+  "heoml_version": "0.1",
+  "profile": "heoml.run_bundle",
+  "producer": {
+    "package": "lifecourse",
+    "version": "0.1.2",
+    "git_revision": null,
+    "created_at": "2026-04-29T00:00:00Z"
+  },
+  "model": {
+    "id": "lifecourse.genomic_testing",
+    "name": "lifecourse genomic testing microsimulation",
+    "type": "individual_discrete_time_microsimulation",
+    "cohort": "familial_intellectual_disability",
+    "simulation_engine": "population_system_dask",
+    "simulation_engine_version": null
+  },
+  "run": {
+    "id": "example-run-001",
+    "scenario_ids": ["base", "prospective_testing"],
+    "seed_policy": "fixed",
+    "time_horizon_years": 80,
+    "discount_rate": 0.035,
+    "wtp_thresholds": [30000, 50000]
+  },
+  "decision_problem": {
+    "id": "genomic-testing-policy",
+    "description": "Example genomic testing intervention comparison.",
+    "strategies": [
+      {
+        "id": "base",
+        "name": "Current practice"
+      },
+      {
+        "id": "prospective_testing",
+        "name": "Prospective genomic testing"
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "id": "psa-net-benefits",
+      "category": "voi",
+      "path": "voi/net_benefits.parquet",
+      "media_type": "application/vnd.apache.parquet",
+      "schema_ref": "heoml.v0.1.voi_net_benefits",
+      "checksum": null,
+      "description": "PSA net-benefit matrix for VOI analysis."
+    },
+    {
+      "id": "parameter-draws",
+      "category": "parameter",
+      "path": "parameters/psa_draws.parquet",
+      "media_type": "application/vnd.apache.parquet",
+      "schema_ref": "heoml.v0.1.parameter_draws",
+      "checksum": null,
+      "description": "Parameter draws aligned to PSA net-benefit rows."
+    },
+    {
+      "id": "summary-table",
+      "category": "outcome",
+      "path": "outputs/summary.csv",
+      "media_type": "text/csv",
+      "schema_ref": null,
+      "checksum": null,
+      "description": "Compatibility summary export."
+    }
+  ],
+  "diagnostics": [
+    {
+      "level": "info",
+      "message": "Minimal HEOML example manifest; referenced artifacts are illustrative.",
+      "code": "HEOML_EXAMPLE"
+    }
+  ],
+  "extensions": {
+    "voiage": {
+      "compatible_profile": "lifecourse-voi-artifact-v1"
+    }
+  }
+}

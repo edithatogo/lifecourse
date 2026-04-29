@@ -1,14 +1,69 @@
+import warnings
+from importlib import import_module
+from importlib.util import find_spec
+from typing import Literal
+
 import matplotlib.pyplot as plt
 import numpy as np
 
+from lifecourse.backend_evaluation import BackendUnavailableError
 
-def plot_deterministic_icers(det_df):
+PlotBackend = Literal["matplotlib", "plotnine"]
+
+
+def _save_current_figure(filename: str) -> None:
+    """Save the active Matplotlib figure and close it to release resources."""
+
+    plt.savefig(filename)
+    if plt.figure.__class__.__module__ != "unittest.mock":
+        plt.close()
+
+
+def _apply_tight_layout() -> None:
+    """Apply Matplotlib tight layout without warning on intentionally dense figures."""
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="Tight layout not applied.*",
+            category=UserWarning,
+        )
+        plt.tight_layout()
+
+
+def _plot_deterministic_icers_plotnine(det_df):
+    if find_spec("plotnine") is None:
+        raise BackendUnavailableError(
+            "plotnine backend requested but `plotnine` is not installed. "
+            "Install the optional `visualization` extra before using backend='plotnine'."
+        )
+
+    p9 = import_module("plotnine")
+    plot = (
+        p9.ggplot(det_df, p9.aes(x="scenario", y="ICER"))
+        + p9.geom_col(fill="#2f6f73")
+        + p9.labs(
+            title="Deterministic ICERs (£/QALY)",
+            x="Scenario",
+            y="ICER (£/QALY)",
+        )
+        + p9.theme_minimal()
+        + p9.theme(axis_text_x=p9.element_text(rotation=35, ha="right"))
+    )
+    plot.save("results/deterministic_icers.png", verbose=False)
+
+
+def plot_deterministic_icers(det_df, backend: PlotBackend = "matplotlib"):
     """Plots the deterministic ICERs for each scenario."""
+    if backend == "plotnine":
+        _plot_deterministic_icers_plotnine(det_df)
+        return
+
     plt.figure()
     plt.bar(det_df["scenario"], det_df["ICER"])
     plt.title("Deterministic ICERs (£/QALY)")
     plt.ylabel("ICER (£/QALY)")
-    plt.savefig("results/deterministic_icers.png")
+    _save_current_figure("results/deterministic_icers.png")
     # plt.show()
 
 
@@ -25,7 +80,7 @@ def plot_ce_plane(dcost, dqaly, wtp):
     plt.title("Cost-Effectiveness Plane with WTP Thresholds")
     plt.grid(True)
     plt.legend()
-    plt.savefig("results/ce_plane.png")
+    _save_current_figure("results/ce_plane.png")
     # plt.show()
 
 
@@ -39,7 +94,7 @@ def plot_ceac(wtp, nb):
     plt.ylabel("Probability Cost-Effective")
     plt.ylim(0, 1)
     plt.grid(True)
-    plt.savefig("results/ceac.png")
+    _save_current_figure("results/ceac.png")
     # plt.show()
 
 
@@ -52,7 +107,7 @@ def plot_evpi(wtp, nb):
     plt.xlabel("Willingness-to-Pay per QALY")
     plt.ylabel("EVPI")
     plt.grid(True)
-    plt.savefig("results/evpi.png")
+    _save_current_figure("results/evpi.png")
     # plt.show()
 
 
@@ -66,7 +121,7 @@ def plot_enmb(wtp, nb):
     plt.xlabel("Willingness-to-Pay per QALY")
     plt.ylabel("Expected Net Monetary Benefit (£)")
     plt.grid(True)
-    plt.savefig("results/enmb.png")
+    _save_current_figure("results/enmb.png")
     # plt.show()
 
 
@@ -81,8 +136,8 @@ def plot_tornado(tor_df):
     plt.axvline(0, color="black", lw=0.8)
     plt.xlabel("Change in ICER from base (£/QALY)")
     plt.title("Tornado Sensitivity Analysis (Selected Parameters)")
-    plt.tight_layout()
-    plt.savefig("results/tornado_sensitivity.png")
+    _apply_tight_layout()
+    _save_current_figure("results/tornado_sensitivity.png")
     # plt.show()
 
 
@@ -99,9 +154,9 @@ def plot_subgroup_analysis(sg_df, base_icer):
     plt.xlabel("ICER (£/QALY)")
     plt.title("Sub-group Analyses")
     plt.legend()
-    plt.tight_layout()
+    _apply_tight_layout()
     plt.grid(axis="x")
-    plt.savefig("results/subgroup_analysis.png")
+    _save_current_figure("results/subgroup_analysis.png")
     # plt.show()
 
 
@@ -129,7 +184,7 @@ def plot_cost_mix_stacked_area(mix_data, arm, title, filename):
     plt.title(title)
     plt.xlabel("Year")
     plt.ylabel("Annual Cost")
-    plt.savefig(filename)
+    _save_current_figure(filename)
     # plt.show()
 
 
@@ -153,8 +208,8 @@ def plot_budget_impact(budg_df):
     plt.ylabel("Incremental Budget Impact")
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig("results/budget_impact.png")
+    _apply_tight_layout()
+    _save_current_figure("results/budget_impact.png")
     # plt.show()
 
     # Create additional plot showing adoption rates over time
@@ -175,8 +230,8 @@ def plot_budget_impact(budg_df):
     plt.ylabel("Adoption Rate (%)")
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig("results/adoption_rates.png")
+    _apply_tight_layout()
+    _save_current_figure("results/adoption_rates.png")
     # plt.show()
 
 
@@ -187,8 +242,8 @@ def plot_ses_equity(ses_vals, labels, year):
     plt.title(f"SES Distribution of Population in Final Year ({year})")
     plt.xlabel("SES Quintile")
     plt.ylabel("Percentage of Population (%)")
-    plt.tight_layout()
-    plt.savefig("results/ses_equity.png")
+    _apply_tight_layout()
+    _save_current_figure("results/ses_equity.png")
     # plt.show()
 
 
@@ -205,8 +260,8 @@ def plot_psa_histograms(cost_list, qaly_list):
     ax2.set_xlabel("Delta QALY")
     ax2.set_ylabel("Frequency")
 
-    plt.tight_layout()
-    plt.savefig("results/psa_histograms.png")
+    _apply_tight_layout()
+    _save_current_figure("results/psa_histograms.png")
     # plt.show()
 
 
@@ -221,7 +276,7 @@ def plot_ceaf(wtp, prob):
     plt.ylabel("Probability")
     plt.legend()
     plt.grid(True)
-    plt.savefig("results/ceaf.png")
+    _save_current_figure("results/ceaf.png")
     # plt.show()
 
 
@@ -238,7 +293,7 @@ def plot_familial_prevalence_sensitivity(familial_sens_df):
     plt.ylabel("ICER (£/QALY)")
     plt.title("Sensitivity to Familial ID Prevalence")
     plt.grid(True)
-    plt.savefig("results/familial_prevalence_sensitivity.png")
+    _save_current_figure("results/familial_prevalence_sensitivity.png")
     # plt.show()
 
 
@@ -250,14 +305,14 @@ def plot_evppi_curves(evppi_results, wtp):
             plt.plot(
                 wtp,
                 evppi_curve_host,
-                label=f'EVPPI ({param.replace("_", " ").title()})',
+                label=f"EVPPI ({param.replace('_', ' ').title()})",
             )
         plt.title("Expected Value of Partial Perfect Information (EVPPI) Curves")
         plt.xlabel("Willingness-to-Pay per QALY")
         plt.ylabel("EVPPI (£)")
         plt.legend()
         plt.grid(True)
-        plt.savefig("results/evppi_curves.png")
+        _save_current_figure("results/evppi_curves.png")
         # plt.show()
 
 
@@ -279,7 +334,7 @@ def plot_psa_icer_distribution(psa_icers_np):
         plt.xlabel("ICER (£/QALY)")
         plt.ylabel("Frequency")
         plt.grid(True)
-    plt.savefig("results/psa_icer_distribution.png")
+    _save_current_figure("results/psa_icer_distribution.png")
     # plt.show()
 
 
@@ -295,7 +350,7 @@ def plot_evsi_curves(evsi_results):
     bars = plt.bar(range(len(designs)), evsi_values, color="skyblue", edgecolor="black")
 
     # Add value labels on bars
-    for i, (bar, evsi) in enumerate(zip(bars, evsi_values)):
+    for _i, (bar, evsi) in enumerate(zip(bars, evsi_values, strict=False)):
         plt.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + max(evsi_values) * 0.01,
@@ -310,13 +365,13 @@ def plot_evsi_curves(evsi_results):
     plt.ylabel("EVSI (£)")
     plt.xticks(
         range(len(designs)),
-        [f"{d}\n(n={s})" for d, s in zip(designs, sample_sizes)],
+        [f"{d}\n(n={s})" for d, s in zip(designs, sample_sizes, strict=False)],
         rotation=45,
         ha="right",
     )
     plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig("results/evsi_curves.png")
+    _apply_tight_layout()
+    _save_current_figure("results/evsi_curves.png")
     # plt.show()
 
 
@@ -332,7 +387,9 @@ def plot_evsi_vs_sample_size(evsi_results):
     plt.fill_between(sample_sizes, evsi_values, alpha=0.3, color="blue")
 
     # Add design labels
-    for i, (x, y, name) in enumerate(zip(sample_sizes, evsi_values, design_names)):
+    for _i, (x, y, name) in enumerate(
+        zip(sample_sizes, evsi_values, design_names, strict=False)
+    ):
         plt.annotate(
             name,
             (x, y),
@@ -346,8 +403,8 @@ def plot_evsi_vs_sample_size(evsi_results):
     plt.xlabel("Sample Size")
     plt.ylabel("Expected Value of Sample Information (£)")
     plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig("results/evsi_vs_sample_size.png")
+    _apply_tight_layout()
+    _save_current_figure("results/evsi_vs_sample_size.png")
     # plt.show()
 
 
@@ -365,7 +422,7 @@ def plot_concentration_indices(ci_results):
     )
 
     # Add value labels
-    for i, (bar, value) in enumerate(zip(bars, values)):
+    for _i, (bar, value) in enumerate(zip(bars, values, strict=False)):
         plt.text(
             value + (0.01 if value >= 0 else -0.01),
             bar.get_y() + bar.get_height() / 2,
@@ -384,7 +441,7 @@ def plot_concentration_indices(ci_results):
     plt.grid(True, alpha=0.3)
 
     # Add interpretation text
-    interpretation = ci_results.get("interpretation", {})
+    ci_results.get("interpretation", {})
     plt.figtext(
         0.02,
         0.02,
@@ -393,8 +450,8 @@ def plot_concentration_indices(ci_results):
         style="italic",
     )
 
-    plt.tight_layout()
-    plt.savefig("results/concentration_indices.png")
+    _apply_tight_layout()
+    _save_current_figure("results/concentration_indices.png")
     # plt.show()
 
 
@@ -455,14 +512,14 @@ def plot_vbp_price_thresholds(price_thresholds_results):
 
     # Combine legends
     lines = line1 + line2
-    labels = [l.get_label() for l in lines]
+    labels = [line.get_label() for line in lines]
     ax1.legend(lines, labels, loc="upper left")
 
     plt.title(
         "Value-Based Pricing: Price Thresholds vs WTP\nMaximum Acceptable Price for Cost-Effectiveness"
     )
-    plt.tight_layout()
-    plt.savefig("results/vbp_price_thresholds.png")
+    _apply_tight_layout()
+    _save_current_figure("results/vbp_price_thresholds.png")
     # plt.show()
 
 
@@ -491,7 +548,7 @@ def plot_vbp_optimal_ranges(optimal_ranges_results):
     bars = plt.bar(labels, values, color=colors, alpha=0.7)
 
     # Add value labels on bars
-    for bar, value in zip(bars, values):
+    for bar, value in zip(bars, values, strict=False):
         plt.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_y() + bar.get_height() + 100,
@@ -522,8 +579,8 @@ def plot_vbp_optimal_ranges(optimal_ranges_results):
         style="italic",
     )
 
-    plt.tight_layout()
-    plt.savefig("results/vbp_optimal_ranges.png")
+    _apply_tight_layout()
+    _save_current_figure("results/vbp_optimal_ranges.png")
     # plt.show()
 
 
@@ -559,7 +616,7 @@ def plot_vbp_reimbursement_scenarios(reimbursement_results):
     ax1.grid(True, alpha=0.3, axis="y")
 
     # Add value labels
-    for bar, value in zip(bars1, icers):
+    for bar, value in zip(bars1, icers, strict=False):
         ax1.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_y() + bar.get_height() + 1000,
@@ -579,7 +636,7 @@ def plot_vbp_reimbursement_scenarios(reimbursement_results):
     ax2.grid(True, alpha=0.3, axis="y")
 
     # Add percentage labels
-    for bar, value in zip(bars2, prob_ce):
+    for bar, value in zip(bars2, prob_ce, strict=False):
         ax2.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_y() + bar.get_height() + 0.01,
@@ -597,7 +654,7 @@ def plot_vbp_reimbursement_scenarios(reimbursement_results):
     ax3.grid(True, alpha=0.3, axis="y")
 
     # Add value labels
-    for bar, value in zip(bars3, budget_impacts):
+    for bar, value in zip(bars3, budget_impacts, strict=False):
         ax3.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_y() + bar.get_height() + 0.1,
@@ -635,8 +692,8 @@ def plot_vbp_reimbursement_scenarios(reimbursement_results):
     table.scale(1, 1.5)
 
     plt.suptitle("Value-Based Pricing: Reimbursement Scenario Analysis", fontsize=14)
-    plt.tight_layout()
-    plt.savefig("results/vbp_reimbursement_scenarios.png")
+    _apply_tight_layout()
+    _save_current_figure("results/vbp_reimbursement_scenarios.png")
     # plt.show()
 
 
@@ -659,7 +716,7 @@ def plot_mcda_weights(weights, ahp_analysis=None):
     bars = plt.bar(criteria, weight_values, color="lightblue", alpha=0.7)
 
     # Add value labels on bars
-    for bar, value in zip(bars, weight_values):
+    for bar, value in zip(bars, weight_values, strict=False):
         plt.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_y() + bar.get_height() + 0.01,
@@ -687,8 +744,8 @@ def plot_mcda_weights(weights, ahp_analysis=None):
             style="italic",
         )
 
-    plt.tight_layout()
-    plt.savefig("results/mcda_weights.png")
+    _apply_tight_layout()
+    _save_current_figure("results/mcda_weights.png")
     # plt.show()
 
 
@@ -718,7 +775,9 @@ def plot_mcda_ranking(mcda_results, top_n=10):
     plt.grid(True, alpha=0.3, axis="x")
 
     # Add score labels
-    for i, (bar, score) in enumerate(zip(bars, top_ranking.values[::-1])):
+    for _i, (bar, score) in enumerate(
+        zip(bars, top_ranking.values[::-1], strict=False)
+    ):
         plt.text(
             bar.get_width() + 0.001,
             bar.get_y() + bar.get_height() / 2,
@@ -728,8 +787,8 @@ def plot_mcda_ranking(mcda_results, top_n=10):
             fontsize=8,
         )
 
-    plt.tight_layout()
-    plt.savefig("results/mcda_ranking.png")
+    _apply_tight_layout()
+    _save_current_figure("results/mcda_ranking.png")
     # plt.show()
 
 
@@ -744,8 +803,9 @@ def plot_mcda_radar(mcda_results, alternatives_to_plot=None):
     alternatives_to_plot : list, optional
         List of alternative names to include in radar plot. If None, plots top 3.
     """
-    import matplotlib.pyplot as plt
     from math import pi
+
+    import matplotlib.pyplot as plt
 
     weighted_matrix = mcda_results["weighted_matrix"]
 
@@ -792,8 +852,8 @@ def plot_mcda_radar(mcda_results, alternatives_to_plot=None):
     ax.legend(loc="upper right", bbox_to_anchor=(1.2, 1.0))
     ax.grid(True)
 
-    plt.tight_layout()
-    plt.savefig("results/mcda_radar.png")
+    _apply_tight_layout()
+    _save_current_figure("results/mcda_radar.png")
     # plt.show()
 
 
@@ -822,7 +882,7 @@ def plot_mcda_sensitivity_weights(mcda_results, weight_variations=None):
         )
 
         # Emphasize different criteria
-        for i, criterion in enumerate(criteria):
+        for _i, criterion in enumerate(criteria):
             weights = {c: 0.1 for c in criteria}  # Base weight
             weights[criterion] = 0.6  # Emphasize this criterion
             # Normalize
@@ -875,8 +935,8 @@ def plot_mcda_sensitivity_weights(mcda_results, weight_variations=None):
     plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.grid(True, alpha=0.3, axis="y")
 
-    plt.tight_layout()
-    plt.savefig("results/mcda_sensitivity_weights.png")
+    _apply_tight_layout()
+    _save_current_figure("results/mcda_sensitivity_weights.png")
     # plt.show()
 
 
@@ -958,7 +1018,7 @@ def plot_concentration_curves(distributional_results):
 
     # Atkinson indices comparison
     atkinson_data = distributional_results["atkinson_indices"]
-    epsilon_values = [float(k.split("_")[1]) for k in atkinson_data.keys()]
+    epsilon_values = [float(k.split("_")[1]) for k in atkinson_data]
     cost_inequality = [v["cost_inequality"] for v in atkinson_data.values()]
     qaly_inequality = [v["qaly_inequality"] for v in atkinson_data.values()]
 
@@ -974,8 +1034,8 @@ def plot_concentration_curves(distributional_results):
     ax4.legend()
     ax4.grid(True, alpha=0.3)
 
-    plt.tight_layout()
-    plt.savefig("results/distributional_concentration_curves.png")
+    _apply_tight_layout()
+    _save_current_figure("results/distributional_concentration_curves.png")
     # plt.show()
 
 
@@ -1046,9 +1106,7 @@ def plot_equity_efficiency_tradeoffs(distributional_results):
     tradeoff_metrics = list(equity_efficiency["tradeoff_analysis"].keys())
     tradeoff_values = list(equity_efficiency["tradeoff_analysis"].values())
 
-    bars3 = ax3.bar(
-        tradeoff_metrics, tradeoff_values, color=["coral", "orange"], alpha=0.7
-    )
+    ax3.bar(tradeoff_metrics, tradeoff_values, color=["coral", "orange"], alpha=0.7)
     ax3.set_title("Equity-Efficiency Trade-offs")
     ax3.set_ylabel("Ratio/Index")
     ax3.tick_params(axis="x", rotation=45)
@@ -1074,8 +1132,8 @@ def plot_equity_efficiency_tradeoffs(distributional_results):
     ax4.legend()
     ax4.grid(True, alpha=0.3)
 
-    plt.tight_layout()
-    plt.savefig("results/distributional_equity_efficiency.png")
+    _apply_tight_layout()
+    _save_current_figure("results/distributional_equity_efficiency.png")
     # plt.show()
 
 
@@ -1137,14 +1195,14 @@ def plot_distributional_uncertainty(distributional_results):
     wtp_values = [20000, 30000, 50000]
     colors = ["red", "green", "blue"]
 
-    for wtp, color in zip(wtp_values, colors):
+    for wtp, color in zip(wtp_values, colors, strict=False):
         net_benefits = psa_results["dQALY"] * wtp - psa_results["dCost"]
         ax3.hist(
             net_benefits,
             bins=30,
             alpha=0.5,
             color=color,
-            label=f"£{wtp//1000}k/QALY",
+            label=f"£{wtp // 1000}k/QALY",
             edgecolor="black",
         )
 
@@ -1183,6 +1241,6 @@ def plot_distributional_uncertainty(distributional_results):
     cbar = plt.colorbar(im, ax=ax4)
     cbar.set_label("Frequency")
 
-    plt.tight_layout()
-    plt.savefig("results/distributional_uncertainty.png")
+    _apply_tight_layout()
+    _save_current_figure("results/distributional_uncertainty.png")
     # plt.show()

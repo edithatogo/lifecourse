@@ -8,18 +8,19 @@ and memory analysis capabilities.
 import time
 
 from lifecourse.analysis.performance_profiler import (
-    PerformanceProfiler,
-    ScalabilityTester,
     MemoryProfiler,
     PerformanceMetrics,
+    PerformanceProfiler,
     ScalabilityMetrics,
+    ScalabilityTester,
+    get_memory_profiler,
     get_performance_profiler,
     get_scalability_tester,
-    get_memory_profiler,
 )
-from config.config_loader import load_config
-from lifecourse.model.parameter_loader import get_parameter_attributes
 from lifecourse.analysis.run_helpers import run_sim
+from lifecourse.model.parameter_loader import get_parameter_attributes
+
+from config.config_loader import load_config
 
 
 class TestPerformanceProfiler:
@@ -41,7 +42,7 @@ class TestPerformanceProfiler:
         with profiler.profile_context("test_operation") as metrics:
             # Simulate some work
             time.sleep(0.1)
-            x = sum(range(1000))
+            sum(range(1000))
 
         assert isinstance(metrics, PerformanceMetrics)
         assert metrics.execution_time >= 0.1  # At least the sleep time
@@ -112,7 +113,7 @@ class TestPerformanceProfiler:
 
         with profiler.profile_context("memory_test") as metrics:
             # Generate some memory activity
-            data = [i for i in range(10000)]
+            [i for i in range(10000)]
             time.sleep(0.1)
 
         # Should have collected some memory snapshots if CPU monitoring was enabled
@@ -176,7 +177,7 @@ class TestScalabilityTester:
         )
 
         assert len(results) == len(configurations)
-        for config_name in configurations.keys():
+        for config_name in configurations:
             assert config_name in results
             assert isinstance(results[config_name], PerformanceMetrics)
 
@@ -364,8 +365,8 @@ class TestIntegrationWithSimulation:
 
         # Results should be valid
         dc, dq = result["result"]
-        assert isinstance(dc, (int, float))
-        assert isinstance(dq, (int, float))
+        assert isinstance(dc, int | float)
+        assert isinstance(dq, int | float)
 
         # Metrics should be populated
         metrics = result["metrics"]

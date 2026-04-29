@@ -1,0 +1,8 @@
+{
+  "track_id": "cross_runtime_quality_ci_20260428",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-04-28T13:37:14Z",
+  "updated_at": "2026-04-28T13:37:14Z",
+  "description": "Add cross-runtime CI, quality gates, mutation testing, profiling, security checks, and dependency automation for new adapters and Rust code."
+}

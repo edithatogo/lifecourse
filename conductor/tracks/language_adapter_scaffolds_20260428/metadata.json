@@ -1,0 +1,8 @@
+{
+  "track_id": "language_adapter_scaffolds_20260428",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T13:37:14Z",
+  "updated_at": "2026-04-28T13:37:14Z",
+  "description": "Add wrapper-first language adapter scaffolds for R, Julia, Go, TypeScript, C#, Rust, and Python around the stable model contract."
+}

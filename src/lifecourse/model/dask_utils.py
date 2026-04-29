@@ -1,7 +1,8 @@
 import logging
+
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
 
 _LOG = logging.getLogger(__name__)
 

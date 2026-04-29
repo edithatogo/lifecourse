@@ -1,0 +1,8 @@
+{
+  "track_id": "dask_orchestration_decision_20260428",
+  "type": "feature",
+  "status": "complete",
+  "created_at": "2026-04-28T00:00:00+10:00",
+  "updated_at": "2026-04-28T00:00:00+10:00",
+  "description": "Decide and pilot the future of Dask orchestration using benchmark and profiling evidence."
+}

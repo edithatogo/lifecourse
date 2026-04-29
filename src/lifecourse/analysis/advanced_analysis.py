@@ -1,10 +1,18 @@
+import time
+from collections.abc import Callable, Sequence
+
 import numpy as np
 import pandas as pd
 import psutil
-import time
 from scipy import stats
+
 from lifecourse.analysis.run_helpers import run_sim
-from lifecourse.model.parameters import POP_SIZE, DISTRIBUTIONS
+from lifecourse.backend_evaluation import (
+    NumericalBackend,
+    calculate_evpi_value,
+    calculate_net_monetary_benefit,
+)
+from lifecourse.model.parameters import DISTRIBUTIONS, POP_SIZE
 
 # Benchmark for calibration (example values, replace with actual if available)
 OBS_BENCHMARK = {
@@ -65,6 +73,67 @@ def run_calibration(base_mean_params, pop_size=POP_SIZE, years=None, debug=False
     }
 
 
+def evaluate_calibration_backend_options(
+    *,
+    use_case: str,
+    stochastic_model: bool,
+    requires_posterior_sampling: bool,
+) -> dict[str, object]:
+    """Record an explicit calibration backend recommendation."""
+
+    if requires_posterior_sampling or use_case == "bayesian_posterior":
+        return {
+            "recommended_backend": "blackjax",
+            "decision": "defer_until_posterior_model_exists",
+            "selected": [],
+            "not_selected": ["Optuna"],
+            "criteria": {
+                "stochastic_model": stochastic_model,
+                "requires_posterior_sampling": requires_posterior_sampling,
+                "reason": "BlackJAX is appropriate once the calibration workflow has a formal posterior target.",
+            },
+        }
+
+    return {
+        "recommended_backend": "deterministic_search",
+        "decision": "pilot_internal_grid_search",
+        "selected": ["internal_grid_search"],
+        "not_selected": ["BlackJAX", "Optuna"],
+        "criteria": {
+            "stochastic_model": stochastic_model,
+            "requires_posterior_sampling": requires_posterior_sampling,
+            "reason": "Current calibration compares deterministic simulation output to benchmark totals.",
+        },
+    }
+
+
+def run_deterministic_calibration_search(
+    candidates: Sequence[dict[str, float]],
+    objective: Callable[[dict[str, float]], float],
+) -> dict[str, object]:
+    """Run a dependency-free deterministic calibration candidate search."""
+
+    if not candidates:
+        raise ValueError("At least one calibration candidate is required.")
+
+    trials = [
+        {
+            "index": index,
+            "params": dict(params),
+            "score": float(objective(params)),
+        }
+        for index, params in enumerate(candidates)
+    ]
+    best_trial = min(trials, key=lambda trial: trial["score"])
+
+    return {
+        "backend": "deterministic_search",
+        "best_params": best_trial["params"],
+        "best_score": best_trial["score"],
+        "trials": trials,
+    }
+
+
 def run_structural_uncertainty(
     base_mean_params, num_runs=10, pop_size=POP_SIZE, years=None, debug=False
 ):
@@ -81,7 +150,7 @@ def run_structural_uncertainty(
     for i in range(num_runs):
         if debug:
             run_start_time = time.time()
-            print(f"Running structural uncertainty iteration {i+1}/{num_runs}")
+            print(f"Running structural uncertainty iteration {i + 1}/{num_runs}")
 
         # Example of structural variation: modify a parameter directly for this run
         # This is a placeholder. Real structural uncertainty would involve different model logic.
@@ -101,9 +170,9 @@ def run_structural_uncertainty(
             run_end_time = time.time()
             run_end_memory = get_memory_usage()
             print(
-                f"  Iteration {i+1} completed in {run_end_time - run_start_time:.2f} seconds"
+                f"  Iteration {i + 1} completed in {run_end_time - run_start_time:.2f} seconds"
             )
-            print(f"  Memory after iteration {i+1}: {run_end_memory:.2f} MB")
+            print(f"  Memory after iteration {i + 1}: {run_end_memory:.2f} MB")
 
     structural_df = pd.DataFrame(results)
     print("Structural Uncertainty Results (sample):")
@@ -178,7 +247,7 @@ def calculate_evsi(psa_results, research_designs, wtp_threshold=30000, debug=Fal
         # For each PSA sample, simulate posterior distribution after new data
         posterior_net_benefits = []
 
-        for idx, psa_sample in psa_results.iterrows():
+        for _idx, psa_sample in psa_results.iterrows():
             # Simulate new data collection and Bayesian updating
             # This is a simplified approach - in practice would use proper Bayesian methods
             posterior_nb = simulate_bayesian_update(
@@ -227,7 +296,9 @@ def calculate_evsi(psa_results, research_designs, wtp_threshold=30000, debug=Fal
     return evsi_results
 
 
-def calculate_evpi(psa_results, wtp_threshold=30000):
+def calculate_evpi(
+    psa_results, wtp_threshold=30000, backend: NumericalBackend = "numpy"
+):
     """
     Calculate Expected Value of Perfect Information (EVPI).
 
@@ -250,12 +321,7 @@ def calculate_evpi(psa_results, wtp_threshold=30000):
             psa_results["dQALY"] * wtp_threshold - psa_results["dCost"]
         )
 
-    # EVPI = E[max(NB)] - max(E[NB])
-    expected_nb = np.mean(psa_results["net_benefit"])
-    max_expected_nb = np.max(psa_results["net_benefit"])
-
-    evpi = max_expected_nb - expected_nb
-    return max(0, evpi)  # Ensure non-negative
+    return calculate_evpi_value(psa_results["net_benefit"], backend=backend)
 
 
 def simulate_bayesian_update(current_nb, sample_size, uncertainty, target_param=None):
@@ -486,63 +552,6 @@ def run_psa(
     return pd.DataFrame(results)
 
 
-def calculate_concentration_index(health_variable, socioeconomic_rank, weights=None):
-    """
-    Calculate the concentration index for a health variable.
-
-    The concentration index measures socioeconomic-related inequality in health.
-    Values range from -1 to 1, where:
-    - 0 indicates perfect equality
-    - Positive values indicate health concentrates among richer groups
-    - Negative values indicate health concentrates among poorer groups
-
-    Parameters:
-    -----------
-    health_variable : array-like
-        Health outcome variable (e.g., QALYs, costs, utilization)
-    socioeconomic_rank : array-like
-        Socioeconomic ranking (0-1 scale, where 1 is richest)
-    weights : array-like, optional
-        Population weights for each observation
-
-    Returns:
-    --------
-    float : Concentration index
-    """
-    if weights is None:
-        weights = np.ones(len(health_variable)) / len(health_variable)
-
-    # Ensure inputs are numpy arrays
-    y = np.array(health_variable)
-    r = np.array(socioeconomic_rank)
-    w = np.array(weights)
-
-    # Normalize weights
-    w = w / np.sum(w)
-
-    # Sort by socioeconomic rank
-    sort_idx = np.argsort(r)
-    y_sorted = y[sort_idx]
-    r_sorted = r[sort_idx]
-    w_sorted = w[sort_idx]
-
-    # Calculate weighted mean
-    mu = np.sum(y_sorted * w_sorted)
-
-    # Calculate concentration index
-    if mu == 0:
-        return 0.0
-
-    # Cumulative weights
-    cum_w = np.cumsum(w_sorted)
-    cum_w = np.concatenate([[0], cum_w[:-1]])  # Shift for trapezoidal rule
-
-    # Concentration index formula
-    ci = (2 / mu) * np.sum((y_sorted - mu) * (cum_w + w_sorted / 2 - 0.5) * w_sorted)
-
-    return ci
-
-
 def calculate_concentration_indices(psa_results, ses_quintiles=None):
     """
     Calculate concentration indices for key health economic outcomes.
@@ -560,14 +569,14 @@ def calculate_concentration_indices(psa_results, ses_quintiles=None):
     """
     if ses_quintiles is None:
         # Default equal distribution across quintiles
-        ses_quintiles = {f"Q{i+1}": 0.2 for i in range(5)}
+        ses_quintiles = {f"Q{i + 1}": 0.2 for i in range(5)}
 
     # Create socioeconomic ranks (0-1 scale)
     # Quintile 1 (poorest) = 0.1, Quintile 5 (richest) = 0.9
     ses_ranks = []
     for i in range(5):
         rank = (i + 0.5) / 5  # 0.1, 0.3, 0.5, 0.7, 0.9
-        weight = ses_quintiles[f"Q{i+1}"]
+        weight = ses_quintiles[f"Q{i + 1}"]
         ses_ranks.extend(
             [rank] * int(weight * 1000)
         )  # Assume 1000 observations per quintile
@@ -687,15 +696,7 @@ def calculate_price_thresholds(psa_results, wtp_range=None, target_population=10
 
         # For probabilistic analysis, we want the price where P(NB >= 0) >= threshold
         # Here we use expected value approach for simplicity
-        if expected_nb >= 0:
-            # If intervention is cost-effective on average, price threshold is infinite
-            # (or limited by budget constraints)
-            price_threshold = float("inf")
-        else:
-            # Calculate price needed to make expected NB = 0
-            # NB = QALYs * WTP - Cost - Price * Units
-            # For simplicity, assume price is additional cost per person
-            price_threshold = -expected_nb  # Price needed to offset negative NB
+        price_threshold = float("inf") if expected_nb >= 0 else -expected_nb
 
         thresholds[wtp] = {
             "price_threshold": price_threshold,
@@ -751,10 +752,7 @@ def calculate_optimal_price_ranges(
 
     # Minimum price: where expected NB = 0 (break-even)
     expected_nb = np.mean(net_benefits)
-    if expected_nb >= 0:
-        min_price = 0  # No minimum price needed
-    else:
-        min_price = -expected_nb  # Price needed to achieve NB = 0
+    min_price = 0 if expected_nb >= 0 else -expected_nb
 
     # Maximum price: constrained by budget and cost-effectiveness
     max_price_ce = float("inf")  # Could be higher if budget allows
@@ -1153,7 +1151,7 @@ def analytic_hierarchy_process(criteria, pairwise_comparisons):
     )
     cr = ci / ri if ri > 0 else 0
 
-    weights_dict = dict(zip(criteria, weights))
+    weights_dict = dict(zip(criteria, weights, strict=True))
 
     return {
         "weights": weights_dict,
@@ -1334,7 +1332,7 @@ def run_mcda_analysis(
 
     print("\nTop 5 Alternatives:")
     for i, (alternative, score) in enumerate(ranking.head(5).items()):
-        print(f"  {i+1}. {alternative}: {score:.4f}")
+        print(f"  {i + 1}. {alternative}: {score:.4f}")
 
     if debug:
         end_time = time.time()
@@ -1401,7 +1399,36 @@ def run_distributional_impacts_analysis(
     }
 
 
-def calculate_distributional_statistics(psa_results):
+def _safe_skew(values):
+    values_array = np.asarray(values, dtype=float)
+    if values_array.size < 3 or np.allclose(values_array, values_array[0]):
+        return 0.0
+    return float(stats.skew(values_array))
+
+
+def _safe_kurtosis(values):
+    values_array = np.asarray(values, dtype=float)
+    if values_array.size < 4 or np.allclose(values_array, values_array[0]):
+        return 0.0
+    return float(stats.kurtosis(values_array))
+
+
+def _safe_corrcoef(left, right):
+    left_array = np.asarray(left, dtype=float)
+    right_array = np.asarray(right, dtype=float)
+    if (
+        left_array.size < 2
+        or right_array.size < 2
+        or np.allclose(left_array, left_array[0])
+        or np.allclose(right_array, right_array[0])
+    ):
+        return np.nan
+    return float(np.corrcoef(left_array, right_array)[0, 1])
+
+
+def calculate_distributional_statistics(
+    psa_results, backend: NumericalBackend = "numpy"
+):
     """
     Calculate comprehensive distributional statistics for cost-effectiveness outcomes.
 
@@ -1420,15 +1447,20 @@ def calculate_distributional_statistics(psa_results):
     distributional_stats = {}
 
     for wtp in wtp_thresholds:
-        net_benefits = psa_results["dQALY"] * wtp - psa_results["dCost"]
+        net_benefits = calculate_net_monetary_benefit(
+            delta_qalys=psa_results["dQALY"],
+            delta_costs=psa_results["dCost"],
+            willingness_to_pay=wtp,
+            backend=backend,
+        )
 
         distributional_stats[f"wtp_{wtp}"] = {
             "mean_net_benefit": np.mean(net_benefits),
             "median_net_benefit": np.median(net_benefits),
             "net_benefit_std": np.std(net_benefits),
             "prob_cost_effective": np.mean(net_benefits > 0),
-            "net_benefit_skewness": stats.skew(net_benefits),
-            "net_benefit_kurtosis": stats.kurtosis(net_benefits),
+            "net_benefit_skewness": _safe_skew(net_benefits),
+            "net_benefit_kurtosis": _safe_kurtosis(net_benefits),
             "net_benefit_percentiles": np.percentile(net_benefits, [5, 25, 75, 95]),
         }
 
@@ -1438,11 +1470,11 @@ def calculate_distributional_statistics(psa_results):
         "icer_median": np.median(psa_results["dCost"] / psa_results["dQALY"]),
         "icer_cv": np.std(psa_results["dCost"] / psa_results["dQALY"])
         / np.mean(psa_results["dCost"] / psa_results["dQALY"]),
-        "cost_skewness": stats.skew(psa_results["dCost"]),
-        "qaly_skewness": stats.skew(psa_results["dQALY"]),
-        "joint_distribution_corr": np.corrcoef(
+        "cost_skewness": _safe_skew(psa_results["dCost"]),
+        "qaly_skewness": _safe_skew(psa_results["dQALY"]),
+        "joint_distribution_corr": _safe_corrcoef(
             psa_results["dCost"], psa_results["dQALY"]
-        )[0, 1],
+        ),
     }
 
     return distributional_stats
@@ -1524,6 +1556,16 @@ def calculate_atkinson_indices(psa_results, epsilon_values=None):
     if epsilon_values is None:
         epsilon_values = [0.5, 1.0, 1.5, 2.0]  # Different inequality aversion levels
 
+    if psa_results.empty:
+        return {
+            f"epsilon_{epsilon_val}": {
+                "cost_inequality": np.nan,
+                "qaly_inequality": np.nan,
+                "interpretation": f"Higher values indicate greater inequality aversion (ε={epsilon_val})",
+            }
+            for epsilon_val in epsilon_values
+        }
+
     # Ensure positive values for Atkinson index calculation
     # Add small constant to avoid zero/negative values
     epsilon = 1e-6
@@ -1585,8 +1627,6 @@ def calculate_concentration_index(values, ranks):
     sorted_values = values[sorted_indices]
     sorted_ranks = ranks[sorted_indices]
 
-    # Calculate concentration index
-    n = len(values)
     mean_value = np.mean(values)
 
     # Covariance between values and ranks
@@ -1826,7 +1866,7 @@ def run_budget_impact_analysis(
 
     for i, curve_config in enumerate(adoption_curves):
         curve_type = curve_config["type"]
-        curve_name = f"{curve_type}_curve_{i+1}"
+        curve_name = f"{curve_type}_curve_{i + 1}"
 
         # Extract curve parameters
         curve_params = {k: v for k, v in curve_config.items() if k != "type"}

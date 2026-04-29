@@ -1,0 +1,8 @@
+{
+  "track_id": "jax_distributional_statistics_pilot_20260428",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-04-28T00:00:00+10:00",
+  "updated_at": "2026-04-28T00:00:00+10:00",
+  "description": "Add an explicit optional JAX dispatch hook for distributional net-benefit statistics while preserving default numpy behavior."
+}

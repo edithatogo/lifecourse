@@ -1,8 +1,39 @@
 name: Python CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 16 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  prose-lint:
+    name: Vale Prose Lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: "1.22"
+
+    - name: Install Vale
+      run: |
+        go install github.com/errata-ai/vale/v2@latest
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+    - name: Run Vale
+      run: vale --minAlertLevel=suggestion README.md docs heoml specs conductor
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -17,12 +48,31 @@ jobs:
         enable-cache: true
     - name: Sync environment
       run: uv sync --all-extras --dev
+    - name: Verify lockfile
+      run: uv lock --check
     - name: Check formatting with ruff
-      run: uv run ruff format --check src config tests/test_config_validation.py tests/test_data_validation.py tests/test_packaging_smoke.py
-    - name: Lint with ruff
-      run: uv run ruff check src config tests/test_config_validation.py tests/test_data_validation.py tests/test_packaging_smoke.py
+      run: uv run nox -s lint
     - name: Type check with basedpyright
-      run: uv run basedpyright
+      run: uv run nox -s typecheck
+    - name: Check version metadata
+      run: uv run nox -s version
+
+  mutation-smoke:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+    - name: Sync environment
+      run: uv sync --all-extras --dev
+    - name: Show mutation-testing configuration
+      run: uv run mutmut run --help
 
   test:
     runs-on: ubuntu-latest
@@ -47,7 +97,7 @@ jobs:
       run: uv sync --all-extras --dev
 
     - name: Build distribution
-      run: uv build
+      run: uv run nox -s build
 
     - name: Test with pytest
-      run: uv run pytest
+      run: uv run nox -s tests

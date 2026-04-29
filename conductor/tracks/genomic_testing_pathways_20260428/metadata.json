@@ -1,0 +1,8 @@
+{
+  "track_id": "genomic_testing_pathways_20260428",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T13:37:14Z",
+  "updated_at": "2026-04-28T13:37:14Z",
+  "description": "Add richer genomic testing pathway modelling for test types, counseling, VUS, incidental findings, uptake, and cascade testing."
+}

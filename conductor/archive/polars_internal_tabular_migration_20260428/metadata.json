@@ -1,0 +1,8 @@
+{
+  "track_id": "polars_internal_tabular_migration_20260428",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-04-28T00:00:00+10:00",
+  "updated_at": "2026-04-28T00:00:00+10:00",
+  "description": "Migrate selected internal tabular transformations toward Polars where benchmarks justify the change."
+}

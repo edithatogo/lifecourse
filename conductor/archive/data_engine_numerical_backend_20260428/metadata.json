@@ -1,0 +1,8 @@
+{
+  "track_id": "data_engine_numerical_backend_20260428",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-04-28T00:00:00+10:00",
+  "updated_at": "2026-04-28T00:00:00+10:00",
+  "description": "Evaluate and begin safe migration toward polars and JAX/XLA backends while preserving the current numpy/pandas/dask runtime."
+}

@@ -6,12 +6,13 @@ supporting statistical distributions, scenario families, and complex parameter
 variations for health economic evaluation.
 """
 
-import numpy as np
+import random
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 from itertools import product
-import random
+from typing import Any
+
+import numpy as np
 
 
 @dataclass
@@ -20,10 +21,10 @@ class ScenarioTemplate:
 
     name: str
     description: str
-    base_parameters: Dict[str, Any]
-    variable_parameters: Dict[str, Union[List[Any], Dict[str, Any]]]
+    base_parameters: dict[str, Any]
+    variable_parameters: dict[str, list[Any] | dict[str, Any]]
     generation_method: str = "grid"  # grid, random, distribution
-    sample_size: Optional[int] = None
+    sample_size: int | None = None
 
 
 @dataclass
@@ -32,8 +33,8 @@ class ScenarioFamily:
 
     name: str
     description: str
-    base_scenario: Dict[str, Any]
-    variations: Dict[str, Dict[str, Any]]
+    base_scenario: dict[str, Any]
+    variations: dict[str, dict[str, Any]]
     inheritance_mode: str = "override"  # override, additive, multiplicative
 
 
@@ -41,7 +42,7 @@ class ScenarioGenerator(ABC):
     """Abstract base class for scenario generators."""
 
     @abstractmethod
-    def generate_scenarios(self, config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def generate_scenarios(self, config: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Generate scenarios from configuration."""
         pass
 
@@ -49,7 +50,7 @@ class ScenarioGenerator(ABC):
 class GridScenarioGenerator(ScenarioGenerator):
     """Generate scenarios from parameter grids."""
 
-    def generate_scenarios(self, config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def generate_scenarios(self, config: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Generate scenarios from grid specification."""
         parameters = config.get("parameters", {})
         scenarios = {}
@@ -63,11 +64,11 @@ class GridScenarioGenerator(ScenarioGenerator):
             scenario_name = "_".join(
                 [
                     f"{name}_{str(value).replace('.', '_')}"
-                    for name, value in zip(param_names, combo)
+                    for name, value in zip(param_names, combo, strict=True)
                 ]
             )
 
-            scenario_overrides = dict(zip(param_names, combo))
+            scenario_overrides = dict(zip(param_names, combo, strict=True))
             scenarios[scenario_name] = scenario_overrides
 
         return scenarios
@@ -81,7 +82,7 @@ class DistributionScenarioGenerator(ScenarioGenerator):
         np.random.seed(random_seed)
         random.seed(random_seed)
 
-    def generate_scenarios(self, config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def generate_scenarios(self, config: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Generate scenarios by sampling from distributions."""
         parameters = config.get("parameters", {})
         sample_size = config.get("sample_size", 10)
@@ -89,7 +90,7 @@ class DistributionScenarioGenerator(ScenarioGenerator):
 
         for i in range(sample_size):
             scenario_overrides = {}
-            scenario_name = f"sample_{i+1:03d}"
+            scenario_name = f"sample_{i + 1:03d}"
 
             for param_name, dist_config in parameters.items():
                 value = self._sample_from_distribution(dist_config)
@@ -99,7 +100,7 @@ class DistributionScenarioGenerator(ScenarioGenerator):
 
         return scenarios
 
-    def _sample_from_distribution(self, dist_config: Dict[str, Any]) -> float:
+    def _sample_from_distribution(self, dist_config: dict[str, Any]) -> float:
         """Sample a value from a statistical distribution."""
         dist_type = dist_config.get("type", "uniform")
         params = dist_config.get("params", {})
@@ -121,7 +122,7 @@ class DistributionScenarioGenerator(ScenarioGenerator):
 class TemplateScenarioGenerator(ScenarioGenerator):
     """Generate scenarios from templates with variable substitution."""
 
-    def generate_scenarios(self, config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def generate_scenarios(self, config: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Generate scenarios from templates."""
         templates = config.get("templates", [])
         scenarios = {}
@@ -135,7 +136,7 @@ class TemplateScenarioGenerator(ScenarioGenerator):
 
     def _generate_from_template(
         self, template: ScenarioTemplate
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """Generate scenarios from a single template."""
         scenarios = {}
 
@@ -146,14 +147,14 @@ class TemplateScenarioGenerator(ScenarioGenerator):
 
             for combo in product(*param_values):
                 scenario_name = f"{template.name}_{'_'.join([str(v).replace('.', '_') for v in combo])}"
-                scenario_overrides = dict(zip(param_names, combo))
+                scenario_overrides = dict(zip(param_names, combo, strict=True))
                 scenarios[scenario_name] = scenario_overrides
 
         elif template.generation_method == "random":
             sample_size = template.sample_size or 10
             for i in range(sample_size):
                 scenario_overrides = {}
-                scenario_name = f"{template.name}_sample_{i+1:03d}"
+                scenario_name = f"{template.name}_sample_{i + 1:03d}"
 
                 for param_name, values in template.variable_parameters.items():
                     if isinstance(values, list):
@@ -168,7 +169,7 @@ class TemplateScenarioGenerator(ScenarioGenerator):
 
         return scenarios
 
-    def _sample_from_distribution(self, dist_config: Dict[str, Any]) -> float:
+    def _sample_from_distribution(self, dist_config: dict[str, Any]) -> float:
         """Sample from distribution (simplified version for templates)."""
         dist_type = dist_config.get("type", "uniform")
         params = dist_config.get("params", {})
@@ -184,7 +185,7 @@ class TemplateScenarioGenerator(ScenarioGenerator):
 class FamilyScenarioGenerator(ScenarioGenerator):
     """Generate scenario families with inheritance."""
 
-    def generate_scenarios(self, config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def generate_scenarios(self, config: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Generate scenarios from family specifications."""
         families = config.get("families", [])
         scenarios = {}
@@ -198,7 +199,7 @@ class FamilyScenarioGenerator(ScenarioGenerator):
 
     def _generate_family_scenarios(
         self, family: ScenarioFamily
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """Generate scenarios for a family."""
         scenarios = {}
 
@@ -215,8 +216,8 @@ class FamilyScenarioGenerator(ScenarioGenerator):
         return scenarios
 
     def _apply_inheritance(
-        self, base: Dict[str, Any], overrides: Dict[str, Any], mode: str
-    ) -> Dict[str, Any]:
+        self, base: dict[str, Any], overrides: dict[str, Any], mode: str
+    ) -> dict[str, Any]:
         """Apply inheritance rules to generate scenario overrides."""
         result = base.copy()
 
@@ -224,15 +225,15 @@ class FamilyScenarioGenerator(ScenarioGenerator):
             if mode == "override":
                 result[key] = value
             elif mode == "additive" and key in base:
-                if isinstance(base[key], (int, float)) and isinstance(
-                    value, (int, float)
+                if isinstance(base[key], int | float) and isinstance(
+                    value, int | float
                 ):
                     result[key] = base[key] + value
                 else:
                     result[key] = value
             elif mode == "multiplicative" and key in base:
-                if isinstance(base[key], (int, float)) and isinstance(
-                    value, (int, float)
+                if isinstance(base[key], int | float) and isinstance(
+                    value, int | float
                 ):
                     result[key] = base[key] * value
                 else:
@@ -254,7 +255,7 @@ class DynamicScenarioManager:
             "family": FamilyScenarioGenerator(),
         }
 
-    def generate_scenarios(self, config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def generate_scenarios(self, config: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Generate scenarios from dynamic configuration."""
         all_scenarios = {}
 

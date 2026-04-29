@@ -1,0 +1,314 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "enum": [
+        "table",
+        "figure",
+        "diagnostics",
+        "manifest",
+        "parameter_set",
+        "summary"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "checksum": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Ref"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "media_type",
+        "path"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "DiagnosticLevel": {
+      "enum": [
+        "info",
+        "warning",
+        "error"
+      ],
+      "title": "DiagnosticLevel",
+      "type": "string"
+    },
+    "DiagnosticRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        },
+        "level": {
+          "$ref": "#/$defs/DiagnosticLevel"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "code",
+        "message"
+      ],
+      "title": "DiagnosticRecord",
+      "type": "object"
+    },
+    "EngineCapabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_time": {
+          "default": false,
+          "title": "Continuous Time",
+          "type": "boolean"
+        },
+        "des": {
+          "default": false,
+          "title": "Des",
+          "type": "boolean"
+        },
+        "discrete_time": {
+          "default": true,
+          "title": "Discrete Time",
+          "type": "boolean"
+        },
+        "hybrid": {
+          "default": false,
+          "title": "Hybrid",
+          "type": "boolean"
+        },
+        "markov": {
+          "default": false,
+          "title": "Markov",
+          "type": "boolean"
+        },
+        "semi_markov": {
+          "default": false,
+          "title": "Semi Markov",
+          "type": "boolean"
+        },
+        "static": {
+          "default": false,
+          "title": "Static",
+          "type": "boolean"
+        },
+        "supports_parallel_psa": {
+          "default": true,
+          "title": "Supports Parallel Psa",
+          "type": "boolean"
+        }
+      },
+      "title": "EngineCapabilities",
+      "type": "object"
+    },
+    "EngineMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "$ref": "#/$defs/EngineCapabilities"
+        },
+        "engine_id": {
+          "minLength": 1,
+          "title": "Engine Id",
+          "type": "string"
+        },
+        "engine_name": {
+          "minLength": 1,
+          "title": "Engine Name",
+          "type": "string"
+        },
+        "engine_version": {
+          "minLength": 1,
+          "title": "Engine Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "engine_id",
+        "engine_name",
+        "engine_version",
+        "capabilities"
+      ],
+      "title": "EngineMetadata",
+      "type": "object"
+    },
+    "RunSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "comparisons": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Comparisons",
+          "type": "object"
+        },
+        "outcomes": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Outcomes",
+          "type": "object"
+        },
+        "sample_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Sample Count",
+          "type": "integer"
+        },
+        "scenario_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Scenario Count",
+          "type": "integer"
+        }
+      },
+      "title": "RunSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Language-neutral contract for a lifecourse model execution response.",
+  "properties": {
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "contract_version": {
+      "const": "v1",
+      "default": "v1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/DiagnosticRecord"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    },
+    "engine": {
+      "$ref": "#/$defs/EngineMetadata"
+    },
+    "heoml_manifest_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Heoml Manifest Id"
+    },
+    "heoml_profile_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Heoml Profile Version"
+    },
+    "request_id": {
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "success",
+        "partial",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/RunSummary"
+    }
+  },
+  "required": [
+    "request_id",
+    "run_id",
+    "status",
+    "engine"
+  ],
+  "title": "ModelRunResponse",
+  "type": "object"
+}

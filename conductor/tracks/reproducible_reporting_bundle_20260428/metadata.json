@@ -1,0 +1,8 @@
+{
+  "track_id": "reproducible_reporting_bundle_20260428",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-04-28T13:37:14Z",
+  "updated_at": "2026-04-28T13:37:14Z",
+  "description": "Create reproducible analysis bundles with run manifests, checksums, assumption audits, output indexes, and publication-ready reporting artifacts."
+}

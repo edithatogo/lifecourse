@@ -17,6 +17,7 @@ uv run pytest -q
 uv run ruff check .
 uv run basedpyright
 uv run python scripts/check_docs.py
+uv run pytest tests/test_release_governance_docs.py -q --no-cov
 ```
 
 If you are working on a focused change, it is fine to run the smallest relevant test subset first, then finish with the full checks above.
@@ -28,6 +29,7 @@ If you are working on a focused change, it is fine to run the smallest relevant 
 - Update tests alongside implementation changes.
 - Preserve the current `uv`- and `pyproject.toml`-based workflow unless a follow-up track explicitly changes it.
 - Run `uv run python scripts/check_docs.py` when you touch docs, docs links, or release/support policy pages.
+- Run `uv run pytest tests/test_release_governance_docs.py -q --no-cov` when you touch `RELEASE.md` or registry/deprecation guidance.
 
 ## Commit Hooks
 

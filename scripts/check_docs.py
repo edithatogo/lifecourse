@@ -32,6 +32,12 @@ REQUIRED_SECTIONS = {
         "Support Tiers",
         "Documentation Expectations",
     ],
+    "RELEASE.md": [
+        "Release Dry-Run Prerequisites",
+        "Deprecation Policy",
+        "Version Workflow",
+        "Deferred Scope",
+    ],
     "docs/bindings_examples.md": [
         "Python",
         "R",

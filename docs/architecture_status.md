@@ -132,6 +132,7 @@ Promote an optional pilot to a production default only when it has:
 - `docs/documentation_plan.md` is the documentation roadmap.
 - `scripts/check_docs.py` is the repo-local markdown docs check, and `nox -s docs`
   runs it.
+- `RELEASE.md` is the release automation and deprecation-policy reference.
 - `conductor/tracks/documentation_stack_readiness_20260428/plan.md` is the
   executable plan for docs checks, docs tooling, and stack-change documentation
   requirements.

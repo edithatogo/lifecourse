@@ -22,7 +22,8 @@ features are production-ready.
 - API/contract docs: Python reference API, CLI contract, JSON Schema artifacts,
   output formats, and language adapter examples.
 - Release docs: versioning, support tiers, deprecation policy, package
-  publication prerequisites, and changelog discipline.
+  publication prerequisites, changelog discipline, and `RELEASE.md` as the
+  repository release-governance reference.
 
 ## Near-Term Documentation Tracks
 

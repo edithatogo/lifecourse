@@ -22,7 +22,7 @@
     - [x] Keep wrappers schema-first and avoid duplicated model logic.
 - [x] Task: Conductor - Automated Review and Checkpoint 'R And Julia Wrappers' (Protocol in workflow.md)
 
-## Phase 3: Go TypeScript CSharp And Rust Consumers
+## Phase 3: Go TypeScript CSharp And Rust Consumers [checkpoint: d1ee5fc]
 
 - [x] Task: Add Go adapter smoke tests.
     - [x] Use `go test` and fixture-based CLI or JSON invocation.

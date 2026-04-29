@@ -23,11 +23,11 @@
     - [x] Include installation assumptions, minimal run, expected output, and limitations for each supported runtime.
 - [x] Task: Conductor - Automated Review and Checkpoint 'Architecture And User Documentation' (Protocol in workflow.md) [checkpoint: 229adbd]
 
-## Phase 3: Release Governance
+## Phase 3: Release Governance [checkpoint: 188fece]
 
 - [x] Task: Define release dry-run prerequisites.
     - [x] Cover PyPI, crates.io, npm, NuGet, CRAN, Julia registry, and Go module usage as applicable.
     - [x] Require checksums, changelog entries, schema compatibility notes, and artifact provenance.
 - [x] Task: Define deprecation policy.
     - [x] Specify warning periods, compatibility windows, and migration notes for schema or adapter breaking changes.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Release Governance' (Protocol in workflow.md)
+- [x] Task: Conductor - Automated Review and Checkpoint 'Release Governance' (Protocol in workflow.md) [checkpoint: 188fece]

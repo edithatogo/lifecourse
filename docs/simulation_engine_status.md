@@ -6,6 +6,26 @@ This document describes the current simulation-engine boundary for
 `lifecourse`. It is a status page, not a promise that every candidate engine is
 implemented.
 
+## Taxonomy
+
+The current ecosystem treats the following model families as distinct options:
+
+- Static decision models for one-shot questions where no time evolution is
+  needed.
+- Cohort Markov and semi-Markov models for aggregate state-transition
+  analysis.
+- Individual discrete-time microsimulation for the current maintained
+  production path.
+- Continuous-time simulation for event-timing questions.
+- Discrete-event simulation for pathways, queues, waiting times, and capacity
+  constraints.
+- Agent-based and network simulation for interaction-driven questions.
+- Hybrid models when one formalism is not sufficient for the whole problem.
+
+TreeAge is treated as a feature reference taxonomy for decision-tree, Markov,
+and operational-model capabilities. It is not a runtime dependency or a
+required interchange target.
+
 ## Current Production Engine
 
 - The maintained production runtime is the annual discrete-time individual
@@ -17,13 +37,23 @@ implemented.
 
 ## Future Engine Candidates
 
-- Static decision models for one-shot policy questions.
+- Static decision models for diagnostic scoping and other one-shot policy
+  questions.
 - Cohort Markov and semi-Markov models for aggregate state-transition analyses.
 - Continuous-time individual simulation for event-timing questions.
-- Discrete-event simulation for pathways, waiting times, and capacity
-  constraints.
+- Discrete-event simulation for operational modelling of pathways, queues,
+  waiting times, and capacity constraints.
 - Agent-based or network models only where interaction structure matters.
 - Hybrid models where one formalism is not a good fit for the whole problem.
+
+## Selection Contract
+
+- Engine selection should default to the maintained discrete-time engine when
+  no engine name is supplied.
+- Explicit engine names should resolve through the registry and fail clearly
+  when they are not registered.
+- Selection diagnostics should record the requested engine id, resolved engine
+  id, selection source, available ids, and seed-policy summary where relevant.
 
 ## Dependency Policy
 

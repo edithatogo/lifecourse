@@ -65,8 +65,10 @@ REQUIRED_SECTIONS = {
     ],
     "docs/simulation_engine_status.md": [
         "Scope",
+        "Taxonomy",
         "Current Production Engine",
         "Future Engine Candidates",
+        "Selection Contract",
         "Dependency Policy",
         "Promotion Criteria",
     ],

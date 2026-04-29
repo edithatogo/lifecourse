@@ -43,8 +43,10 @@ def test_status_pages_have_required_sections() -> None:
     )
     for section in [
         "## Scope",
+        "## Taxonomy",
         "## Current Production Engine",
         "## Future Engine Candidates",
+        "## Selection Contract",
         "## Dependency Policy",
         "## Promotion Criteria",
     ]:

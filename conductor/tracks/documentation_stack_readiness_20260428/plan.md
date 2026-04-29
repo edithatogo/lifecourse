@@ -57,12 +57,12 @@
 
 ## Phase 5: Public-Surface Documentation
 
-- [ ] Task: Add contract and schema docs when the contract track lands.
-    - [ ] Document request and response schemas, artifact formats, engine metadata, seed policy, and diagnostics.
-- [ ] Task: Add simulation-engine docs before non-default engines become user-facing.
-    - [ ] Document static, Markov, discrete-time, continuous-time, DES, ABM/network, and hybrid engine status and use cases.
-- [ ] Task: Add scientific/model docs before evidence maturity claims.
-    - [ ] Document parameter provenance, jurisdictions, calibration targets, validation targets, and limitations.
-- [ ] Task: Add binding docs after adapter scaffolds exist.
-    - [ ] Include install assumptions, minimal run, expected output, status, and limitations for each adapter.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Public-Surface Documentation' (Protocol in workflow.md)
+- [x] Task: Add contract and schema docs when the contract track lands.
+    - [x] Document request and response schemas, artifact formats, engine metadata, seed policy, and diagnostics.
+- [x] Task: Add simulation-engine docs before non-default engines become user-facing.
+    - [x] Document static, Markov, discrete-time, continuous-time, DES, ABM/network, and hybrid engine status and use cases.
+- [x] Task: Add scientific/model docs before evidence maturity claims.
+    - [x] Document parameter provenance, jurisdictions, calibration targets, validation targets, and limitations.
+- [x] Task: Add binding docs after adapter scaffolds exist.
+    - [x] Include install assumptions, minimal run, expected output, status, and limitations for each adapter.
+- [x] Task: Conductor - Automated Review and Checkpoint 'Public-Surface Documentation' (Protocol in workflow.md)

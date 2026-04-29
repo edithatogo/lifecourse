@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import pytest
+from lifecourse.analysis.run_helpers import run_sim
 from lifecourse.engine_contract import (
     DEFAULT_ENGINE_ID,
     EngineResolution,
     UnknownEngineError,
     default_engine_metadata,
     resolve_engine_selection,
+    run_registered_simulation,
     select_engine,
+)
+from lifecourse.model.parameters import (
+    DISTRIBUTIONS,
+    START_YEAR,
+    sample_params_from_dist,
 )
 from lifecourse.model_contract import SeedPolicy
 
@@ -53,3 +60,22 @@ def test_resolve_engine_selection_marks_explicit_requests() -> None:
 
     assert resolution.selection_source == "explicit"
     assert resolution.diagnostic.details["requested_engine_id"] == DEFAULT_ENGINE_ID
+
+
+def test_registry_run_matches_direct_run_for_fixed_seed() -> None:
+    sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=123)
+    years = list(range(START_YEAR, START_YEAR + 2))
+
+    direct = run_sim(sampled_params, pop_size=10, seed_idx=5, years=years)
+    registry_run = run_registered_simulation(
+        sampled_params,
+        pop_size=10,
+        seed_idx=5,
+        years=years,
+    )
+
+    assert registry_run.d_cost == direct[0]
+    assert registry_run.d_qaly == direct[1]
+    assert registry_run.resolution.metadata.engine_id == DEFAULT_ENGINE_ID
+    assert registry_run.diagnostics[0].code == "ENGINE_SELECTION"
+    assert registry_run.diagnostics[1].code == "ENGINE_EXECUTION"

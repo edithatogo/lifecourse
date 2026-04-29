@@ -32,6 +32,8 @@ required interchange target.
   microsimulation path backed by Dask.
 - The default path remains the reference implementation for policy analysis,
   regression testing, and release validation.
+- The maintained engine is exposed through a typed registry-mediated helper so
+  selection metadata and diagnostics can travel with the run result.
 - Public contracts should continue to work against this default path even when
   future engines are added.
 

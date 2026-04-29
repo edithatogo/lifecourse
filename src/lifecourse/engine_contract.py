@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
+from lifecourse.engine_runner import run_discrete_time_simulation
 from lifecourse.model_contract import (
     DiagnosticLevel,
     DiagnosticRecord,
@@ -44,6 +45,16 @@ class EngineResolution:
     metadata: EngineMetadata
     selection_source: Literal["default", "explicit"]
     diagnostic: DiagnosticRecord
+
+
+@dataclass(frozen=True, slots=True)
+class EngineRunResult:
+    """Execution result for a registry-mediated simulation run."""
+
+    resolution: EngineResolution
+    d_cost: float
+    d_qaly: float
+    diagnostics: tuple[DiagnosticRecord, ...] = ()
 
 
 class UnknownEngineError(ValueError):
@@ -140,4 +151,47 @@ def resolve_engine_selection(
         metadata=spec.metadata,
         selection_source=selection_source,
         diagnostic=diagnostic,
+    )
+
+
+def run_registered_simulation(
+    sampled_params: Any,
+    *,
+    pop_size: int,
+    seed_idx: int | None = None,
+    years: list[int] | tuple[int, ...] | None = None,
+    debug: bool = False,
+    engine_id: str | None = None,
+) -> EngineRunResult:
+    """Execute the current simulation through the engine registry."""
+
+    resolution = resolve_engine_selection(engine_id=engine_id)
+    d_cost, d_qaly = run_discrete_time_simulation(
+        sampled_params,
+        pop_size=pop_size,
+        seed_idx=seed_idx,
+        years=years,
+        debug=debug,
+    )
+    diagnostics = (
+        resolution.diagnostic,
+        DiagnosticRecord(
+            level=DiagnosticLevel.info,
+            code="ENGINE_EXECUTION",
+            message=f"Executed engine {resolution.metadata.engine_id}.",
+            details={
+                "engine_id": resolution.metadata.engine_id,
+                "selection_source": resolution.selection_source,
+                "seed_idx": seed_idx,
+                "pop_size": pop_size,
+                "year_count": len(years) if years is not None else None,
+                "debug": debug,
+            },
+        ),
+    )
+    return EngineRunResult(
+        resolution=resolution,
+        d_cost=float(d_cost),
+        d_qaly=float(d_qaly),
+        diagnostics=diagnostics,
     )

@@ -14,22 +14,22 @@
     - [x] Keep planned features separate from production defaults.
 - [x] Task: Conductor - Automated Review and Checkpoint 'Documentation Map And Status' (Protocol in workflow.md)
 
-## Phase 2: Lightweight Docs Checks
+## Phase 2: Lightweight Docs Checks [checkpoint: c473047]
 
-- [ ] Task: Add a local docs-check command.
-    - [ ] Prefer a small repository script before adopting a full docs generator.
-    - [ ] Check internal markdown links, required docs files, and stale references.
-    - [ ] Fail clearly with actionable messages.
-- [ ] Task: Add Markdown prose linting to the docs-check workflow.
-    - [ ] Keep the initial rule set small and repository-local.
-    - [ ] Fail only on Markdown content, not source or generated artifacts.
-- [ ] Task: Add docs-check workflow integration.
-    - [ ] Add a nox session for docs checks.
-    - [ ] Add CI coverage once the local check is stable.
-- [ ] Task: Document docs-check usage.
-    - [ ] Add commands to README or CONTRIBUTING only if contributors need them.
-    - [ ] Keep docs-check dependencies out of the runtime dependency set.
-- [ ] Task: Conductor - Automated Review and Checkpoint 'Lightweight Docs Checks' (Protocol in workflow.md)
+- [x] Task: Add a local docs-check command.
+    - [x] Prefer a small repository script before adopting a full docs generator.
+    - [x] Check internal markdown links, required docs files, and stale references.
+    - [x] Fail clearly with actionable messages.
+- [x] Task: Add Markdown prose linting to the docs-check workflow.
+    - [x] Keep the initial rule set small and repository-local.
+    - [x] Fail only on Markdown content, not source or generated artifacts.
+- [x] Task: Add docs-check workflow integration.
+    - [x] Add a nox session for docs checks.
+    - [x] Add CI coverage once the local check is stable.
+- [x] Task: Document docs-check usage.
+    - [x] Add commands to README or CONTRIBUTING only if contributors need them.
+    - [x] Keep docs-check dependencies out of the runtime dependency set.
+- [x] Task: Conductor - Automated Review and Checkpoint 'Lightweight Docs Checks' (Protocol in workflow.md)
 
 ## Phase 3: Stack Change Checklist
 

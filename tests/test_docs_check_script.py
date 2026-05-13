@@ -45,6 +45,7 @@ def test_status_pages_have_required_sections() -> None:
         "## Scope",
         "## Taxonomy",
         "## Current Production Engine",
+        "## Experimental Scaffold",
         "## Future Engine Candidates",
         "## Selection Contract",
         "## Dependency Policy",

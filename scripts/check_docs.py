@@ -67,6 +67,7 @@ REQUIRED_SECTIONS = {
         "Scope",
         "Taxonomy",
         "Current Production Engine",
+        "Experimental Scaffold",
         "Future Engine Candidates",
         "Selection Contract",
         "Dependency Policy",

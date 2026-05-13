@@ -38,6 +38,11 @@ This document distinguishes the repo's current brownfield implementation from th
 - Python package API
 - command-line interfaces for scenario runs and full workflow execution
 
+### Documentation
+- `docs/` directory with markdown-first architecture, design, requirements, and strategy docs
+- lightweight docs-check workflow via nox session (markdown prose linting, link validation)
+- Vale for prose linting with repository-local style rules
+
 ## Implemented Foundation
 The modernization foundation track has established these parts of the target stack as active project conventions:
 
@@ -53,6 +58,14 @@ The modernization foundation track has established these parts of the target sta
 - `ruff` as the main formatter and linter for the maintained modernization slice
 - `basedpyright` in strict mode for checked modules
 - `pytest` coverage enforcement above 90% for the maintained foundation scope
+
+### Documentation
+- Starlight documentation site scaffolded at `docs/astro-site/`
+- `starlight-polyglot` for auto-generated Python API reference from `src/lifecourse`
+- `starlight-versions` for versioned documentation
+- `starlight-links-validator` for automated link checking
+- `starlight-llms-txt` for LLM-consumable documentation exports
+- CI/CD workflow for GitHub Pages deployment on main branch pushes
 
 ## Implemented Backend Evaluation Layer
 The backend migration track has introduced an opt-in evaluation layer without

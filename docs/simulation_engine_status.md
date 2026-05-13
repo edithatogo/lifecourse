@@ -37,6 +37,14 @@ required interchange target.
 - Public contracts should continue to work against this default path even when
   future engines are added.
 
+## Experimental Scaffold
+
+- The registry also contains a low-risk static decision-model scaffold.
+- It is request-driven, deterministic, and dependency-free aside from the
+  existing model contract and utility libraries.
+- It is intentionally separate from the production default and should be used
+  only for experimental static decision-model workflows.
+
 ## Future Engine Candidates
 
 - Static decision models for diagnostic scoping and other one-shot policy

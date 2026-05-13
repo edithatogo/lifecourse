@@ -5,6 +5,11 @@ from dataclasses import dataclass
 from typing import Any, Literal, Protocol, runtime_checkable
 
 from lifecourse.engine_runner import run_discrete_time_simulation
+from lifecourse.engine_scaffolds import (
+    STATIC_ENGINE_ID,
+    STATIC_ENGINE_METADATA,
+    run_static_decision_model,
+)
 from lifecourse.model_contract import (
     DiagnosticLevel,
     DiagnosticRecord,
@@ -73,6 +78,10 @@ def _default_engine_spec() -> SimulationEngineSpec:
 
 _ENGINE_REGISTRY: dict[str, SimulationEngineSpec] = {
     DEFAULT_ENGINE_ID: _default_engine_spec(),
+    STATIC_ENGINE_ID: SimulationEngineSpec(
+        metadata=STATIC_ENGINE_METADATA,
+        runner=run_static_decision_model,
+    ),
 }
 
 
@@ -128,7 +137,7 @@ def resolve_engine_selection(
         "engine_name": spec.metadata.engine_name,
         "engine_version": spec.metadata.engine_version,
         "selection_source": selection_source,
-        "available_engine_ids": list_engine_ids(),
+        "available_engine_ids": list(list_engine_ids()),
     }
     if seed_policy is not None:
         strategy = getattr(seed_policy, "strategy", None)
@@ -194,4 +203,22 @@ def run_registered_simulation(
         d_cost=float(d_cost),
         d_qaly=float(d_qaly),
         diagnostics=diagnostics,
+    )
+
+
+def run_engine_request(request: ModelRunRequest) -> ModelRunResponse:
+    """Execute a contract request through the registered engine."""
+
+    spec = get_engine(request.engine.engine_id)
+    response = spec.runner(request)
+    selection = resolve_engine_selection(
+        engine_id=request.engine.engine_id,
+        seed_policy=request.seed_policy,
+    )
+    diagnostics = [selection.diagnostic, *response.diagnostics]
+    return response.model_copy(
+        update={
+            "engine": spec.metadata,
+            "diagnostics": diagnostics,
+        }
     )

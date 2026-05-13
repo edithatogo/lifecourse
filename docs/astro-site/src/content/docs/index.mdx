@@ -1,0 +1,49 @@
+---
+title: lifecourse Documentation
+description: A microsimulation model for evaluating cost-effectiveness and budget impact of health interventions.
+template: splash
+hero:
+  tagline: Health-economic microsimulation for genomic testing policy analysis
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Get Started
+      link: /getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/edithatogo/lifecourse
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+lifecourse is a Python microsimulation model for evaluating the cost-effectiveness
+and budget impact of health interventions across simulated life courses.
+
+## Quick Install
+
+```bash
+pip install lifecourse
+```
+
+## Quick Start
+
+```python
+from lifecourse import SimulationEngine
+
+engine = SimulationEngine(...)
+results = engine.run()
+```
+
+<CardGrid>
+  <Card title="Getting Started" icon="rocket">
+    Install lifecourse and run your first simulation.
+  </Card>
+  <Card title="Architecture" icon="setting">
+    Understand the simulation engine architecture and design.
+  </Card>
+  <Card title="API Reference" icon="book-open">
+    Browse the complete Python API reference.
+  </Card>
+</CardGrid>

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from lifecourse.analysis.run_helpers import run_sim
 from lifecourse.engine_contract import (
     DEFAULT_ENGINE_ID,

@@ -1,0 +1,52 @@
+---
+title: Getting Started
+description: Install lifecourse and run your first simulation.
+---
+
+lifecourse is a Python microsimulation model for evaluating the cost-effectiveness
+and budget impact of health interventions.
+
+## Installation
+
+Install lifecourse using pip:
+
+```bash
+pip install lifecourse
+```
+
+Or using uv:
+
+```bash
+uv pip install lifecourse
+```
+
+## Requirements
+
+- Python 3.10+
+- numpy, pandas, scipy
+- dask for parallel execution
+
+## Your First Simulation
+
+```python
+from lifecourse import SimulationEngine
+
+# Configure the simulation
+engine = SimulationEngine(
+    population_size=10000,
+    time_horizon_years=30,
+    discount_rate=0.03,
+)
+
+# Run the simulation
+results = engine.run()
+
+# View outcomes
+print(results.summary())
+```
+
+## Next Steps
+
+- Explore the [Architecture](/architecture/) to understand how lifecourse works.
+- Review the [Design](/design/) documentation for detailed design decisions.
+- Browse the [API Reference](/api/) for complete function and class documentation.

@@ -204,6 +204,6 @@ deterministic_summary.csv
 .venv
 docs/astro-site/node_modules/
 docs/astro-site/dist/
-docs/astro-site/pnpm-lock.yaml
 docs/astro-site/src/content/docs/llms.txt
 docs/astro-site/src/content/docs/llms-full.txt
+package-lock.json

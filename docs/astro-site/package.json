@@ -13,7 +13,7 @@
     "starlight-links-validator": "latest",
     "starlight-versions": "latest",
     "starlight-llms-txt": "latest",
-
-    "@astrojs/sitemap": "latest"
+    "@astrojs/sitemap": "latest",
+    "starlight-polyglot": "file:/Users/doughnut/GitHub/starlight-polyglot/packages/starlight-polyglot"
   }
 }

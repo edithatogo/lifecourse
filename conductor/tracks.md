@@ -149,5 +149,17 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
+- [x] **Track: Create real documentation content for the Starlight documentation site, configure all plugins (polyglot, versions, links-validator, llms-txt), create the migration conductor track, and deploy to GitHub Pages.**
+  *Link: [./tracks/migrate_starlight/](./tracks/migrate_starlight/)*
+  *completed: 2026-05-17*
+
+---
+
+- [x] **Track: Migrate documentation site from markdown-first to Starlight with automated API reference, link validation, versioning, LLM export, and GitHub Pages CI/CD.**
+  *Link: [./tracks/starlight_migration_20260513/](./tracks/starlight_migration_20260513/)*
+  *completed: 2026-05-17*
+
+---
+
 - [ ] **Track: Create reproducible analysis bundles with run manifests, checksums, assumption audits, output indexes, and publication-ready reporting artifacts.**
   *Link: [./tracks/reproducible_reporting_bundle_20260428/](./tracks/reproducible_reporting_bundle_20260428/)*

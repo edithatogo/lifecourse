@@ -1,0 +1,232 @@
+---
+title: Contributing
+description: Guidelines for contributing to lifecourse — development setup, testing, documentation, and pull request process.
+---
+
+We welcome contributions to lifecourse! This guide covers the development
+workflow, coding standards, testing practices, and documentation conventions.
+
+## Development Setup
+
+### Prerequisites
+
+- Python 3.10+
+- Git
+- (Optional) `uv` for dependency management
+- (Optional) Node.js 18+ and `pnpm` for documentation development
+
+### Clone and Install
+
+```bash
+git clone https://github.com/edithatogo/lifecourse.git
+cd lifecourse
+
+# Create a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install in editable mode with development dependencies
+pip install -e ".[dev]"
+
+# Or using uv (recommended)
+uv pip install -e ".[dev]"
+```
+
+### Verify Installation
+
+```bash
+python -c "import lifecourse; print(lifecourse.__version__)"
+pytest
+```
+
+## Development Workflow
+
+### Branch Convention
+
+We use feature branches based on the `main` branch:
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b feat/my-feature-name
+```
+
+Branch prefixes:
+
+- `feat/` — New features
+- `fix/` — Bug fixes
+- `docs/` — Documentation changes
+- `chore/` — Maintenance, tooling, CI
+- `refactor/` — Code refactoring without functional changes
+
+### Code Style
+
+This project uses `ruff` for both formatting and linting:
+
+```bash
+# Format code
+ruff check --fix .
+
+# Check formatting
+ruff format --check .
+
+# Apply formatting
+ruff format .
+```
+
+### Type Checking
+
+We use `basedpyright` in strict mode for type checking:
+
+```bash
+basedpyright
+```
+
+### Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src/lifecourse
+
+# Run specific test file
+pytest tests/test_engine_contract.py
+
+# Run tests matching a keyword
+pytest -k "calibration"
+```
+
+### Pre-commit Hooks
+
+The project uses pre-commit hooks to enforce code quality:
+
+```bash
+# Install pre-commit hooks
+pre-commit install
+
+# Run hooks manually
+pre-commit run --all-files
+```
+
+## Pull Request Process
+
+1. **Create an issue** describing the change you'd like to make, unless it's a
+   trivial fix.
+2. **Fork the repository** and create a feature branch.
+3. **Write tests** for any new functionality. Ensure existing tests pass.
+4. **Update documentation** if you're changing public APIs or adding features.
+5. **Run the full test suite** locally:
+   ```bash
+   pytest --cov=src/lifecourse
+   ```
+6. **Submit a pull request** against the `main` branch with a clear description
+   of the changes.
+
+### PR Checklist
+
+Before submitting, ensure:
+
+- [ ] Code follows project style (ruff passes)
+- [ ] Type checking passes (basedpyright)
+- [ ] Tests pass and coverage is maintained or improved
+- [ ] Documentation is updated if public API changes
+- [ ] Changelog is updated with notable changes
+- [ ] Pre-commit hooks pass
+
+## Documentation Conventions
+
+### Editing Documentation
+
+Documentation is authored in MDX and lives in `docs/astro-site/src/content/docs/`.
+
+```bash
+# Start the Starlight dev server
+cd docs/astro-site
+pnpm dev
+```
+
+### Adding a New Page
+
+1. Create an `.mdx` file in `docs/astro-site/src/content/docs/`.
+2. Add frontmatter with `title` and `description`.
+3. Add the page to the sidebar in `docs/astro-site/astro.config.mjs`.
+
+### Writing Guidelines
+
+- Use Markdown with MDX extensions for interactivity.
+- Code examples must be runnable or clearly marked as illustrative.
+- Use `:::note`, `:::tip`, `:::caution`, `:::danger` for callouts.
+- Internal links use Starlight slug paths (e.g., `/usage/`).
+- Keep documentation truthful: mark experimental features explicitly.
+
+## Project Structure
+
+```
+lifecourse/
+├── src/lifecourse/          # Python package source
+│   ├── analysis/            # Analysis modules (PSA, VOI, plotting)
+│   └── model/               # Simulation model (population, parameters)
+├── tests/                   # Test suite (mirrors src/ structure)
+├── docs/                    # Documentation
+│   ├── astro-site/          # Starlight documentation site
+│   └── *.md                 # Legacy markdown docs
+├── conductor/               # Project management and migration tracks
+├── config/                  # YAML configuration files
+└── results/                 # Simulation output directory
+```
+
+## Testing Conventions
+
+### Test Locations
+
+Tests mirror the source structure in `tests/`:
+
+```
+tests/
+├── test_engine_contract.py  # Engine registry tests
+├── test_engine_scaffold.py  # Engine scaffold tests
+├── test_data_loader.py      # Data loading tests
+├── test_config_validation.py# Config validation tests
+└── ...
+```
+
+### Writing Tests
+
+- Use `pytest` with plain `assert` statements.
+- Prefer unit tests over integration tests where possible.
+- Use fixtures for shared test data in `conftest.py` files.
+- Mark slow tests with `@pytest.mark.slow`.
+- Aim for >90% coverage on new code.
+
+```python
+# Example test
+def test_engine_registration():
+    from lifecourse.engine_contract import list_engine_ids, register_engine
+
+    initial_count = len(list_engine_ids())
+    # Test that registration works
+    assert len(list_engine_ids()) >= 1  # default engine exists
+```
+
+## Reporting Issues
+
+When reporting issues, please include:
+
+- Python version and environment details (`python --version`, `pip list`)
+- Steps to reproduce the issue
+- Expected vs actual behavior
+- Full error traceback (if applicable)
+- Code or data to reproduce (if possible)
+
+## Code of Conduct
+
+This project is committed to providing a welcoming, inclusive environment for
+all contributors. Please be respectful and constructive in all interactions.
+
+## Getting Help
+
+- **Issues**: GitHub Issues for bug reports and feature requests
+- **Discussions**: GitHub Discussions for questions and community support
+- **Documentation**: This Starlight site is the primary documentation source

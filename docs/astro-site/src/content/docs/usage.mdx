@@ -1,0 +1,421 @@
+---
+title: Usage Guide
+description: Detailed guide on configuring and running lifecourse simulations, including scenario management, sensitivity analysis, and output interpretation.
+---
+
+This guide covers the full simulation workflow: setting up parameters, running
+deterministic and probabilistic analyses, interpreting outputs, and customizing
+the simulation engine.
+
+## Simulation Workflow Overview
+
+A typical lifecourse analysis follows these steps:
+
+1. **Define parameters** — Set base parameter values (disease risks, costs,
+   utilities, test characteristics).
+2. **Configure scenarios** — Define intervention scenarios via YAML or
+   programmatic parameter overrides.
+3. **Run deterministic analysis** — Compute incremental costs and QALYs for
+   each scenario.
+4. **Run Probabilistic Sensitivity Analysis (PSA)** — Sample parameter
+   distributions across Monte Carlo runs to quantify uncertainty.
+5. **Analyze results** — Generate cost-effectiveness planes, CEACs, EVPI, EVPPI,
+   subgroup analyses, budget impact, and equity assessments.
+6. **Report** — Export results to CSV, generate publication-ready plots.
+
+## Parameter Configuration
+
+Parameters are defined through distribution objects that specify the parameter
+name, distribution type, and shape parameters:
+
+```python
+from lifecourse.model.parameter_loader import get_parameter_attributes
+
+config = {"parameter_set": "australia"}
+DISTRIBUTIONS, START_YEAR, get_mean_params = get_parameter_attributes(
+    config, "DISTRIBUTIONS", "START_YEAR", "get_mean_params"
+)
+
+# Extract mean parameter values
+base_params = get_mean_params(DISTRIBUTIONS)
+print(f"Simulation start year: {START_YEAR}")
+print(f"Available parameters: {list(base_params.keys())[:10]}...")
+```
+
+### Parameter Distribution Types
+
+| Distribution | Use Case | Parameters |
+|-------------|----------|------------|
+| `beta` | Proportions, probabilities (0-1) | `alpha`, `beta` |
+| `gamma` | Costs, positive continuous values | `shape`, `scale` |
+| `lognormal` | Skewed positive values (e.g., costs) | `s` (shape), `scale` |
+| `normal` | Symmetric continuous values | `loc` (mean), `scale` (std) |
+| `uniform` | Equal-probability ranges | `low`, `high` |
+| `fixed` | Constants with no uncertainty | `value` |
+
+## Running Deterministic Scenarios
+
+### Programmatic API
+
+```python
+from lifecourse.analysis.run_helpers import run_sim
+from lifecourse.data_loader import apply_scenario_overrides
+
+# Base parameters
+base_params = {
+    "familial_prop": 0.15,
+    "yield_wgs": 0.78,
+    "u_diag": 0.85,
+    "cost_inp_severe": 50000,
+}
+
+# Define scenario overrides
+scenario_overrides = {"yield_wgs": 0.95, "familial_prop": 0.20}
+params = apply_scenario_overrides(base_params, scenario_overrides)
+
+years = list(range(2024, 2055))
+dcost, dqaly = run_sim(params, pop_size=1000, years=years)
+icer = dcost / dqaly if dqaly != 0 else 0
+
+print(f"Scenario: High Coverage")
+print(f"  dCost: {dcost:>10,.2f}")
+print(f"  dQALY: {dqaly:>10.4f}")
+print(f"  ICER:  {icer:>10,.2f}")
+```
+
+### YAML-Driven Scenarios
+
+Scenarios can be defined in YAML files and loaded by name:
+
+```yaml
+# config/scenarios.yaml
+scenarios:
+  base_case:
+    familial_prop: 0.15
+    yield_wgs: 0.78
+    u_diag: 0.85
+    cost_inp_severe: 50000
+  high_coverage:
+    yield_wgs: 0.95
+  targeted_age_25:
+    min_test_age: 25
+```
+
+```python
+from lifecourse.data_loader import load_scenarios_from_yaml
+
+scenarios = load_scenarios_from_yaml("config/scenarios.yaml")
+print(f"Loaded {len(scenarios)} scenarios: {list(scenarios.keys())}")
+
+for name, overrides in scenarios.items():
+    params = apply_scenario_overrides(base_params, overrides)
+    dcost, dqaly = run_sim(params, pop_size=1000, years=years)
+    icer = dcost / dqaly if dqaly != 0 else 0
+    print(f"{name}: ICER = {icer:,.2f}")
+```
+
+### Scenario Grids
+
+Generate combinatorial scenarios from parameter grids:
+
+```yaml
+# config/scenarios.yaml
+scenario_grid:
+  yield_wgs: [0.70, 0.80, 0.90]
+  familial_prop: [0.10, 0.15, 0.20]
+```
+
+This produces 9 scenarios (3×3 grid) automatically.
+
+
+
+## CLI Reference
+
+The command-line interface provides quick access to common workflows:
+
+```bash
+# Show help
+python -m lifecourse.main --help
+
+# Run with default configuration
+python -m lifecourse.main
+
+# Run with specific config
+python -m lifecourse.main --config_name DEFAULT_CONFIG
+
+# Enable debug mode
+python -m lifecourse.main --debug
+
+# Run CLI with scenario name
+python -m lifecourse.cli base_case
+
+# Run CLI calibration
+python -m lifecourse.cli --calibration
+
+# Run structural uncertainty analysis
+python -m lifecourse.cli --structural-uncertainty
+```
+
+### CLI Arguments
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--config_name` | str | `DEFAULT_CONFIG` | Configuration name to use |
+| `--config_file` | str | None | Path to external YAML config |
+| `--debug` | flag | False | Single-threaded debug mode |
+| `--log-level` | str | None | Logging level (DEBUG, INFO, etc.) |
+| `scenario` | str | None | Scenario from config/scenarios.yaml |
+| `--pop-size` | int | 100 | Population size |
+| `--calibration` | flag | False | Run calibration analysis |
+| `--structural-uncertainty` | flag | False | Run structural uncertainty |
+| `--years` | int | 81 | Number of simulation years |
+| `--version` | flag | False | Show version |
+
+## Output Files
+
+Simulations generate outputs in the `results/` directory:
+
+| File | Description |
+|------|-------------|
+| `deterministic_summary.csv` | ICER, dCost, dQALY per scenario |
+| `psa_samples.csv` | PSA iteration results |
+| `input_parameters_with_distributions.csv` | Parameter distribution summary |
+| `publication_comparison.csv` | Comparison with published values |
+| `*.png` | Generated plots |
+
+## Performance Considerations
+
+- **Population size**: Default is 100. For production use 1,000–10,000.
+- **Dask parallelism**: Over 1,000 pop uses threaded execution; under 1,000
+  uses synchronous scheduler to avoid overhead.
+- **Memory**: For 10,000 individuals over 30 years, expect 500 MB–2 GB RAM.
+- **PSA runs**: 100–1,000 iterations typical. Use Dask distributed scheduler
+  for large batches.
+- **Debug mode**: Pass `debug=True` or `--debug` for single-threaded
+  execution with memory and timing diagnostics.
+
+## Troubleshooting
+
+### Simulation returns zero or NaN
+
+Check parameter ranges. Common issues:
+
+- `yield_wgs` or `familial_prop` set to 0 (no diagnosed individuals)
+- `u_diag` utility set to 0 (no QALY gains)
+- Population size too small to detect differences
+
+### Dask scheduler warnings
+
+```python
+from lifecourse.analysis.run_helpers import select_dask_scheduler
+scheduler = select_dask_scheduler(pop_size=100, years=years, debug=True)
+```
+
+### Long build times
+
+Reduce parameters for testing:
+
+```python
+dcost, dqaly = run_sim(params, pop_size=10, years=range(2024, 2026))
+```
+
+## Using the Engine Registry
+
+The engine registry allows you to work with multiple simulation engine
+implementations through a unified interface:
+
+```python
+from lifecourse.engine_contract import (
+    list_engine_ids,
+    get_engine,
+    default_engine_metadata,
+    register_engine,
+    SimulationEngineSpec,
+)
+
+# List available engines
+print(f"Available engines: {list_engine_ids()}")
+
+# Get engine metadata
+metadata = default_engine_metadata()
+print(f"Default engine: {metadata.engine_name} v{metadata.engine_version}")
+```
+
+Register a custom engine:
+
+```python
+from lifecourse.model_contract import EngineMetadata, EngineCapabilities
+
+custom_engine = SimulationEngineSpec(
+    metadata=EngineMetadata(
+        engine_id="my-engine",
+        engine_name="My Custom Engine",
+        engine_version="1.0.0",
+        capabilities=EngineCapabilities(),
+    ),
+    runner=my_runner_function,
+)
+register_engine(custom_engine)
+```
+
+## Data Loading
+
+### New Zealand Population Data
+
+```python
+from lifecourse.data_loader import (
+    load_nz_population_distribution,
+    load_nz_life_table_hazards,
+)
+
+# Load NZ population distribution (by age and sex)
+population = load_nz_population_distribution()
+print(population.head())
+
+# Load NZ life table hazards (mortality rates)
+hazards = load_nz_life_table_hazards()
+print(f"Hazard keys: {list(hazards.keys())}")
+```
+
+### Opt-in Polars Backend
+
+```bash
+pip install lifecourse[tabular]
+```
+
+```python
+population = load_nz_population_distribution(backend="polars")
+```
+
+## Probabilistic Sensitivity Analysis (PSA)
+
+PSA propagates parameter uncertainty through the model using Monte Carlo
+sampling:
+
+```python
+from lifecourse.model.parameter_loader import get_parameter_attributes
+from lifecourse.analysis.run_helpers import run_sim
+import numpy as np
+import pandas as pd
+
+config = {"parameter_set": "australia"}
+DISTRIBUTIONS, START_YEAR, get_mean_params, sample_params_from_dist = (
+    get_parameter_attributes(
+        config,
+        "DISTRIBUTIONS",
+        "START_YEAR",
+        "get_mean_params",
+        "sample_params_from_dist",
+    )
+)
+
+years = list(range(START_YEAR, START_YEAR + 30))
+psa_results = []
+
+for i in range(100):
+    sampled_params = sample_params_from_dist(DISTRIBUTIONS, seed=i)
+    dcost, dqaly = run_sim(sampled_params, pop_size=100, years=years)
+    psa_results.append({"run": i, "dCost": dcost, "dQALY": dqaly})
+
+psa_df = pd.DataFrame(psa_results)
+print(psa_df.describe())
+```
+
+### PSA Outputs
+
+```python
+from lifecourse.analysis.plotting import (
+    plot_ce_plane, plot_ceac, plot_evpi, plot_enmb,
+)
+
+wtp = np.linspace(0, 150000, 40)
+dcost = psa_df["dCost"].to_numpy()
+dqaly = psa_df["dQALY"].to_numpy()
+valid = dqaly > 0
+nb = dqaly[valid, None] * wtp[None, :] - dcost[valid, None]
+
+plot_ce_plane(dcost, dqaly, wtp)
+plot_ceac(wtp, nb)
+plot_evpi(wtp, nb)
+plot_enmb(wtp, nb)
+```
+
+## Advanced Analysis Modules
+
+### Value of Information (EVPPI, EVSI)
+
+```python
+from lifecourse.analysis.advanced_analysis import run_evsi_analysis
+
+evsi_summary = run_evsi_analysis(
+    base_params, psa_runs=100, wtp_threshold=30000,
+    pop_size=100, years=years,
+)
+print(f"EVSI results: {evsi_summary['evsi_results']}")
+```
+
+### Budget Impact Analysis
+
+```python
+from lifecourse.analysis.advanced_analysis import (
+    calculate_budget_impact_with_adoption,
+)
+import numpy as np
+
+incremental_costs = np.array([100000, 150000, 200000, 180000, 160000])
+years_array = np.array([2024, 2025, 2026, 2027, 2028])
+
+result = calculate_budget_impact_with_adoption(
+    incremental_costs, years_array, "logistic",
+    max_adoption=1.0, growth_rate=1.0, inflection_point=3.0,
+)
+print(f"Budget impact: {result['adopted_costs']}")
+```
+
+### Subgroup and Equity Analysis
+
+```python
+from lifecourse.analysis.advanced_analysis import (
+    run_concentration_analysis,
+    run_distributional_impacts_analysis,
+)
+
+ci_results = run_concentration_analysis(
+    base_params, psa_runs=100, pop_size=100, years=years,
+)
+
+dist_results = run_distributional_impacts_analysis(
+    base_params, psa_runs=100, pop_size=100, years=years,
+)
+```
+
+### Multi-Criteria Decision Analysis (MCDA)
+
+```python
+from lifecourse.analysis.advanced_analysis import run_mcda_analysis
+import pandas as pd
+
+decision_matrix = pd.DataFrame(
+    {
+        "Cost": [50000, 55000, 48000],
+        "QALYs": [5.2, 5.8, 4.9],
+    },
+    index=["Strategy_A", "Strategy_B", "Strategy_C"],
+)
+mcda_results = run_mcda_analysis(
+    decision_matrix=decision_matrix,
+    normalization_method="linear", weight_method="equal",
+)
+print(f"MCDA scores: {mcda_results['final_scores']}")
+```
+
+### Calibration Analysis
+
+```python
+from lifecourse.analysis.advanced_analysis import run_calibration
+
+calibration_result = run_calibration(
+    base_params, pop_size=1000, years=years,
+)
+print(f"Calibration error: {calibration_result['error_pct']:.2f}%")
+```

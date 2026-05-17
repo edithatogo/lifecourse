@@ -1,0 +1,178 @@
+---
+title: API Reference
+description: Overview of the lifecourse Python API, including engine registry, data loaders, analysis modules, and CLI.
+---
+
+This page provides an overview of the lifecourse public API surface. The API
+reference pages are auto-generated from Python source code using
+`starlight-polyglot`.
+
+## Package Structure
+
+```
+lifecourse/
+├── __init__.py              # Version information
+├── version.py               # Version detection
+├── cli.py                   # Command-line interface (simple CLI)
+├── main.py                  # Main simulation CLI (full workflow)
+├── config_validation.py     # Pydantic config validation
+├── data_loader.py           # Data loading (population, life tables, scenarios)
+├── data_validation.py       # DataFrame schema validation with pandera
+├── diagnostics.py           # Logging configuration
+├── engine_contract.py       # Engine registry and simulation protocol
+├── engine_runner.py         # Discrete-time simulation runner
+├── engine_scaffolds.py      # Additional engine implementations
+├── model_contract.py        # Typed contracts for requests/responses
+├── backend_evaluation.py    # Backend evaluation and recommendations
+├── backend_benchmarks.py    # Benchmark suite for backend comparison
+├── analysis/
+│   ├── advanced_analysis.py # VOI, calibration, equity, MCDA, EVSI
+│   ├── run_helpers.py       # Simulation execution helpers
+│   ├── scenario_generator.py# Dynamic scenario generation
+│   ├── plotting.py          # Visualization functions
+│   └── performance_profiler.py # Profiling utilities
+└── model/
+    ├── parameters.py        # Default parameter definitions
+    ├── parameter_loader.py  # Parameter distribution loading
+    ├── parameter_factory.py # Parameter object construction
+    ├── parameter_validation.py # Parameter validation
+    ├── parameters_nz.py     # New Zealand-specific parameters
+    ├── population_system.py # Population simulation engine
+    ├── cohort.py            # Cohort management
+    ├── rng_utils.py         # Random number generation utilities
+    └── dask_utils.py        # Dask DataFrame utilities
+```
+
+## Key Modules
+
+### Engine Registry (`lifecourse.engine_contract`)
+
+```python
+from lifecourse.engine_contract import (
+    SimulationEngine,          # Protocol for engine implementations
+    SimulationEngineSpec,      # Registry entry with metadata + runner
+    EngineRunResult,           # Execution result with diagnostics
+    EngineResolution,          # Resolved engine selection
+    list_engine_ids,           # List registered engine IDs
+    get_engine,                # Get engine spec by ID
+    register_engine,           # Register a custom engine
+    select_engine,             # Resolve engine by ID or default
+    default_engine_metadata,   # Get default engine metadata
+    run_registered_simulation, # Execute via registry
+    UnknownEngineError,        # Raised for unknown engine IDs
+)
+```
+
+### Data Loader (`lifecourse.data_loader`)
+
+```python
+from lifecourse.data_loader import (
+    load_nz_population_distribution,  # Load NZ population by age/sex
+    load_nz_life_table_hazards,       # Load NZ mortality hazards
+    load_scenarios_from_yaml,         # Load scenarios from YAML
+    apply_scenario_overrides,         # Apply overrides to base params
+)
+```
+
+### Simulation Execution (`lifecourse.analysis.run_helpers`)
+
+```python
+from lifecourse.analysis.run_helpers import (
+    run_sim,                 # Run a single simulation
+    run_scenario,            # Run with full output DataFrame
+    select_dask_scheduler,   # Choose Dask scheduler strategy
+    get_memory_usage,        # Get current process memory
+)
+```
+
+### Advanced Analysis (`lifecourse.analysis.advanced_analysis`)
+
+```python
+from lifecourse.analysis.advanced_analysis import (
+    run_calibration,                     # Calibration analysis
+    run_structural_uncertainty,          # Structural uncertainty analysis
+    run_evsi_analysis,                   # EVSI
+    run_concentration_analysis,          # Concentration index
+    run_distributional_impacts_analysis, # Distributional impacts
+    run_mcda_analysis,                   # Multi-criteria decision analysis
+    run_vbp_analysis,                    # Value-based pricing
+    calculate_budget_impact_with_adoption, # Budget impact
+    calculate_distributional_statistics, # Distributional statistics
+    calculate_evpi,                      # EVPI
+    evaluate_calibration_backend_options,# Backend evaluation
+    run_deterministic_calibration_search,# Deterministic calibration search
+)
+
+### Plotting (`lifecourse.analysis.plotting`)
+
+```python
+from lifecourse.analysis.plotting import (
+    plot_ce_plane,            # Cost-effectiveness plane
+    plot_ceac,                # CE acceptability curve
+    plot_ceaf,                # CE acceptability frontier
+    plot_evpi,                # EVPI curve
+    plot_enmb,                # Expected net monetary benefit
+    plot_evppi_curves,        # EVPPI curves
+    plot_evsi_curves,         # EVSI curves
+    plot_tornado,             # Tornado diagram
+    plot_deterministic_icers, # Deterministic ICER bar chart
+    plot_subgroup_analysis,   # Subgroup analysis
+    plot_psa_histograms,      # PSA histograms
+    plot_budget_impact,       # Budget impact over time
+    plot_cost_mix_stacked_area,# Cost mix stacked area
+    plot_ses_equity,          # SES equity
+    plot_concentration_indices,# Concentration indices
+    plot_mcda_radar,          # MCDA radar chart
+    plot_mcda_ranking,        # MCDA ranking
+    plot_vbp_optimal_ranges,  # VBP optimal price ranges
+    plot_vbp_price_thresholds,# VBP price thresholds
+)
+```
+
+### Backend Evaluation (`lifecourse.backend_evaluation`)
+
+```python
+from lifecourse.backend_evaluation import (
+    evaluate_backend_readiness,     # Check backend availability
+    recommend_tabular_backend,      # Recommend tabular backend
+    recommend_numerical_backend,    # Recommend numerical backend
+    calculate_net_monetary_benefit, # NMB (NumPy/JAX)
+    calculate_evpi_value,          # EVPI value (NumPy/JAX)
+    BackendUnavailableError,       # Raised when backend unavailable
+)
+```
+
+### CLI (`lifecourse.cli` and `lifecourse.main`)
+
+```python
+# Simple CLI for direct scenario running
+python -m lifecourse.cli [scenario_name] [options]
+
+# Full workflow CLI with all analysis modules
+python -m lifecourse.main [options]
+```
+
+### Model Contracts (`lifecourse.model_contract`)
+
+```python
+from lifecourse.model_contract import (
+    ModelRunRequest,     # Typed simulation request
+    ModelRunResponse,    # Typed simulation response
+    EngineMetadata,      # Engine identification metadata
+    EngineCapabilities,  # Engine capability flags
+    SeedPolicy,          # Random seed configuration
+    DiagnosticRecord,    # Structured diagnostic record
+    DiagnosticLevel,     # Diagnostic severity levels
+)
+```
+
+## Auto-Generated API Pages
+
+Detailed API reference pages for each module are auto-generated by
+`starlight-polyglot` from the Python source code in `src/lifecourse/`.
+
+Browse the auto-generated reference:
+
+- [Python API Reference](/api/python/)
+
+```

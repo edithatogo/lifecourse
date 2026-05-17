@@ -1,0 +1,189 @@
+---
+title: Getting Started
+description: Install lifecourse and run your first simulation.
+---
+
+lifecourse is a Python microsimulation model for evaluating the cost-effectiveness
+and budget impact of health interventions — particularly genomic testing policies —
+across simulated individual life courses.
+
+## Requirements
+
+- **Python 3.10+**
+- Core dependencies: `numpy`, `pandas`, `scipy`
+- Parallel execution: `dask` (automatically configured)
+- Optional backends: `polars` (tabular), `jax` (numerical)
+- Optional extras: `plotnine` (visualization)
+
+## Installation
+
+### From PyPI (recommended)
+
+```bash
+pip install lifecourse
+```
+
+### Using uv
+
+```bash
+uv pip install lifecourse
+```
+
+### Editable development install
+
+```bash
+git clone https://github.com/edithatogo/lifecourse.git
+cd lifecourse
+pip install -e .
+```
+
+### With optional backend extras
+
+```bash
+# Install with Polars support for tabular operations
+pip install lifecourse[tabular]
+
+# Install with JAX support for numerical acceleration
+pip install lifecourse[jax]
+
+# Install with Plotnine for grammar-of-graphics plotting
+pip install lifecourse[visualization]
+
+# Install all optional backends
+pip install lifecourse[backends]
+```
+
+## Verifying Your Installation
+
+```bash
+python -c "import lifecourse; print(lifecourse.__version__)"
+```
+
+You should see a version string like `1.0.0` or `0+unknown` (for development
+installs).
+
+## Your First Simulation
+
+Here is a minimal example that runs a deterministic simulation with default
+parameters:
+
+```python
+from lifecourse.model.parameters import POP_SIZE
+from lifecourse.analysis.run_helpers import run_sim
+
+# Define base parameter values for the simulation
+params = {
+    "familial_prop": 0.15,      # Proportion of familial intellectual disability
+    "yield_wgs": 0.78,          # Diagnostic yield of whole genome sequencing
+    "u_diag": 0.85,             # Utility weight for diagnosed individuals
+    "cost_inp_severe": 50000,   # Annual inpatient cost for severe cases (currency units)
+}
+
+# Define the simulation time horizon (years)
+years = list(range(2024, 2055))
+
+# Run the simulation
+dcost, dqaly = run_sim(params, pop_size=POP_SIZE, years=years)
+
+# Calculate the Incremental Cost-Effectiveness Ratio (ICER)
+icer = dcost / dqaly if dqaly != 0 else 0
+
+print("=== Simulation Results ===")
+print(f"Incremental Cost:      {dcost:>12,.2f}")
+print(f"Incremental QALYs:     {dqaly:>12.4f}")
+print(f"ICER:                  {icer:>12,.2f} per QALY")
+```
+
+### Expected Output
+
+```
+=== Simulation Results ===
+Incremental Cost:          123,456.78
+Incremental QALYs:             2.3456
+ICER:                   52,634.00 per QALY
+```
+
+:::note[Note]
+Actual results will vary depending on the parameter values and population size.
+The output above is illustrative.
+:::
+
+## Using the CLI
+
+lifecourse also provides a command-line interface for running scenarios:
+
+```bash
+# Run a named scenario from config/scenarios.yaml
+python -m lifecourse.main --config_name DEFAULT_CONFIG
+
+# Run a calibration analysis
+python -m lifecourse.main --config_name DEFAULT_CONFIG
+
+# Or use the CLI entry point
+lifecourse-run --help
+```
+
+## Running from Configuration Files
+
+Simulations can be driven by YAML configuration files that define scenarios,
+parameter overrides, and analysis modules:
+
+```yaml
+# config/scenarios.yaml
+scenarios:
+  base_case:
+    familial_prop: 0.15
+    yield_wgs: 0.78
+  high_coverage:
+    yield_wgs: 0.95
+```
+
+Load and run:
+
+```bash
+python -m lifecourse.cli base_case
+```
+
+## Understanding the Output
+
+The simulation produces two primary metrics:
+
+| Metric | Description |
+|--------|-------------|
+| **Incremental Cost (dCost)** | The difference in total costs between the intervention arm (prospective) and standard care arm (retrospective), discounted to present value. |
+| **Incremental QALYs (dQALY)** | The difference in quality-adjusted life years between the two arms. |
+| **ICER** | The Incremental Cost-Effectiveness Ratio: dCost / dQALY. Indicates cost per QALY gained. |
+
+## Next Steps
+
+- Explore the [Usage Guide](/usage/) for detailed configuration and analysis options.
+- Browse the [API Reference](/api-reference/) for complete function and class documentation.
+- Review the [Contributing Guide](/contributing/) if you'd like to contribute to the project.
+
+## Troubleshooting
+
+### ImportError: No module named 'lifecourse'
+
+Ensure the package is installed:
+
+```bash
+pip list | grep lifecourse
+```
+
+If running from a local checkout, install in editable mode:
+
+```bash
+pip install -e .
+```
+
+### Dask warnings
+
+Dask may emit warnings about the scheduler. These are usually benign. For small
+simulations, the synchronous scheduler is automatically selected. Set
+`debug=True` in `run_sim` to force single-threaded execution.
+
+### Memory errors
+
+For large population sizes, ensure your system has sufficient RAM. The default
+population size is 100 individuals. For larger runs, review the
+[Usage Guide](/usage/#performance-considerations) for memory management tips.

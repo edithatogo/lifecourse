@@ -1,0 +1,158 @@
+---
+title: lifecourse Documentation
+description: A Python microsimulation model for evaluating the cost-effectiveness and budget impact of health interventions across simulated life courses.
+template: splash
+hero:
+  tagline: Health-economic microsimulation for genomic testing policy analysis
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Get Started
+      link: /getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Usage Guide
+      link: /usage/
+      icon: open-book
+      variant: secondary
+    - text: View on GitHub
+      link: https://github.com/edithatogo/lifecourse
+      icon: external
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { Badge } from '@astrojs/starlight/components';
+
+lifecourse is an open-source Python microsimulation model designed to evaluate the
+cost-effectiveness and budget impact of health interventions — particularly
+genomic testing policies — across simulated individual life courses.
+
+The model simulates individual-level health trajectories using discrete-time
+annual cycles, producing the incremental costs, quality-adjusted life years
+(QALYs), and cost-effectiveness metrics needed for health technology assessment
+(HTA) submissions and policy analysis.
+
+<CardGrid>
+  <Card title="Getting Started" icon="rocket">
+    Install lifecourse and run your first simulation in minutes.
+    <br />
+    <br />
+    **Python 3.10+** | **pip install lifecourse**
+    <br />
+    <br />
+    <LinkCard title="Install & Quick Start →" href="/getting-started/" />
+  </Card>
+  <Card title="Usage Guide" icon="open-book">
+    Learn how to configure scenarios, run sensitivity analyses, interpret
+    results, and customize the simulation engine.
+    <br />
+    <br />
+    <LinkCard title="Detailed Usage →" href="/usage/" />
+  </Card>
+  <Card title="API Reference" icon="book-open">
+    Browse the complete Python API reference, including the engine registry,
+    data loaders, analysis modules, and CLI interface.
+    <br />
+    <br />
+    <LinkCard title="Browse API →" href="/api-reference/" />
+  </Card>
+</CardGrid>
+
+## Key Features
+
+<CardGrid>
+  <Card title="Discrete-Time Microsimulation" icon="infinite">
+    Annual-cycle simulation engine with configurable population size, time
+    horizon, and discount rates. Supports prospective and retrospective arms for
+    incremental analysis.
+  </Card>
+  <Card title="Probabilistic Sensitivity Analysis (PSA)" icon="chart">
+    Monte Carlo simulation over parameter distributions with automated
+    generation of cost-effectiveness planes, CEACs, EVPI curves, and ENMB
+    plots.
+  </Card>
+  <Card title="Scenario Management" icon="setting">
+    YAML-based scenario configuration with grid expansion, dynamic scenario
+    generation, and scenario override application.
+  </Card>
+  <Card title="Multi-Backend Pilot" icon="experiment">
+    Opt-in support for Polars (tabular) and JAX (numerical) backends alongside
+    the default pandas/NumPy/Dask runtime.
+  </Card>
+  <Card title="Equity Analysis" icon="group">
+    SES quintile tracking, concentration indices, and distributional impact
+    analysis for health equity assessment.
+  </Card>
+  <Card title="Reproducible Results" icon="document">
+    Deterministic seed policy, structured diagnostics, engine metadata
+    capture, and CSV/PNG artifact outputs.
+  </Card>
+</CardGrid>
+
+## Quick Install
+
+```bash
+pip install lifecourse
+```
+
+Or with `uv`:
+
+```bash
+uv pip install lifecourse
+```
+
+## Quick Start
+
+```python
+from lifecourse.model.parameters import POP_SIZE
+from lifecourse.analysis.run_helpers import run_sim
+
+# Run a deterministic simulation
+params = {
+    "familial_prop": 0.15,
+    "yield_wgs": 0.78,
+    "u_diag": 0.85,
+    "cost_inp_severe": 50000,
+}
+years = list(range(2024, 2055))
+dcost, dqaly = run_sim(params, pop_size=POP_SIZE, years=years)
+icer = dcost / dqaly if dqaly != 0 else 0
+
+print(f"Incremental Cost: {dcost:,.2f}")
+print(f"Incremental QALYs: {dqaly:.4f}")
+print(f"ICER: {icer:,.2f}")
+```
+
+## Architecture Overview
+
+lifecourse uses a **discrete-time annual-cycle microsimulation** architecture:
+
+1. **Population System** — initializes individuals with age, sex, SES quintile,
+   and disease risk parameters.
+2. **Annual Step** — each year, the model applies mortality hazards, disease
+   progression, diagnosis probabilities, treatment costs, and QALY calculations.
+3. **Cost and Outcome Accumulation** — costs and QALYs are accumulated over the
+   simulation horizon for both retrospective (standard care) and prospective
+   (intervention) arms.
+4. **Analysis Layer** — deterministic scenarios, PSA, EVPI, EVPPI, EVSI,
+   subgroup analysis, budget impact, equity analysis, and MCDA.
+
+## Technology Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| **Core Simulation** | Python, NumPy, pandas, SciPy |
+| **Parallel Execution** | Dask |
+| **Configuration** | Pydantic v2, YAML |
+| **Validation** | pandera, basedpyright |
+| **Analysis** | NumPy, SciPy, custom modules |
+| **Plotting** | Matplotlib, Seaborn, optional Plotnine |
+| **Documentation** | Starlight (this site) |
+
+## Project Status
+
+<Badge text="Active Development" variant="tip" /> <Badge text="Python 3.10+" variant="default" /> <Badge text="MIT License" variant="default" />
+
+This project is under active development. The core simulation engine is stable
+and used in health-economic analyses. The Starlight documentation site is the
+primary documentation source.

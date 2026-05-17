@@ -1,0 +1,19 @@
+{
+  "name": "lifecourse-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "latest",
+    "astro": "latest",
+    "starlight-links-validator": "latest",
+    "starlight-versions": "latest",
+    "starlight-llms-txt": "latest",
+    "@astrojs/sitemap": "latest",
+    "starlight-polyglot": "file:/Users/doughnut/GitHub/starlight-polyglot/packages/starlight-polyglot"
+  }
+}

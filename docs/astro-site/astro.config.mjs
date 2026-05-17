@@ -4,6 +4,7 @@ import sitemap from '@astrojs/sitemap';
 import starlightLinksValidator from 'starlight-links-validator';
 import starlightVersions from 'starlight-versions';
 import starlightLlmsTxt from 'starlight-llms-txt';
+import polyglot from 'starlight-polyglot';
 
 export default defineConfig({
   site: 'https://edithatogo.github.io/lifecourse',
@@ -34,6 +35,12 @@ export default defineConfig({
         }),
         starlightLlmsTxt({
           full: true,
+        }),
+        polyglot({
+          python: {
+            entryPoints: ['src/lifecourse'],
+            output: 'api/python',
+          },
         }),
       ],
       sidebar: [

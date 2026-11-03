@@ -6,18 +6,12 @@ import re  # For parsing Gemini's response
 import logging  # Import the logging module
 
 # --- Configuration ---
-# IMPORTANT: Replace 'YOUR_GEMINI_API_KEY' with your actual Gemini API key
-# It's safer to load this from an environment variable:
-# os.environ.get("GOOGLE_API_KEY")
-# If you don't have it as an environment variable, uncomment the line below and set your key:
-os.environ["GOOGLE_API_KEY"] = (
-    "AIzaSyA4tWCve5VvenZ-7cYCv9VFDK6AyCKttzc"  # <--- Paste your API key here
-)
+# Supply GOOGLE_API_KEY through the environment.
 
 # Ensure API key is set
 if not os.environ.get("GOOGLE_API_KEY"):
     raise ValueError(
-        "GOOGLE_API_KEY environment variable not set. Please set it or uncomment and set your key in the script."
+        "GOOGLE_API_KEY environment variable not set. Please set it before running the script."
     )
 
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])

@@ -207,3 +207,8 @@ docs/astro-site/dist/
 docs/astro-site/src/content/docs/llms.txt
 docs/astro-site/src/content/docs/llms-full.txt
 package-lock.json
+
+# Local privacy tooling and restricted receipts
+/.local/
+/.venv-privacy-hooks/
+/.venv-privacy-presidio/

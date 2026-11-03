@@ -12,6 +12,7 @@ from src.model.parameters import START_YEAR
 # It would also need access to global constants like START_YEAR, EMP_NP, etc.
 # A full implementation would need to decide how these are passed or imported.
 from drafts.disease_model import DiseaseModel
+
 # Assuming draft of disease_model.py is in the same directory for this conceptual exercise.
 
 

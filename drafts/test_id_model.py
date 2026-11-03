@@ -6,8 +6,9 @@ It uses pandas DataFrames as stand-ins for Dask DataFrames.
 """
 
 import unittest
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 # Assume the drafted models are available for import
 from drafts.id_model import IDDiseaseModel

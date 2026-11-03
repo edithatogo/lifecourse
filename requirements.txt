@@ -9,3 +9,5 @@ pyarrow
 pre-commit
 ruff
 pytest-cov
+
+psutil

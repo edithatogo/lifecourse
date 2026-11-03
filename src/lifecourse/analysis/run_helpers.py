@@ -1,18 +1,19 @@
 import logging
 import random  # Added for setting Python's global random seed
-import numpy as np
-import pandas as pd
-import dask.dataframe as dd
-import dask.array as da
-import dask
-import psutil
 import time
 
-from lifecourse.model.population_system import PopulationSystemDask
-from lifecourse.model.parameters import POP_SIZE, prepare_dask_params
-from lifecourse.model.dask_utils import ensure_known_divisions, safe_from_pandas
+import dask
+import dask.array as da
+import dask.dataframe as dd
+import numpy as np
+import pandas as pd
+import psutil
 
-_LOG = logging.getLogger(__name__)
+from lifecourse.model.dask_utils import ensure_known_divisions, safe_from_pandas
+from lifecourse.model.parameters import POP_SIZE, prepare_dask_params
+from lifecourse.model.population_system import PopulationSystemDask
+
+logger = logging.getLogger(__name__)
 
 
 def get_memory_usage():
@@ -49,12 +50,12 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
     # Defensive: ensure the population Dask DataFrames have known divisions
     try:
         sim_r.pop = ensure_known_divisions(sim_r.pop)
-    except Exception as exc:  # pragma: no cover - defensive
-        _LOG.exception("ensure_known_divisions failed for retrospective pop: %s", exc)
+    except Exception:  # pragma: no cover - defensive
+        logger.exception("ensure_known_divisions failed for retrospective pop")
     try:
         sim_p.pop = ensure_known_divisions(sim_p.pop)
-    except Exception as exc:  # pragma: no cover - defensive
-        _LOG.exception("ensure_known_divisions failed for prospective pop: %s", exc)
+    except Exception:  # pragma: no cover - defensive
+        logger.exception("ensure_known_divisions failed for prospective pop")
 
     # Memory profiling
     if debug:
@@ -98,10 +99,8 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
                 empty_ser = safe_from_pandas(pd.Series([], dtype=float), npartitions=1)
                 try:
                     empty_ser = ensure_known_divisions(empty_ser)
-                except Exception as exc:  # pragma: no cover - defensive
-                    _LOG.exception(
-                        "ensure_known_divisions failed for empty_ser: %s", exc
-                    )
+                except Exception:  # pragma: no cover - defensive
+                    logger.exception("ensure_known_divisions failed for empty_ser")
                 individual_qalys_r.append(empty_ser)
 
         sim_p.step(yr)
@@ -126,10 +125,8 @@ def run_sim(sampled_params, pop_size=POP_SIZE, seed_idx=None, years=None, debug=
                 )
                 try:
                     empty_ser_p = ensure_known_divisions(empty_ser_p)
-                except Exception as exc:  # pragma: no cover - defensive
-                    _LOG.exception(
-                        "ensure_known_divisions failed for empty_ser_p: %s", exc
-                    )
+                except Exception:  # pragma: no cover - defensive
+                    logger.exception("ensure_known_divisions failed for empty_ser_p")
                 individual_qalys_p.append(empty_ser_p)
 
         if debug:
@@ -271,7 +268,9 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
                     annual_series_r_dask_list[-1]
                 )
             except Exception:
-                pass
+                logger.exception(
+                    "Unable to normalize partition divisions; retaining the current frame"
+                )
             ses_r_dask_list.append(
                 safe_from_pandas(
                     pd.Series([0] * pop_size, dtype=int, name=f"ses_{yr}_r"),
@@ -281,7 +280,9 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
             try:
                 ses_r_dask_list[-1] = ensure_known_divisions(ses_r_dask_list[-1])
             except Exception:
-                pass
+                logger.exception(
+                    "Unable to normalize partition divisions; retaining the current frame"
+                )
 
         sim_p.step(yr)
         if sim_p.pop.npartitions > 0:
@@ -301,7 +302,9 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
                     annual_series_p_dask_list[-1]
                 )
             except Exception:
-                pass
+                logger.exception(
+                    "Unable to normalize partition divisions; retaining the current frame"
+                )
             ses_p_dask_list.append(
                 safe_from_pandas(
                     pd.Series([0] * pop_size, dtype=int, name=f"ses_{yr}_p"),
@@ -311,7 +314,9 @@ def run_scenario(sampled_params, pop_size=POP_SIZE, years=None):
             try:
                 ses_p_dask_list[-1] = ensure_known_divisions(ses_p_dask_list[-1])
             except Exception:
-                pass
+                logger.exception(
+                    "Unable to normalize partition divisions; retaining the current frame"
+                )
 
     all_dask_objects = (
         annual_series_r_dask_list

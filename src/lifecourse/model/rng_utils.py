@@ -1,12 +1,17 @@
 """Stateless RNG helpers keyed by person_uid and a tag so draws are reproducible
 independent of execution order.
 """
+
 import numpy as _np
 
 
 def _seed_from(person_uid: int, tag: str, year: int = 0) -> int:
     # Simple deterministic 64-bit seed from components
-    h = (int(person_uid) & 0xFFFFFFFFFFFF) ^ (hash(tag) & 0xFFFFFFFFFFFF) ^ (year & 0xFFFF)
+    h = (
+        (int(person_uid) & 0xFFFFFFFFFFFF)
+        ^ (hash(tag) & 0xFFFFFFFFFFFF)
+        ^ (year & 0xFFFF)
+    )
     return int(h & 0x7FFFFFFF)
 
 

@@ -14,10 +14,11 @@ All costs are inflated from 2017 AUD to 2020 AUD using 3% annual inflation rate.
 Model focuses on familial intellectual disability with genetic testing interventions.
 """
 
-import numpy as np
-from scipy.stats import beta, gamma, lognorm, norm, uniform
 import math
+
+import numpy as np
 import pandas as pd
+from scipy.stats import beta, gamma, lognorm, norm, uniform
 
 # Global Parameters - Australian Context
 START_YEAR, END_YEAR = 2020, 2100

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 # In[ ]:
 
@@ -7,16 +6,17 @@
 # In[12]:
 
 
+import math
+import warnings
+
 import dask.array as da
 import dask.dataframe as dd
-import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
-import warnings
 import numpy as np
+import pandas as pd
+import seaborn as sns
+from dask.distributed import Client, LocalCluster, progress
 from scipy.stats import beta, gamma, lognorm, norm, uniform
-import math
-from dask.distributed import LocalCluster, Client, progress
 
 warnings.filterwarnings("ignore")
 np.random.seed(42)
@@ -1225,7 +1225,10 @@ if __name__ == "__main__":
     for u in uptakes:
         sub = budg_df[budg_df["uptake"] == u]
         plt.plot(
-            sub["year"], sub["budget_impact"], label=f"Uptake {int(u*100)}%", marker="o"
+            sub["year"],
+            sub["budget_impact"],
+            label=f"Uptake {int(u * 100)}%",
+            marker="o",
         )
     plt.title("5-Year Budget Impact")
     plt.xlabel("Year")
@@ -1245,7 +1248,7 @@ if __name__ == "__main__":
         row_series = bas[bas["year"] == YEARS[-1]].iloc[0]
         ses_cols = [f"ses_q{i}_pct" for i in range(5)]
         ses_vals = [float(row_series[col]) for col in ses_cols]
-        labels = [f"Quintile {i+1}" for i in range(5)]
+        labels = [f"Quintile {i + 1}" for i in range(5)]
 
         plt.figure()
         plt.bar(labels, ses_vals)
@@ -1432,7 +1435,7 @@ if __name__ == "__main__":
             plt.plot(
                 wtp,
                 evppi_curve_host,
-                label=f'EVPPI ({param.replace("_", " ").title()})',
+                label=f"EVPPI ({param.replace('_', ' ').title()})",
             )
         plt.title("Expected Value of Partial Perfect Information (EVPPI) Curves")
         plt.xlabel("Willingness-to-Pay per QALY")

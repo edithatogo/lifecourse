@@ -1,14 +1,18 @@
-import dask.array as da
-import dask.dataframe as dd
-import pandas as pd
-import matplotlib.pyplot as plt
-import warnings
-import numpy as np
+import logging
 import math
 import os
-from dask.distributed import LocalCluster, Client, progress, performance_report
+import warnings
+
 import dask
-from dask.diagnostics import Profiler, ResourceProfiler, CacheProfiler
+import dask.array as da
+import dask.dataframe as dd
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from dask.diagnostics import CacheProfiler, Profiler, ResourceProfiler
+from dask.distributed import Client, LocalCluster, performance_report, progress
+
+archive_logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore")
 
@@ -367,11 +371,12 @@ FERT_RATES_DF = pd.DataFrame(fert_data)
 
 # Client initialization moved before other operations to ensure it's available
 try:
-    if "client" not in locals() or not client.is_connected():
+    if "client" not in globals() or not globals()["client"].is_connected():
         cluster = LocalCluster(n_workers=os.cpu_count(), threads_per_worker=1)
         client = Client(cluster)
         print(f"Dask dashboard link: {client.dashboard_link}")
 except Exception:
+    archive_logger.exception("Archived prototype operation failed")
     cluster = LocalCluster(n_workers=os.cpu_count(), threads_per_worker=1)
     client = Client(cluster)
     print(f"Dask dashboard link: {client.dashboard_link}")
@@ -1170,9 +1175,12 @@ n_workers = len(client.scheduler_info()["workers"])
 # Consider trying: `2 * n_workers`, `4 * n_workers`, `8 * n_workers`.
 psa_n_partitions = n_workers  # Default to n_workers, adjust for tuning
 
-with performance_report(
-    filename="psa_sim_report.html"
-), Profiler() as prof_psa, ResourceProfiler() as rprof_psa, CacheProfiler() as cprof_psa:
+with (
+    performance_report(filename="psa_sim_report.html"),
+    Profiler() as prof_psa,
+    ResourceProfiler() as rprof_psa,
+    CacheProfiler() as cprof_psa,
+):
     psa_args = []
     # Retrieve DISTRIBUTIONS from scattered object
     local_distributions_for_psa = client.gather(scattered_distributions)
@@ -1211,6 +1219,7 @@ try:
     cprof_psa.visualize(filename="cache_profiler_plot_psa.html", format="html")
     print("Profiler plots for PSA saved as HTML files.")
 except Exception as e:
+    archive_logger.exception("Archived prototype operation failed")
     print(
         f"Error generating diagnostic plots for PSA: {e}. Ensure graphviz is installed for full functionality."
     )
@@ -1296,9 +1305,12 @@ local_distributions_for_tornado = client.gather(scattered_distributions)
 # Consider trying: `2 * n_workers`, `4 * n_workers`, `8 * n_workers`.
 tornado_n_partitions = n_workers  # Default to n_workers, adjust for tuning
 
-with performance_report(
-    filename="tornado_sim_report.html"
-), Profiler() as prof_tornado, ResourceProfiler() as rprof_tornado, CacheProfiler() as cprof_tornado:
+with (
+    performance_report(filename="tornado_sim_report.html"),
+    Profiler() as prof_tornado,
+    ResourceProfiler() as rprof_tornado,
+    CacheProfiler() as cprof_tornado,
+):
     # run_sim is called directly, not via client.map/starmap here
     # This single run will compute immediately as its final compute is inside run_sim
     base_dc, base_dq = dask.compute(
@@ -1417,6 +1429,7 @@ try:
     cprof_tornado.visualize(filename="cache_profiler_plot_tornado.html", format="html")
     print("Profiler plots for Tornado Analysis saved as HTML files.")
 except Exception as e:
+    archive_logger.exception("Archived prototype operation failed")
     print(
         f"Error generating diagnostic plots for Tornado Analysis: {e}. Ensure graphviz is installed for full functionality."
     )
@@ -1450,9 +1463,12 @@ mean_params_for_subgroup = client.gather(scattered_base_mean_params)
 # Consider trying: `2 * n_workers`, `4 * n_workers`, `8 * n_workers`.
 subgroup_n_partitions = n_workers  # Default to n_workers, adjust for tuning
 
-with performance_report(
-    filename="subgroup_sim_report.html"
-), Profiler() as prof_subgroup, ResourceProfiler() as rprof_subgroup, CacheProfiler() as cprof_subgroup:
+with (
+    performance_report(filename="subgroup_sim_report.html"),
+    Profiler() as prof_subgroup,
+    ResourceProfiler() as rprof_subgroup,
+    CacheProfiler() as cprof_subgroup,
+):
     # Execute the full scenario run once to get the mix_data for horizons
     # This will compute yearly results for plotting horizon effects
     _, _, mix_data_for_subgroup = dask.compute(
@@ -1504,16 +1520,16 @@ with performance_report(
                 15000,
                 200 + i,
                 subgroup_n_partitions,
-                abs_mort_scattered_func,
-                life_exp_np_scattered_func,
-                emp_np_scattered_func,
-                morb_keys_scattered_func,
-                age_dist_scattered_func,
-                fert_rates_df_scattered_func,
+                scattered_abs_mort,
+                scattered_life_exp_np,
+                scattered_emp_np,
+                scattered_morb_keys,
+                scattered_age_dist,
+                scattered_fert_rates_df,
                 mortality_rand_global,
                 fertility_rand_global,
                 diag_rand_global,
-                morb_rand_base_dask_global,
+                morb_rand_base_global,
             )
         )
 
@@ -1526,16 +1542,16 @@ with performance_report(
                 15000,
                 300 + i,
                 subgroup_n_partitions,
-                abs_mort_scattered_func,
-                life_exp_np_scattered_func,
-                emp_np_scattered_func,
-                morb_keys_scattered_func,
-                age_dist_scattered_func,
-                fert_rates_df_scattered_func,
+                scattered_abs_mort,
+                scattered_life_exp_np,
+                scattered_emp_np,
+                scattered_morb_keys,
+                scattered_age_dist,
+                scattered_fert_rates_df,
                 mortality_rand_global,
                 fertility_rand_global,
                 diag_rand_global,
-                morb_rand_base_dask_global,
+                morb_rand_base_global,
             )
         )
 
@@ -1588,6 +1604,7 @@ try:
     )
     print("Profiler plots for Sub-group Analysis saved as HTML files.")
 except Exception as e:
+    archive_logger.exception("Archived prototype operation failed")
     print(
         f"Error generating diagnostic plots for Sub-group Analysis: {e}. Ensure graphviz is installed for full functionality."
     )
@@ -1640,9 +1657,12 @@ print("\n--- Running Module 11: Cost-Mix Stacked Area (Prospective) ---")
 # Consider trying: `2 * n_workers`, `4 * n_workers`, `8 * n_workers`.
 costmix_n_partitions = n_workers  # Default to n_workers, adjust for tuning
 
-with performance_report(
-    filename="costmix_prospective_report.html"
-), Profiler() as prof_cm_p, ResourceProfiler() as rprof_cm_p, CacheProfiler() as cprof_cm_p:
+with (
+    performance_report(filename="costmix_prospective_report.html"),
+    Profiler() as prof_cm_p,
+    ResourceProfiler() as rprof_cm_p,
+    CacheProfiler() as cprof_cm_p,
+):
     # run_scenario is called directly, not via client.map/starmap here
     # Use the scattered base_mean_params directly
     # This will generate `mix_data` with yearly computed results needed for plotting
@@ -1678,6 +1698,7 @@ try:
     )
     print("Profiler plots for Prospective Cost-Mix saved as HTML files.")
 except Exception as e:
+    archive_logger.exception("Archived prototype operation failed")
     print(
         f"Error generating diagnostic plots for Prospective Cost-Mix: {e}. Ensure graphviz is installed for full functionality."
     )
@@ -1731,7 +1752,7 @@ plt.figure()
 for u in uptakes:
     sub = budg_df[budg_df["uptake"] == u]
     plt.plot(
-        sub["year"], sub["budget_impact"], label=f"Uptake {int(u*100)}%", marker="o"
+        sub["year"], sub["budget_impact"], label=f"Uptake {int(u * 100)}%", marker="o"
     )
 plt.title("5-Year Budget Impact")
 plt.xlabel("Year")
@@ -1750,7 +1771,7 @@ if YEARS[-1] in bas["year"].values:
     row_series = bas[bas["year"] == YEARS[-1]].iloc[0]
     ses_cols = [f"ses_q{i}_pct" for i in range(5)]
     ses_vals = [float(row_series[col]) for col in ses_cols]
-    labels = [f"Quintile {i+1}" for i in range(5)]
+    labels = [f"Quintile {i + 1}" for i in range(5)]
 
     plt.figure()
     plt.bar(labels, ses_vals)
@@ -1873,9 +1894,12 @@ familial_sens_results = []
 # Consider trying: `2 * n_workers`, `4 * n_workers`, `8 * n_workers`.
 familial_sens_n_partitions = n_workers  # Default to n_workers, adjust for tuning
 
-with performance_report(
-    filename="familial_sens_sim_report.html"
-), Profiler() as prof_fam_sens, ResourceProfiler() as rprof_fam_sens, CacheProfiler() as cprof_fam_sens:
+with (
+    performance_report(filename="familial_sens_sim_report.html"),
+    Profiler() as prof_fam_sens,
+    ResourceProfiler() as rprof_fam_sens,
+    CacheProfiler() as cprof_fam_sens,
+):
     familial_sens_args = []
     for i, f_prop in enumerate(familial_prevalence_range):
         p_temp = mean_params_for_sens.copy()
@@ -1928,6 +1952,7 @@ try:
         "Profiler plots for Familial ID Prevalence Sensitivity Analysis saved as HTML files."
     )
 except Exception as e:
+    archive_logger.exception("Archived prototype operation failed")
     print(
         f"Error generating diagnostic plots for Familial ID Prevalence Sensitivity Analysis: {e}. Ensure graphviz is installed for full functionality."
     )
@@ -1965,7 +1990,7 @@ def calculate_evppi_curve(psa_df_local, param_name, wtp_range):
 
     for wtp_val in wtp_range:
         nmb_np = dqaly_np * wtp_val - dcost_np
-        coeffs, residuals, rank, s = np.linalg.lstsq(X, nmb_np, rcond=None)
+        coeffs, _residuals, _rank, _s = np.linalg.lstsq(X, nmb_np, rcond=None)
         nmb_predicted = X @ coeffs
         evppi_val = np.mean(np.maximum(0, nmb_np)) - np.mean(
             np.maximum(0, nmb_predicted)
@@ -1978,9 +2003,12 @@ parameters_for_evppi_new = ["familial_prop", "yield_wgs", "u_diag", "cost_inp_se
 evppi_results = {}
 print("Calculating EVPPI for key parameters...")
 
-with performance_report(
-    filename="evppi_sim_report.html"
-), Profiler() as prof_evppi, ResourceProfiler() as rprof_evppi, CacheProfiler() as cprof_evppi:
+with (
+    performance_report(filename="evppi_sim_report.html"),
+    Profiler() as prof_evppi,
+    ResourceProfiler() as rprof_evppi,
+    CacheProfiler() as cprof_evppi,
+):
     # We need the full pandas DataFrame for EVPPI calculation as it uses linear regression
     # over the entire PSA dataset, not just partitions.
     dcost = psa_df["dCost"].compute().to_numpy()
@@ -1999,6 +2027,7 @@ try:
     cprof_evppi.visualize(filename="cache_profiler_plot_evppi.html", format="html")
     print("Profiler plots for EVPPI Analysis saved as HTML files.")
 except Exception as e:
+    archive_logger.exception("Archived prototype operation failed")
     print(
         f"Error generating diagnostic plots for EVPPI Analysis: {e}. Ensure graphviz is installed for full functionality."
     )
@@ -2008,7 +2037,7 @@ if evppi_results:
     plt.figure(figsize=(10, 6))
     for param, evppi_curve_host in evppi_results.items():
         plt.plot(
-            wtp, evppi_curve_host, label=f'EVPPI ({param.replace("_", " ").title()})'
+            wtp, evppi_curve_host, label=f"EVPPI ({param.replace('_', ' ').title()})"
         )
     plt.title("Expected Value of Partial Perfect Information (EVPPI) Curves")
     plt.xlabel("Willingness-to-Pay per QALY")

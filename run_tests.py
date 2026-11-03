@@ -1,6 +1,6 @@
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 # Add the 'src' directory to the Python path to resolve import errors
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
@@ -16,7 +16,7 @@ try:
     print("Successfully imported advanced_analysis")
     print("Successfully imported cohort")
     print("Successfully imported data_loader")
-except Exception as e:
+except ImportError as e:
     print(f"Direct import failed: {e}")
 print("---------------------------------")
 

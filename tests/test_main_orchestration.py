@@ -1,9 +1,10 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import pandas as pd
-import numpy as np
-import sys
 import os
+import sys
+import unittest
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pandas as pd
 
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -65,7 +66,12 @@ class TestMainOrchestration(unittest.TestCase):
             "yield_wgs": 0.6,
             "min_test_age": 18,
         }
-        mock_get_parameter_attributes.return_value = (mock_distributions, 2020, mock_sample_params, mock_get_mean_params)
+        mock_get_parameter_attributes.return_value = (
+            mock_distributions,
+            2020,
+            mock_sample_params,
+            mock_get_mean_params,
+        )
 
         # Mock scenarios
         mock_load_scenarios.return_value = {
@@ -74,8 +80,8 @@ class TestMainOrchestration(unittest.TestCase):
         }
 
         # Mock scenario overrides
-        mock_apply_scenario_overrides.side_effect = (
-            lambda base, overrides: {**base, **overrides} if overrides else base
+        mock_apply_scenario_overrides.side_effect = lambda base, overrides: (
+            {**base, **overrides} if overrides else base
         )
 
         # Mock run_sim to return deterministic values
@@ -219,10 +225,10 @@ class TestMainOrchestration(unittest.TestCase):
 
         # Mock DISTRIBUTIONS with required keys for tornado analysis
         mock_distributions = {
-            'familial_prop': {'dist': 'beta', 'alpha': 30, 'beta': 150},
-            'yield_wgs': {'dist': 'beta', 'alpha': 45, 'beta': 55},
-            'u_diag': {'dist': 'beta', 'alpha': 20, 'beta': 980},
-            'cost_inp_severe': {'dist': 'gamma', 'shape': 1.0, 'scale': 20000},
+            "familial_prop": {"dist": "beta", "alpha": 30, "beta": 150},
+            "yield_wgs": {"dist": "beta", "alpha": 45, "beta": 55},
+            "u_diag": {"dist": "beta", "alpha": 20, "beta": 980},
+            "cost_inp_severe": {"dist": "gamma", "shape": 1.0, "scale": 20000},
         }
 
         # Mock get_parameter_attributes return values
@@ -230,7 +236,10 @@ class TestMainOrchestration(unittest.TestCase):
         mock_sample_params = MagicMock(return_value=base_params)
         mock_get_mean_params = MagicMock(return_value=base_params)
         mock_get_parameter_attributes.return_value = (
-            mock_distributions, mock_start_year, mock_sample_params, mock_get_mean_params
+            mock_distributions,
+            mock_start_year,
+            mock_sample_params,
+            mock_get_mean_params,
         )
 
         # Mock run_sim to return different values for each PSA run
@@ -294,14 +303,14 @@ class TestMainOrchestration(unittest.TestCase):
 
         # Mock budget impact
         mock_budget_impact.return_value = {
-            'years': np.array([2020, 2021, 2022]), 
-            'adoption_rates': np.array([0.2, 0.6, 1.0]), 
-            'incremental_costs': np.array([1000, 2000, 3000]),
-            'adopted_costs': np.array([200, 1200, 3000]),
-            'cumulative_budget_impact': np.array([200, 1400, 4400]),
-            'curve_type': 'stepwise',
-            'max_adoption': 1.0,
-            'curve_params': {'steps': [(1, 0.2), (3, 0.6), (5, 1.0)]}
+            "years": np.array([2020, 2021, 2022]),
+            "adoption_rates": np.array([0.2, 0.6, 1.0]),
+            "incremental_costs": np.array([1000, 2000, 3000]),
+            "adopted_costs": np.array([200, 1200, 3000]),
+            "cumulative_budget_impact": np.array([200, 1400, 4400]),
+            "curve_type": "stepwise",
+            "max_adoption": 1.0,
+            "curve_params": {"steps": [(1, 0.2), (3, 0.6), (5, 1.0)]},
         }
 
         # Import and run main function
@@ -350,48 +359,55 @@ class TestMainOrchestration(unittest.TestCase):
         # Mock get_parameter_attributes to return mocked functions
         mock_distributions = {}
         mock_start_year = 2020
-        mock_sample_params = MagicMock(return_value={
-            "param1": 0.5,
-            "param2": 1.0,
-            "severity_mild_prop": 0.7,
-            "cost_inp_mild": 10000,
-            "cost_inp_severe": 20000,
-            "cost_test": 500,
-            "cost_dx": 1000,
-            "cost_tx": 5000,
-            "u_diag": 0.8,
-            "u_undx": 0.9,
-            "u_no_id": 0.95,
-            "wgs_cost": 2000,
-            "wgs_diag_qaly_adjustment": 0.01,
-            "mort_hr_mild": 1.2,
-            "mort_hr_severe": 2.0,
-            "familial_prop": 0.15,
-            "yield_wgs": 0.6,
-            "min_test_age": 18,
-        })
-        mock_get_mean_params = MagicMock(return_value={
-            "param1": 0.5,
-            "param2": 1.0,
-            "severity_mild_prop": 0.7,
-            "cost_inp_mild": 10000,
-            "cost_inp_severe": 20000,
-            "cost_test": 500,
-            "cost_dx": 1000,
-            "cost_tx": 5000,
-            "u_diag": 0.8,
-            "u_undx": 0.9,
-            "u_no_id": 0.95,
-            "wgs_cost": 2000,
-            "wgs_diag_qaly_adjustment": 0.01,
-            "mort_hr_mild": 1.2,
-            "mort_hr_severe": 2.0,
-            "familial_prop": 0.15,
-            "yield_wgs": 0.6,
-            "min_test_age": 18,
-        })
+        mock_sample_params = MagicMock(
+            return_value={
+                "param1": 0.5,
+                "param2": 1.0,
+                "severity_mild_prop": 0.7,
+                "cost_inp_mild": 10000,
+                "cost_inp_severe": 20000,
+                "cost_test": 500,
+                "cost_dx": 1000,
+                "cost_tx": 5000,
+                "u_diag": 0.8,
+                "u_undx": 0.9,
+                "u_no_id": 0.95,
+                "wgs_cost": 2000,
+                "wgs_diag_qaly_adjustment": 0.01,
+                "mort_hr_mild": 1.2,
+                "mort_hr_severe": 2.0,
+                "familial_prop": 0.15,
+                "yield_wgs": 0.6,
+                "min_test_age": 18,
+            }
+        )
+        mock_get_mean_params = MagicMock(
+            return_value={
+                "param1": 0.5,
+                "param2": 1.0,
+                "severity_mild_prop": 0.7,
+                "cost_inp_mild": 10000,
+                "cost_inp_severe": 20000,
+                "cost_test": 500,
+                "cost_dx": 1000,
+                "cost_tx": 5000,
+                "u_diag": 0.8,
+                "u_undx": 0.9,
+                "u_no_id": 0.95,
+                "wgs_cost": 2000,
+                "wgs_diag_qaly_adjustment": 0.01,
+                "mort_hr_mild": 1.2,
+                "mort_hr_severe": 2.0,
+                "familial_prop": 0.15,
+                "yield_wgs": 0.6,
+                "min_test_age": 18,
+            }
+        )
         mock_get_parameter_attributes.return_value = (
-            mock_distributions, mock_start_year, mock_sample_params, mock_get_mean_params
+            mock_distributions,
+            mock_start_year,
+            mock_sample_params,
+            mock_get_mean_params,
         )
         mock_load_scenarios.side_effect = lambda *args, **kwargs: {"base": {}}
         mock_apply_scenario_overrides.side_effect = lambda base, overrides: base

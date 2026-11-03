@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-import sys
 import os
+import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from lifecourseid.model.parameters import DISTRIBUTIONS, get_mean_params
 from lifecourseid.analysis.run_helpers import run_sim
+from lifecourseid.model.parameters import DISTRIBUTIONS, get_mean_params
 
 
 def test_performance():
@@ -28,7 +28,7 @@ def test_performance():
 
     print(f"dCost: {dc}")
     print(f"dQALY: {dq}")
-    print(f"ICER: {dc/dq if dq != 0 else 0}")
+    print(f"ICER: {dc / dq if dq != 0 else 0}")
     print(f"Execution time: {elapsed_time:.2f} seconds")
 
     # Check if performance is reasonable (less than 30 seconds for small simulation)

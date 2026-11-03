@@ -5,7 +5,8 @@ This module provides a clean interface for loading parameter modules dynamically
 based on configuration, replacing hardcoded parameter imports throughout the codebase.
 """
 
-from typing import Dict, Any
+from typing import Any
+
 from .parameter_factory import load_parameters_from_config
 
 
@@ -20,7 +21,7 @@ class ParameterLoader:
     def __init__(self):
         self._cache = {}
 
-    def load_parameters(self, config: Dict[str, Any]) -> Any:
+    def load_parameters(self, config: dict[str, Any]) -> Any:
         """
         Load parameter module based on configuration.
 
@@ -60,7 +61,7 @@ def get_parameter_loader() -> ParameterLoader:
     return _parameter_loader
 
 
-def load_parameters(config: Dict[str, Any]) -> Any:
+def load_parameters(config: dict[str, Any]) -> Any:
     """
     Convenience function to load parameters from configuration.
 
@@ -74,7 +75,7 @@ def load_parameters(config: Dict[str, Any]) -> Any:
     return loader.load_parameters(config)
 
 
-def get_parameter_attributes(config: Dict[str, Any], *attributes: str) -> tuple:
+def get_parameter_attributes(config: dict[str, Any], *attributes: str) -> tuple:
     """
     Load parameters and extract specific attributes.
 

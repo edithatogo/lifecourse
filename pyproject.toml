@@ -10,7 +10,7 @@ authors = [
 ]
 description = "A microsimulation model for evaluating cost-effectiveness and budget impact of health interventions."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.15,<3.16"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -24,7 +24,8 @@ keywords = ["microsimulation", "health economics", "cost-effectiveness", "QALY",
 dependencies = [
     "numpy",
     "pandas",
-    "dask",
+    "dask[distributed]",
+    "psutil",
     "matplotlib",
     "pyyaml",
     "scipy",

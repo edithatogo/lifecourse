@@ -1,7 +1,7 @@
 import time
 
-from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params
 from lifecourse.analysis.run_helpers import run_sim
+from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params
 
 
 def test_full_simulation_performance_small_pop():

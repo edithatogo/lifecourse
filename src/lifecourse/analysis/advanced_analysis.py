@@ -1,10 +1,12 @@
+import time
+
 import numpy as np
 import pandas as pd
 import psutil
-import time
 from scipy import stats
+
 from lifecourse.analysis.run_helpers import run_sim
-from lifecourse.model.parameters import POP_SIZE, DISTRIBUTIONS
+from lifecourse.model.parameters import DISTRIBUTIONS, POP_SIZE
 
 # Benchmark for calibration (example values, replace with actual if available)
 OBS_BENCHMARK = {
@@ -30,7 +32,7 @@ def run_calibration(base_mean_params, pop_size=POP_SIZE, years=None, debug=False
         print(f"Initial memory usage: {start_memory:.2f} MB")
 
     # Run a simulation with the base mean parameters
-    dc, dq = run_sim(base_mean_params, pop_size=pop_size, years=years, debug=debug)
+    dc, _dq = run_sim(base_mean_params, pop_size=pop_size, years=years, debug=debug)
     sim_cost = dc  # Assuming dCost is the relevant cost for calibration
 
     # For simplicity, let's assume we want to calibrate against a total cost benchmark
@@ -81,7 +83,7 @@ def run_structural_uncertainty(
     for i in range(num_runs):
         if debug:
             run_start_time = time.time()
-            print(f"Running structural uncertainty iteration {i+1}/{num_runs}")
+            print(f"Running structural uncertainty iteration {i + 1}/{num_runs}")
 
         # Example of structural variation: modify a parameter directly for this run
         # This is a placeholder. Real structural uncertainty would involve different model logic.
@@ -101,9 +103,9 @@ def run_structural_uncertainty(
             run_end_time = time.time()
             run_end_memory = get_memory_usage()
             print(
-                f"  Iteration {i+1} completed in {run_end_time - run_start_time:.2f} seconds"
+                f"  Iteration {i + 1} completed in {run_end_time - run_start_time:.2f} seconds"
             )
-            print(f"  Memory after iteration {i+1}: {run_end_memory:.2f} MB")
+            print(f"  Memory after iteration {i + 1}: {run_end_memory:.2f} MB")
 
     structural_df = pd.DataFrame(results)
     print("Structural Uncertainty Results (sample):")
@@ -486,7 +488,9 @@ def run_psa(
     return pd.DataFrame(results)
 
 
-def calculate_concentration_index(health_variable, socioeconomic_rank, weights=None):
+def _calculate_concentration_index_legacy(
+    health_variable, socioeconomic_rank, weights=None
+):
     """
     Calculate the concentration index for a health variable.
 
@@ -523,7 +527,7 @@ def calculate_concentration_index(health_variable, socioeconomic_rank, weights=N
     # Sort by socioeconomic rank
     sort_idx = np.argsort(r)
     y_sorted = y[sort_idx]
-    r_sorted = r[sort_idx]
+    r[sort_idx]
     w_sorted = w[sort_idx]
 
     # Calculate weighted mean
@@ -560,14 +564,14 @@ def calculate_concentration_indices(psa_results, ses_quintiles=None):
     """
     if ses_quintiles is None:
         # Default equal distribution across quintiles
-        ses_quintiles = {f"Q{i+1}": 0.2 for i in range(5)}
+        ses_quintiles = {f"Q{i + 1}": 0.2 for i in range(5)}
 
     # Create socioeconomic ranks (0-1 scale)
     # Quintile 1 (poorest) = 0.1, Quintile 5 (richest) = 0.9
     ses_ranks = []
     for i in range(5):
         rank = (i + 0.5) / 5  # 0.1, 0.3, 0.5, 0.7, 0.9
-        weight = ses_quintiles[f"Q{i+1}"]
+        weight = ses_quintiles[f"Q{i + 1}"]
         ses_ranks.extend(
             [rank] * int(weight * 1000)
         )  # Assume 1000 observations per quintile
@@ -1334,7 +1338,7 @@ def run_mcda_analysis(
 
     print("\nTop 5 Alternatives:")
     for i, (alternative, score) in enumerate(ranking.head(5).items()):
-        print(f"  {i+1}. {alternative}: {score:.4f}")
+        print(f"  {i + 1}. {alternative}: {score:.4f}")
 
     if debug:
         end_time = time.time()
@@ -1586,7 +1590,7 @@ def calculate_concentration_index(values, ranks):
     sorted_ranks = ranks[sorted_indices]
 
     # Calculate concentration index
-    n = len(values)
+    len(values)
     mean_value = np.mean(values)
 
     # Covariance between values and ranks
@@ -1826,7 +1830,7 @@ def run_budget_impact_analysis(
 
     for i, curve_config in enumerate(adoption_curves):
         curve_type = curve_config["type"]
-        curve_name = f"{curve_type}_curve_{i+1}"
+        curve_name = f"{curve_type}_curve_{i + 1}"
 
         # Extract curve parameters
         curve_params = {k: v for k, v in curve_config.items() if k != "type"}

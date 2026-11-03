@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
-from .parameters import AGE_BREAKS, AGE_DIST, FERT_AGE_SPEC, EDUCATION_LEVELS, AGE_BANDS
-from .rng_utils import bernoulli, categorical, normal
 
+from .parameters import AGE_BANDS, AGE_BREAKS, AGE_DIST, EDUCATION_LEVELS, FERT_AGE_SPEC
+from .rng_utils import bernoulli, categorical
 
 # Build lookup table for fertility rates (base rates)
 fert_data = []
@@ -15,7 +14,12 @@ FERT_RATES_DF = pd.DataFrame(fert_data)
 
 def sample_ages_from_uids(person_uids, age_dist_param):
     # categorical draw for age bucket then small uniform offset 0-4
-    idx = categorical(person_uids, list(range(len(AGE_BREAKS))), probs=age_dist_param, tag="age_bucket")
+    idx = categorical(
+        person_uids,
+        list(range(len(AGE_BREAKS))),
+        probs=age_dist_param,
+        tag="age_bucket",
+    )
     offsets = categorical(person_uids, list(range(5)), probs=None, tag="age_offset")
     ages = np.array([AGE_BREAKS[i] for i in idx]) + offsets
     return ages.astype(int)
@@ -34,7 +38,7 @@ def sample_ages(n, age_dist_param):
     """Backward-compatible wrapper used by tests: sample n ages using global RNG.
     Internally approximate previous behaviour by creating temporary person_uids.
     """
-    temp_uids = np.random.randint(0, 2 ** 63, size=n, dtype=np.int64)
+    temp_uids = np.random.randint(0, 2**63, size=n, dtype=np.int64)
     return sample_ages_from_uids(temp_uids, age_dist_param)
 
 
@@ -42,7 +46,7 @@ def gen_population_dask(n, current_params, arm="prospective", person_uids=None):
     # Create deterministic per-person unique id (64-bit int) drawn from the RNG state
     # if none provided. Downstream stateless draws are keyed by person_uid.
     if person_uids is None:
-        person_uids = np.random.randint(0, 2 ** 63, size=n, dtype=np.int64)
+        person_uids = np.random.randint(0, 2**63, size=n, dtype=np.int64)
     ages = sample_ages_from_uids(person_uids, AGE_DIST)
     sev_dist = current_params["SEVERITY_DIST"]
     # Ensure sev_dist is a valid probability distribution
@@ -54,13 +58,21 @@ def gen_population_dask(n, current_params, arm="prospective", person_uids=None):
 
     df["sex"] = categorical(person_uids, [0, 1], probs=None, tag="sex")
     df["severity"] = categorical(person_uids, [0, 1], probs=sev_dist, tag="severity")
-    df["familial"] = bernoulli(person_uids, current_params["familial_prop"], tag="familial")
-    df["diagnosed"] = np.zeros(n, bool) if arm == "prospective" else np.zeros(n, bool)
-    df["living"] = categorical(person_uids, list(range(4)), probs=[0.2, 0.1, 0.3, 0.4], tag="living")
-    df["employment"] = categorical(person_uids, list(range(3)), probs=[0.7, 0.2, 0.1], tag="employment")
+    df["familial"] = bernoulli(
+        person_uids, current_params["familial_prop"], tag="familial"
+    )
+    df["diagnosed"] = np.zeros(n, bool)
+    df["living"] = categorical(
+        person_uids, list(range(4)), probs=[0.2, 0.1, 0.3, 0.4], tag="living"
+    )
+    df["employment"] = categorical(
+        person_uids, list(range(3)), probs=[0.7, 0.2, 0.1], tag="employment"
+    )
     df["uses_respite"] = bernoulli(person_uids, 0.3, tag="uses_respite")
     df["needs_mobility"] = bernoulli(person_uids, 0.2, tag="needs_mobility")
-    df["support"] = categorical(person_uids, list(range(3)), probs=[0.5, 0.3, 0.2], tag="support")
+    df["support"] = categorical(
+        person_uids, list(range(3)), probs=[0.5, 0.3, 0.2], tag="support"
+    )
     df["ses"] = categorical(person_uids, list(range(5)), probs=None, tag="ses")
 
     # For retrospective arm, assign diagnosed status only to familial individuals
@@ -68,9 +80,16 @@ def gen_population_dask(n, current_params, arm="prospective", person_uids=None):
         familial_mask = df["familial"].to_numpy()
         if familial_mask.any():
             fam_uids = df.loc[familial_mask, "person_uid"].to_numpy()
-            df.loc[familial_mask, "diagnosed"] = bernoulli(fam_uids, current_params["yield_wgs"], tag="retrospective_diag")
+            df.loc[familial_mask, "diagnosed"] = bernoulli(
+                fam_uids, current_params["yield_wgs"], tag="retrospective_diag"
+            )
 
-    df["education"] = [EDUCATION_LEVELS[i] for i in categorical(person_uids, list(range(len(EDUCATION_LEVELS))), probs=None, tag="education")]
+    df["education"] = [
+        EDUCATION_LEVELS[i]
+        for i in categorical(
+            person_uids, list(range(len(EDUCATION_LEVELS))), probs=None, tag="education"
+        )
+    ]
     df["age_band"] = pd.cut(
         df["age"],
         bins=[-1] + [b[1] for b in AGE_BANDS],

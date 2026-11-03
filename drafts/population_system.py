@@ -4,11 +4,12 @@ NOTE: This code is a draft, has not been integrated, and has not been tested.
 It is part of a design exercise to refactor the model for multi-cohort support.
 """
 
-import numpy as np
 import dask.dataframe as dd
+import numpy as np
 
 # Assumes the presence of a generalized cohort generator and the DiseaseModel interface
 from drafts.disease_model import DiseaseModel
+
 # from .cohort import gen_population # Would be the new generalized cohort generator
 
 
@@ -88,13 +89,13 @@ class PopulationSystem:
         Applies universal fertility logic.
         """
         if self.pop is None:
-            return None
+            return
 
         # fertility logic transposed from original PopulationSystemDask
         moms_dd = self.pop[(self.pop["sex"] == 0) & (self.pop["age"].between(15, 45))]
 
         if moms_dd.npartitions == 0:
-            return None  # Return None to indicate no babies
+            return  # Return None to indicate no babies
 
         # moms_merged_dd = moms_dd.merge(
         #     self.params["FERT_RATES_DF"], on=["severity", "age"], how="left"
@@ -105,7 +106,7 @@ class PopulationSystem:
 
         print("[Draft] Applying universal fertility logic.")
         # return babies_dd
-        return None  # Placeholder return for the draft
+        return  # Placeholder return for the draft
 
     def step(self, year: int):
         """

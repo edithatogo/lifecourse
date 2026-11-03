@@ -16,9 +16,10 @@ Key data sources:
 All costs are in 2020 NZD. Model focuses on familial intellectual disability with genetic testing interventions.
 """
 
+import math
+
 import numpy as np
 from scipy.stats import beta, gamma, lognorm, norm, uniform
-import math
 
 # Global Parameters - New Zealand Context
 START_YEAR, END_YEAR = 2020, 2100

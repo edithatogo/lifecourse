@@ -5,21 +5,23 @@ This module provides comprehensive performance profiling, memory analysis,
 and bottleneck detection for simulation runs and analysis pipelines.
 """
 
-import time
-import psutil
+import cProfile
+import gc
+import io
 import os
+import pstats
+import threading
+import time
 import tracemalloc
+from collections import defaultdict
+from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Dict, List, Any, Optional, Callable
 from dataclasses import dataclass, field
 from functools import wraps
-import cProfile
-import pstats
-import io
-import gc
-import threading
+from typing import Any
+
 import numpy as np
-from collections import defaultdict
+import psutil
 
 
 @dataclass
@@ -30,19 +32,19 @@ class PerformanceMetrics:
     peak_memory_mb: float = 0.0
     average_memory_mb: float = 0.0
     cpu_percent: float = 0.0
-    memory_snapshots: List[Dict[str, Any]] = field(default_factory=list)
-    function_calls: Dict[str, int] = field(default_factory=dict)
-    bottlenecks: List[str] = field(default_factory=list)
+    memory_snapshots: list[dict[str, Any]] = field(default_factory=list)
+    function_calls: dict[str, int] = field(default_factory=dict)
+    bottlenecks: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ScalabilityMetrics:
     """Container for scalability testing results."""
 
-    population_sizes: List[int] = field(default_factory=list)
-    execution_times: List[float] = field(default_factory=list)
-    memory_usages: List[float] = field(default_factory=list)
-    throughput_rates: List[float] = field(default_factory=list)
+    population_sizes: list[int] = field(default_factory=list)
+    execution_times: list[float] = field(default_factory=list)
+    memory_usages: list[float] = field(default_factory=list)
+    throughput_rates: list[float] = field(default_factory=list)
     scaling_efficiency: float = 0.0
 
 
@@ -86,7 +88,7 @@ class PerformanceProfiler:
 
             # Stop memory tracking
             if self.enable_memory_tracking and self._tracemalloc_started:
-                current, peak = tracemalloc.get_traced_memory()
+                _current, peak = tracemalloc.get_traced_memory()
                 tracemalloc.stop()
                 self._tracemalloc_started = False
 
@@ -115,7 +117,7 @@ class PerformanceProfiler:
 
     def profile_simulation_run(
         self, run_func: Callable, *args, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Profile a complete simulation run."""
         # Check if profiling is already active
         import sys
@@ -168,7 +170,7 @@ class PerformanceProfiler:
                 cpu_samples.append(cpu_percent)
                 time.sleep(interval)
 
-            except:
+            except psutil.Error, OSError:
                 break
 
         if cpu_samples:
@@ -206,7 +208,7 @@ class PerformanceProfiler:
 
         metrics.bottlenecks = bottlenecks
 
-    def _extract_function_stats(self, profile_output: str) -> Dict[str, int]:
+    def _extract_function_stats(self, profile_output: str) -> dict[str, int]:
         """Extract function call statistics from cProfile output."""
         stats = defaultdict(int)
         lines = profile_output.split("\n")
@@ -219,7 +221,7 @@ class PerformanceProfiler:
                         calls = int(parts[0])
                         function_name = " ".join(parts[5:])
                         stats[function_name] = calls
-                    except (ValueError, IndexError):
+                    except ValueError, IndexError:
                         continue
 
         return dict(stats)
@@ -249,14 +251,14 @@ class PerformanceProfiler:
 class ScalabilityTester:
     """Test scalability across different population sizes and configurations."""
 
-    def __init__(self, profiler: Optional[PerformanceProfiler] = None):
+    def __init__(self, profiler: PerformanceProfiler | None = None):
         self.profiler = profiler or PerformanceProfiler()
 
     def test_population_scalability(
         self,
         run_func: Callable,
-        population_sizes: List[int],
-        years: List[int],
+        population_sizes: list[int],
+        years: list[int],
         **kwargs,
     ) -> ScalabilityMetrics:
         """Test how performance scales with population size."""
@@ -310,8 +312,8 @@ class ScalabilityTester:
         return metrics
 
     def test_configuration_scalability(
-        self, run_func: Callable, configurations: List[Dict], base_config: Dict
-    ) -> Dict[str, ScalabilityMetrics]:
+        self, run_func: Callable, configurations: list[dict], base_config: dict
+    ) -> dict[str, ScalabilityMetrics]:
         """Test performance across different configuration settings."""
         results = {}
 
@@ -375,7 +377,7 @@ class MemoryProfiler:
 
     def detect_memory_leaks(
         self, func: Callable, iterations: int = 10
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Detect memory leaks by running function multiple times."""
         print(f"Testing for memory leaks over {iterations} iterations...")
 
@@ -399,7 +401,7 @@ class MemoryProfiler:
             growth = after - before
             memory_usage.append(growth / 1024 / 1024)  # MB
 
-            print(f"  Iteration {i+1}: {growth / 1024 / 1024:.1f} MB")
+            print(f"  Iteration {i + 1}: {growth / 1024 / 1024:.1f} MB")
 
         # Analyze trend
         if len(memory_usage) > 1:

@@ -8,11 +8,13 @@
 # %% [markdown]
 ## 1. Imports & Setup
 
-import cupy as cp
-import cudf
-import matplotlib.pyplot as plt
 import json
 import warnings
+
+import cudf
+import cupy as cp
+import matplotlib.pyplot as plt
+import pandas as pd
 from scipy.stats import beta
 
 warnings.filterwarnings("ignore")
@@ -305,7 +307,7 @@ def run_scenario(params, pop_size=POP_SIZE):
             mc = float(df["cost_morbidity"].sum())
             cum_c += float(df["annual_cost"].sum())
             cum_q += float(df["annual_qaly"].sum())
-            pct = lambda i: float((df["ses"] == i).mean() * 100)
+            pct = lambda i, df=df: float((df["ses"] == i).mean() * 100)
             outputs.append(
                 {
                     "arm": arm,
@@ -394,7 +396,7 @@ for param in ["yield_wgs", "familial_prop"]:
         p[param] = base * (1 + change)
         dc, dq = run_sim(p, pop_size=10000)
         tornado.append(
-            {"param": param, "change": f"{int(change*100)}%", "ICER": dc / dq}
+            {"param": param, "change": f"{int(change * 100)}%", "ICER": dc / dq}
         )
 tor_df = cudf.DataFrame(tornado)
 labels = [
@@ -502,7 +504,7 @@ for u in uptakes:
     sub = budg_df[budg_df["uptake"] == u]
     yrs_h = sub["year"].to_arrow().to_pylist()
     vals = sub["delta_cost"].to_arrow().to_pylist()
-    plt.plot(yrs_h, vals, label=f"Uptake {int(u*100)}%")
+    plt.plot(yrs_h, vals, label=f"Uptake {int(u * 100)}%")
 plt.title("5-Year Budget Impact")
 plt.xlabel("Year")
 plt.ylabel("ΔCost")

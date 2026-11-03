@@ -1,27 +1,26 @@
 import unittest
 from unittest.mock import patch
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 from lifecourse.analysis.plotting import (
-    plot_deterministic_icers,
+    plot_budget_impact,
     plot_ce_plane,
     plot_ceac,
-    plot_evpi,
-    plot_enmb,
-    plot_tornado,
-    plot_subgroup_analysis,
-    plot_cost_mix_stacked_area,
-    plot_budget_impact,
-    plot_ses_equity,
-    plot_psa_histograms,
     plot_ceaf,
-    plot_familial_prevalence_sensitivity,
-    plot_evppi_curves,
-    plot_evsi_curves,
-    plot_evsi_vs_sample_size,
     plot_concentration_indices,
+    plot_cost_mix_stacked_area,
+    plot_deterministic_icers,
+    plot_enmb,
+    plot_evpi,
+    plot_evppi_curves,
+    plot_familial_prevalence_sensitivity,
+    plot_psa_histograms,
     plot_psa_icer_distribution,
+    plot_ses_equity,
+    plot_subgroup_analysis,
+    plot_tornado,
 )
 
 
@@ -125,7 +124,7 @@ class TestPlotting(unittest.TestCase):
     def test_plot_ses_equity(self, mock_savefig):
         """Test the SES equity plot function."""
         ses_vals = [10, 20, 30, 25, 15]
-        labels = [f"Q{i+1}" for i in range(5)]
+        labels = [f"Q{i + 1}" for i in range(5)]
         plot_ses_equity(ses_vals, labels, 2044)
         mock_savefig.assert_called_once_with("results/ses_equity.png")
 
@@ -269,19 +268,18 @@ class TestPlotting(unittest.TestCase):
         mock_grid.assert_called_once()
         mock_savefig.assert_called_once_with("results/ceac.png")
 
-
     @patch("matplotlib.pyplot.savefig")
     def test_plot_concentration_indices(self, mock_savefig):
         """Test the concentration indices plot function."""
         ci_results = {
-            'cost_ci': 0.15,
-            'qaly_ci': -0.08,
-            'net_benefit_ci': -0.12,
-            'interpretation': {
-                'cost_ci': 'Positive = costs concentrate among rich',
-                'qaly_ci': 'Negative = QALYs concentrate among poor',
-                'net_benefit_ci': 'Negative = net benefits concentrate among poor'
-            }
+            "cost_ci": 0.15,
+            "qaly_ci": -0.08,
+            "net_benefit_ci": -0.12,
+            "interpretation": {
+                "cost_ci": "Positive = costs concentrate among rich",
+                "qaly_ci": "Negative = QALYs concentrate among poor",
+                "net_benefit_ci": "Negative = net benefits concentrate among poor",
+            },
         }
         plot_concentration_indices(ci_results)
         mock_savefig.assert_called_once_with("results/concentration_indices.png")

@@ -1,6 +1,8 @@
 import logging
-import yaml
 import os
+
+import yaml
+
 from .simulation_configs import DEFAULT_CONFIG, MINIMAL_TEST_CONFIG, TEST_PSA_CONFIG
 
 _LOG = logging.getLogger(__name__)
@@ -10,7 +12,7 @@ _LOG = logging.getLogger(__name__)
 # the package in editable mode instead of depending on sys.path hacks.
 try:
     from lifecourseid.model.parameter_factory import get_parameter_factory
-except Exception:  # pragma: no cover - environment dependent
+except ImportError:  # pragma: no cover - environment dependent
     _LOG.debug(
         "Could not import lifecourseid.parameter_factory; parameter factory disabled"
     )

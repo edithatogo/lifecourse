@@ -5,8 +5,7 @@ This module provides validation for dynamically loaded parameter sets to ensure
 they are compatible and complete for the lifecourse simulation.
 """
 
-from typing import Dict, Any, List
-import numpy as np
+from typing import Any
 
 
 class ParameterValidator:
@@ -19,35 +18,37 @@ class ParameterValidator:
 
     def __init__(self):
         self.required_attributes = [
-            'DISTRIBUTIONS',
-            'START_YEAR',
-            'END_YEAR',
-            'POP_SIZE',
-            'DISCOUNT',
-            'sample_params_from_dist',
-            'get_mean_params'
+            "DISTRIBUTIONS",
+            "START_YEAR",
+            "END_YEAR",
+            "POP_SIZE",
+            "DISCOUNT",
+            "sample_params_from_dist",
+            "get_mean_params",
         ]
 
         # Define expected parameter ranges for validation
         self.parameter_ranges = {
-            'START_YEAR': (2000, 2050),
-            'END_YEAR': (2050, 2150),
-            'POP_SIZE': (1000, 100000),
-            'DISCOUNT': (0.0, 0.1),
+            "START_YEAR": (2000, 2050),
+            "END_YEAR": (2050, 2150),
+            "POP_SIZE": (1000, 100000),
+            "DISCOUNT": (0.0, 0.1),
         }
 
         # Required distribution parameters (subset that must exist)
         self.required_distribution_keys = [
-            'familial_prop',
-            'yield_wgs',
-            'severity_mild_prop',
-            'mort_hr_mild',
-            'mort_hr_severe',
-            'u_base_mild',
-            'u_base_severe',
+            "familial_prop",
+            "yield_wgs",
+            "severity_mild_prop",
+            "mort_hr_mild",
+            "mort_hr_severe",
+            "u_base_mild",
+            "u_base_severe",
         ]
 
-    def validate_parameter_module(self, param_module: Any, parameter_set_name: str) -> List[str]:
+    def validate_parameter_module(
+        self, param_module: Any, parameter_set_name: str
+    ) -> list[str]:
         """
         Validate a parameter module for completeness and compatibility.
 
@@ -79,7 +80,9 @@ class ParameterValidator:
 
         return errors
 
-    def _validate_parameter_ranges(self, param_module: Any, parameter_set_name: str) -> List[str]:
+    def _validate_parameter_ranges(
+        self, param_module: Any, parameter_set_name: str
+    ) -> list[str]:
         """Validate that parameters are within expected ranges."""
         errors = []
 
@@ -94,20 +97,23 @@ class ParameterValidator:
                     )
 
         # Additional validation for END_YEAR > START_YEAR
-        if hasattr(param_module, 'START_YEAR') and hasattr(param_module, 'END_YEAR'):
-            if param_module.END_YEAR <= param_module.START_YEAR:
-                errors.append(
-                    f"END_YEAR ({param_module.END_YEAR}) must be greater than "
-                    f"START_YEAR ({param_module.START_YEAR})"
-                )
+        if (
+            hasattr(param_module, "START_YEAR") and hasattr(param_module, "END_YEAR")
+        ) and (param_module.END_YEAR <= param_module.START_YEAR):
+            errors.append(
+                f"END_YEAR ({param_module.END_YEAR}) must be greater than "
+                f"START_YEAR ({param_module.START_YEAR})"
+            )
 
         return errors
 
-    def _validate_distributions(self, param_module: Any, parameter_set_name: str) -> List[str]:
+    def _validate_distributions(
+        self, param_module: Any, parameter_set_name: str
+    ) -> list[str]:
         """Validate that required distributions exist and are properly formatted."""
         errors = []
 
-        if not hasattr(param_module, 'DISTRIBUTIONS'):
+        if not hasattr(param_module, "DISTRIBUTIONS"):
             return errors  # Already caught in attribute validation
 
         distributions = param_module.DISTRIBUTIONS
@@ -124,18 +130,26 @@ class ParameterValidator:
                 continue
 
             # Check for required distribution keys
-            if 'dist' not in dist_info and not any(k in dist_info for k in ['alpha', 'beta', 'loc', 'scale', 's']):
-                errors.append(f"Distribution for {param_name} missing distribution specification")
+            if "dist" not in dist_info and not any(
+                k in dist_info for k in ["alpha", "beta", "loc", "scale", "s"]
+            ):
+                errors.append(
+                    f"Distribution for {param_name} missing distribution specification"
+                )
 
             # For beta distributions, check alpha/beta parameters
-            if dist_info.get('dist') == 'beta':
-                if 'alpha' not in dist_info or 'beta' not in dist_info:
-                    errors.append(f"Beta distribution for {param_name} missing alpha/beta parameters")
+            if (dist_info.get("dist") == "beta") and (
+                "alpha" not in dist_info or "beta" not in dist_info
+            ):
+                errors.append(
+                    f"Beta distribution for {param_name} missing alpha/beta parameters"
+                )
 
         return errors
 
-    def validate_compatibility(self, param_module1: Any, param_module2: Any,
-                             name1: str, name2: str) -> List[str]:
+    def validate_compatibility(
+        self, param_module1: Any, param_module2: Any, name1: str, name2: str
+    ) -> list[str]:
         """
         Validate compatibility between two parameter sets.
 
@@ -151,7 +165,9 @@ class ParameterValidator:
         errors = []
 
         # Check that both have same distribution parameters
-        if hasattr(param_module1, 'DISTRIBUTIONS') and hasattr(param_module2, 'DISTRIBUTIONS'):
+        if hasattr(param_module1, "DISTRIBUTIONS") and hasattr(
+            param_module2, "DISTRIBUTIONS"
+        ):
             keys1 = set(param_module1.DISTRIBUTIONS.keys())
             keys2 = set(param_module2.DISTRIBUTIONS.keys())
 
@@ -160,17 +176,24 @@ class ParameterValidator:
                 missing_in_1 = keys2 - keys1
 
                 if missing_in_2:
-                    errors.append(f"Parameters in {name1} but missing in {name2}: {missing_in_2}")
+                    errors.append(
+                        f"Parameters in {name1} but missing in {name2}: {missing_in_2}"
+                    )
                 if missing_in_1:
-                    errors.append(f"Parameters in {name2} but missing in {name1}: {missing_in_1}")
+                    errors.append(
+                        f"Parameters in {name2} but missing in {name1}: {missing_in_1}"
+                    )
 
         # Check that START_YEAR matches (important for temporal consistency)
-        if hasattr(param_module1, 'START_YEAR') and hasattr(param_module2, 'START_YEAR'):
-            if param_module1.START_YEAR != param_module2.START_YEAR:
-                errors.append(
-                    f"START_YEAR mismatch: {name1}={param_module1.START_YEAR}, "
-                    f"{name2}={param_module2.START_YEAR}"
-                )
+        if (
+            hasattr(param_module1, "START_YEAR")
+            and hasattr(param_module2, "START_YEAR")
+            and param_module1.START_YEAR != param_module2.START_YEAR
+        ):
+            errors.append(
+                f"START_YEAR mismatch: {name1}={param_module1.START_YEAR}, "
+                f"{name2}={param_module2.START_YEAR}"
+            )
 
         return errors
 
@@ -184,7 +207,7 @@ def get_parameter_validator() -> ParameterValidator:
     return _parameter_validator
 
 
-def validate_parameter_set(param_module: Any, parameter_set_name: str) -> List[str]:
+def validate_parameter_set(param_module: Any, parameter_set_name: str) -> list[str]:
     """
     Convenience function to validate a parameter set.
 
@@ -199,8 +222,9 @@ def validate_parameter_set(param_module: Any, parameter_set_name: str) -> List[s
     return validator.validate_parameter_module(param_module, parameter_set_name)
 
 
-def validate_parameter_compatibility(param_module1: Any, param_module2: Any,
-                                   name1: str, name2: str) -> List[str]:
+def validate_parameter_compatibility(
+    param_module1: Any, param_module2: Any, name1: str, name2: str
+) -> list[str]:
     """
     Convenience function to validate compatibility between parameter sets.
 

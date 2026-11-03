@@ -1,38 +1,38 @@
-import unittest
-import tempfile
 import os
+import tempfile
+import unittest
 from unittest.mock import patch
+
 from lifecourse.data_loader import (
-    load_scenarios_from_yaml,
     apply_scenario_overrides,
-    load_nz_population_distribution,
     load_nz_life_table_hazards,
+    load_nz_population_distribution,
+    load_scenarios_from_yaml,
 )
 
 
 class TestDataLoader(unittest.TestCase):
     def setUp(self):
         # Create a temporary YAML file for testing
-        self.temp_file = tempfile.NamedTemporaryFile(
+        with tempfile.NamedTemporaryFile(
             mode="w", suffix=".yaml", delete=False
-        )
-        self.temp_file.write("""
-scenarios:
-  base:
-    param1: null
-    param2: 10
-  scenario_a:
-    param1: 5
-    param2: null
-  scenario_b:
-    param1: null
-    param2: 20
+        ) as self.temp_file:
+            self.temp_file.write("""
+    scenarios:
+      base:
+        param1: null
+        param2: 10
+      scenario_a:
+        param1: 5
+        param2: null
+      scenario_b:
+        param1: null
+        param2: 20
 
-scenario_grid:
-  param1: [1, 2]
-  param2: [100, 200]
-""")
-        self.temp_file.close()
+    scenario_grid:
+      param1: [1, 2]
+      param2: [100, 200]
+    """)
 
     def tearDown(self):
         # Clean up the temporary file
@@ -74,7 +74,7 @@ scenario_grid:
 
         # Count grid scenarios by checking if they contain both parameter names
         grid_scenarios = [
-            name for name in scenarios.keys() if "param1_" in name and "param2_" in name
+            name for name in scenarios if "param1_" in name and "param2_" in name
         ]
 
         # Should have 2 * 2 = 4 combinations
@@ -130,13 +130,14 @@ scenario_grid:
     def test_scenario_name_sanitization(self):
         """Test that scenario names are properly sanitized."""
         # Create a temporary YAML file with decimal values
-        temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False)
-        temp_file.write("""
-scenario_grid:
-  param_with_decimal: [0.1, 0.2]
-  another_param: [1.5, 2.5]
-""")
-        temp_file.close()
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as temp_file:
+            temp_file.write("""
+    scenario_grid:
+      param_with_decimal: [0.1, 0.2]
+      another_param: [1.5, 2.5]
+    """)
 
         try:
             scenarios = load_scenarios_from_yaml(temp_file.name)
@@ -149,17 +150,18 @@ scenario_grid:
         finally:
             os.unlink(temp_file.name)
 
-    @patch('pandas.read_csv')
+    @patch("pandas.read_csv")
     def test_load_nz_population_distribution(self, mock_read_csv):
         """Test loading NZ population distribution data."""
         # Mock the CSV data
         mock_data = {
-            'Geography': ['New Zealand', 'Auckland', 'New Zealand'],
-            'Age': ['0-4', '5-9', '10-14'],
-            'Sex': ['Male', 'Female', 'Male'],
-            'Population': [100, 200, 150]
+            "Geography": ["New Zealand", "Auckland", "New Zealand"],
+            "Age": ["0-4", "5-9", "10-14"],
+            "Sex": ["Male", "Female", "Male"],
+            "Population": [100, 200, 150],
         }
         import pandas as pd
+
         mock_df = pd.DataFrame(mock_data)
         mock_read_csv.return_value = mock_df
 
@@ -170,23 +172,24 @@ scenario_grid:
 
         # Check the result structure
         self.assertIsInstance(result, pd.DataFrame)
-        self.assertListEqual(list(result.columns), ['age', 'sex', 'count'])
+        self.assertListEqual(list(result.columns), ["age", "sex", "count"])
 
         # Check data transformation
-        self.assertEqual(result.iloc[0]['age'], 0)  # '0-4' -> 0
-        self.assertEqual(result.iloc[0]['sex'], 'Male')
-        self.assertEqual(result.iloc[0]['count'], 100)
+        self.assertEqual(result.iloc[0]["age"], 0)  # '0-4' -> 0
+        self.assertEqual(result.iloc[0]["sex"], "Male")
+        self.assertEqual(result.iloc[0]["count"], 100)
 
-    @patch('pandas.read_csv')
+    @patch("pandas.read_csv")
     def test_load_nz_life_table_hazards(self, mock_read_csv):
         """Test loading NZ life table hazards data."""
         # Mock the CSV data
         mock_data = {
-            'Sex': ['Male', 'Male', 'Female', 'Female'],
-            'Age': [0, 1, 0, 1],
-            'nMx': [0.01, 0.02, 0.005, 0.015]
+            "Sex": ["Male", "Male", "Female", "Female"],
+            "Age": [0, 1, 0, 1],
+            "nMx": [0.01, 0.02, 0.005, 0.015],
         }
         import pandas as pd
+
         mock_df = pd.DataFrame(mock_data)
         mock_read_csv.return_value = mock_df
 
@@ -197,14 +200,14 @@ scenario_grid:
 
         # Check the result structure
         self.assertIsInstance(result, dict)
-        self.assertIn('Male', result)
-        self.assertIn('Female', result)
+        self.assertIn("Male", result)
+        self.assertIn("Female", result)
 
         # Check data transformation
-        self.assertEqual(len(result['Male']), 2)
-        self.assertEqual(len(result['Female']), 2)
-        self.assertEqual(result['Male'][0], 0.01)  # Age 0 for Male
-        self.assertEqual(result['Male'][1], 0.02)  # Age 1 for Male
+        self.assertEqual(len(result["Male"]), 2)
+        self.assertEqual(len(result["Female"]), 2)
+        self.assertEqual(result["Male"][0], 0.01)  # Age 0 for Male
+        self.assertEqual(result["Male"][1], 0.02)  # Age 1 for Male
 
 
 if __name__ == "__main__":

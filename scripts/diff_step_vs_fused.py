@@ -6,16 +6,24 @@ Outputs:
  - results/diff_case_{seed}_{pop}_{dur}_fused.csv
  - results/diff_case_{seed}_{pop}_{dur}_report.txt
 """
+
+import argparse
 import os
 import sys
 import time
-import argparse
+
 import pandas as pd
 
 sys.path.insert(0, os.path.abspath("src"))
 
 import numpy as np
-from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params, prepare_dask_params, START_YEAR
+
+from lifecourse.model.parameters import (
+    DISTRIBUTIONS,
+    START_YEAR,
+    get_mean_params,
+    prepare_dask_params,
+)
 from lifecourse.model.population_system import PopulationSystemDask
 
 
@@ -65,7 +73,7 @@ def run_case(seed: int, pop: int, dur: int, out_dir: str):
         rf.write(f"wall_time_fused_s: {wall_fused:.6f}\n")
         rf.write(f"n_step: {len(df_step)}\n")
         rf.write(f"n_fused: {len(df_fused)}\n")
-        rf.write(f"delta_n: {len(df_fused)-len(df_step)}\n\n")
+        rf.write(f"delta_n: {len(df_fused) - len(df_step)}\n\n")
 
         # Align on unique id if present (try 'person_uid', 'person_id' then 'id' then index)
         key = None
@@ -75,7 +83,9 @@ def run_case(seed: int, pop: int, dur: int, out_dir: str):
                 break
 
         if key is None:
-            rf.write("No explicit id column found; using row-wise alignment for diff (by position).\n")
+            rf.write(
+                "No explicit id column found; using row-wise alignment for diff (by position).\n"
+            )
             # Compare by position
             min_len = min(len(df_step), len(df_fused))
             diffs = []
@@ -84,14 +94,27 @@ def run_case(seed: int, pop: int, dur: int, out_dir: str):
                 row_f = df_fused.iloc[i]
                 # select columns to compare (small set)
                 cols = [c for c in df_step.columns if c in df_fused.columns]
-                row_diff = {c: (row_s[c], row_f[c]) for c in cols if not pd.isna(row_s[c]) or not pd.isna(row_f[c]) and not (row_s[c] == row_f[c])}
+                {
+                    c: (row_s[c], row_f[c])
+                    for c in cols
+                    if not pd.isna(row_s[c])
+                    or not pd.isna(row_f[c])
+                    and row_s[c] != row_f[c]
+                }
                 # record non-equal
-                differences = {c: (row_s[c], row_f[c]) for c in cols if not pd.isna(row_s[c]) and not pd.isna(row_f[c]) and row_s[c] != row_f[c]}
+                differences = {
+                    c: (row_s[c], row_f[c])
+                    for c in cols
+                    if not pd.isna(row_s[c])
+                    and not pd.isna(row_f[c])
+                    and row_s[c] != row_f[c]
+                }
                 if differences:
                     diffs.append((i, differences))
-            rf.write(f"Differences by position (first 50 shown): total differing rows={len(diffs)}\n")
-            for idx, d in diffs[:50]:
-                rf.write(f"pos {idx}: {d}\n")
+            rf.write(
+                f"Differences by position (first 50 shown): total differing rows={len(diffs)}\n"
+            )
+            rf.writelines(f"pos {idx}: {d}\n" for idx, d in diffs[:50])
         else:
             rf.write(f"Using key column '{key}' to align rows.\n")
             left = df_step.set_index(key)
@@ -109,7 +132,13 @@ def run_case(seed: int, pop: int, dur: int, out_dir: str):
                 rs = left.loc[k]
                 rf_row = right.loc[k]
                 cols = [c for c in left.columns if c in right.columns]
-                differences = {c: (rs[c], rf_row[c]) for c in cols if not pd.isna(rs[c]) and not pd.isna(rf_row[c]) and rs[c] != rf_row[c]}
+                differences = {
+                    c: (rs[c], rf_row[c])
+                    for c in cols
+                    if not pd.isna(rs[c])
+                    and not pd.isna(rf_row[c])
+                    and rs[c] != rf_row[c]
+                }
                 if differences:
                     diffs.append((k, differences))
             rf.write(f"common_keys_with_differences: {len(diffs)}\n")

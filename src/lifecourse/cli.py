@@ -1,11 +1,12 @@
 import argparse
-from lifecourse.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
-from lifecourse.model.parameter_loader import get_parameter_attributes
-from lifecourse.analysis.run_helpers import run_sim
+
 from lifecourse.analysis.advanced_analysis import (
     run_calibration,
     run_structural_uncertainty,
 )
+from lifecourse.analysis.run_helpers import run_sim
+from lifecourse.data_loader import apply_scenario_overrides, load_scenarios_from_yaml
+from lifecourse.model.parameter_loader import get_parameter_attributes
 
 
 def main():
@@ -43,7 +44,7 @@ def main():
     # Load parameters dynamically (default to Australia for CLI)
     config = {"parameter_set": "australia"}
     DISTRIBUTIONS, START_YEAR, get_mean_params = get_parameter_attributes(
-        config, 'DISTRIBUTIONS', 'START_YEAR', 'get_mean_params'
+        config, "DISTRIBUTIONS", "START_YEAR", "get_mean_params"
     )
 
     base_params = get_mean_params(DISTRIBUTIONS)

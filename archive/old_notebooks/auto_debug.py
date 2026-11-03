@@ -1,8 +1,12 @@
-import subprocess
-import traceback
-import google.generativeai as genai
+import logging
 import os
 import re  # For parsing Gemini's response
+import subprocess
+import traceback
+
+import google.generativeai as genai
+
+archive_logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 # IMPORTANT: Replace 'YOUR_GEMINI_API_KEY' with your actual Gemini API key
@@ -58,6 +62,7 @@ def run_python_code_from_file(file_path):
     except subprocess.TimeoutExpired:
         return f"ERROR:\nScript timed out after {300} seconds. It might be hanging or running too long."
     except Exception as e:
+        archive_logger.exception("Archived prototype operation failed")
         return f"CRITICAL ERROR IN EXECUTION SCRIPT:\n{e}\n{traceback.format_exc()}"
 
 
@@ -97,6 +102,7 @@ def get_gemini_fix(code_content, error_message):
             )
             return f"Gemini could not extract a valid Python code block from its response. Please inspect the full response:\n{response.text}"
     except Exception as e:
+        archive_logger.exception("Archived prototype operation failed")
         return f"Error interacting with Gemini API or parsing response: {e}\nResponse text:\n{response.text}"
 
 
@@ -141,8 +147,8 @@ def main():
             fixed_code = get_gemini_fix(current_code, error_message)
 
             if fixed_code.startswith(
-                "Gemini could not extract"
-            ) or fixed_code.startswith("Error interacting with"):
+                ("Gemini could not extract", "Error interacting with")
+            ):
                 print(fixed_code)
                 print("Could not get a valid code fix from Gemini. Aborting.")
                 break
@@ -154,7 +160,7 @@ def main():
                     with open(CODE_FILE_PATH, "w") as f:
                         f.write(current_code)
                     print(f"\n✨ Code updated in {CODE_FILE_PATH}. Retrying...")
-                except IOError as e:
+                except OSError as e:
                     print(f"Error writing updated code to file: {e}")
                     print("Aborting as file cannot be updated.")
                     break

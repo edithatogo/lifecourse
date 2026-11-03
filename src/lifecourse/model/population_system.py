@@ -1,14 +1,16 @@
 import logging
+
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
 import psutil
-from .cohort import gen_population_dask
-from .parameters import START_YEAR, ABS_MORT, LIFE_EXP_NP, EMP_NP
-from .rng_utils import bernoulli, poisson, normal
-from .dask_utils import ensure_known_divisions, safe_from_pandas
 
-_LOG = logging.getLogger(__name__)
+from .cohort import gen_population_dask
+from .dask_utils import ensure_known_divisions, safe_from_pandas
+from .parameters import ABS_MORT, EMP_NP, LIFE_EXP_NP, START_YEAR
+from .rng_utils import bernoulli, normal, poisson
+
+logger = logging.getLogger(__name__)
 
 
 def get_memory_usage():
@@ -81,8 +83,12 @@ class PopulationSystemDask:
             )
             try:
                 uids_df.divisions = divisions
-            except Exception as exc:  # pragma: no cover - best-effort
-                _LOG.debug("Could not set divisions on rebuilt uids_df: %s", exc)
+            except (
+                AttributeError,
+                TypeError,
+                ValueError,
+            ) as exc:  # pragma: no cover - best-effort
+                logger.debug("Could not set divisions on rebuilt uids_df: %s", exc)
 
             # rebuild base_pop_dd similarly to guarantee matched divisions
             b_parts = base_pop_dd.to_delayed()
@@ -102,18 +108,20 @@ class PopulationSystemDask:
             base_pop_dd = dd.from_delayed(new_b_parts, meta=base_pop_dd._meta)
             try:
                 base_pop_dd.divisions = divisions
-            except Exception as exc:  # pragma: no cover - best-effort
-                _LOG.debug("Could not set divisions on rebuilt base_pop_dd: %s", exc)
-        except (ValueError, TypeError) as exc:
+            except (
+                AttributeError,
+                TypeError,
+                ValueError,
+            ) as exc:  # pragma: no cover - best-effort
+                logger.debug("Could not set divisions on rebuilt base_pop_dd: %s", exc)
+        except ValueError, TypeError:
             # Known, recoverable issues when computing partition lengths
-            _LOG.exception(
-                "Recoverable error when computing partition lengths: %s", exc
-            )
+            logger.exception("Recoverable error when computing partition lengths")
             uids_df = ensure_known_divisions(uids_df)
             base_pop_dd = ensure_known_divisions(base_pop_dd)
-        except Exception as exc:  # pragma: no cover - defensive
+        except Exception:  # pragma: no cover - defensive
             # Unexpected errors: log with traceback but fall back safely.
-            _LOG.exception("Unexpected error while aligning partitions: %s", exc)
+            logger.exception("Unexpected error while aligning partitions")
             uids_df = ensure_known_divisions(uids_df)
             base_pop_dd = ensure_known_divisions(base_pop_dd)
 
@@ -128,13 +136,13 @@ class PopulationSystemDask:
                 df_part["person_uid"] = uids[idx]
             except IndexError:
                 # fallback: assign by position if indexing mismatch occurs
-                _LOG.debug(
+                logger.debug(
                     "IndexError when assigning person_uid by index; falling back to positional assignment"
                 )
                 df_part = df_part.copy()
                 df_part["person_uid"] = np.arange(len(df_part))
-            except Exception as exc:  # pragma: no cover - defensive
-                _LOG.exception("Unexpected error assigning person_uid: %s", exc)
+            except Exception:  # pragma: no cover - defensive
+                logger.exception("Unexpected error assigning person_uid")
                 df_part = df_part.copy()
                 df_part["person_uid"] = np.arange(len(df_part))
             return df_part
@@ -298,7 +306,7 @@ class PopulationSystemDask:
             # Ensure returned baby dataframe matches the authoritative population metadata
             try:
                 return babies_df_part[pop_meta.columns]
-            except Exception:
+            except KeyError:
                 return babies_df_part.reindex(columns=pop_meta.columns)
 
         babies_dd = actual_births_info_dd.map_partitions(
@@ -435,7 +443,9 @@ class PopulationSystemDask:
         except Exception:
             # In case reset_index isn't appropriate for the current dask graph,
             # fall back to keeping existing pop but continue to repartition.
-            pass
+            logger.exception(
+                "Unable to normalize partition divisions; retaining the current frame"
+            )
         self.pop = self.pop.repartition(npartitions=max(1, len(self.pop) // 1000))
 
     def step_fused(self, year):
@@ -540,7 +550,7 @@ class PopulationSystemDask:
                     # Ensure columns ordering matches the population meta
                     try:
                         return babies_df_part[pop_meta.columns]
-                    except Exception:
+                    except KeyError:
                         return babies_df_part.reindex(columns=pop_meta.columns)
 
                 babies_dd = actual_births_info_dd.map_partitions(
@@ -683,7 +693,7 @@ class PopulationSystemDask:
             # Ensure column ordering matches expected metadata to avoid dask persist/compute errors
             try:
                 return df[expected_cols]
-            except Exception:
+            except KeyError:
                 return df.reindex(columns=expected_cols)
 
         updated_pop = orig_pop.map_partitions(

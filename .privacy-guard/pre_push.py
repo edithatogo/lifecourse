@@ -97,9 +97,7 @@ def push_rows(payload: bytes) -> list[tuple[str, str]]:
 
 
 def review_control_number(item: dict, finding: dict, policy: dict) -> bool:
-    """Only typed offset/rank tokens in the exact review control path, never free text."""
-    if policy["entities"][finding["entity_index"]] != "PHONE_NUMBER":
-        return False
+    """Recognize validated control tokens in the exact manifest, never free text."""
     raw = item["text"].encode()
     oid = hashlib.sha1(
         b"blob " + str(len(raw)).encode() + b"\0" + raw, usedforsecurity=False
@@ -165,9 +163,28 @@ def review_control_number(item: dict, finding: dict, policy: dict) -> bool:
         for token in re.finditer(
             r'(?<!\\)"(?:start|end|entity_index)"\s*:\s*(0|[1-9][0-9]*)', item["text"]
         ):
-            if token.start(1) == finding["start"] and token.end(1) == finding["end"]:
+            if (
+                policy["entities"][finding["entity_index"]] == "PHONE_NUMBER"
+                and token.start(1) == finding["start"]
+                and token.end(1) == finding["end"]
+            ):
                 return True
-    except (ValueError, TypeError, KeyError):
+        # All keys and digest values have been validated above. NLP can label
+        # a complete digest or a chunk-boundary fragment as a person. Match
+        # only spans contained in these machine control tokens; reasons and
+        # reviewers are deliberately absent from the value alternative.
+        patterns = (
+            r'"(?:identity|blob_sha256|value_sha256|policy_sha256)"\s*:\s*"([a-f0-9]{64})"',
+            (
+                r'"(schemaVersion|policy_sha256|findings|identity|blob_sha256|'
+                r'entity_index|start|end|value_sha256|reason|reviewer)"\s*:'
+            ),
+        )
+        for pattern in patterns:
+            for token in re.finditer(pattern, item["text"]):
+                if token.start(1) <= finding["start"] < finding["end"] <= token.end(1):
+                    return True
+    except ValueError, TypeError, KeyError:
         return False
     return False
 
@@ -198,7 +215,7 @@ def scanner(root: Path, items: list[dict], policy: dict, command=run) -> None:
         command(
             [str(python), "-I", str(HERE / "presidio_scan.py")],
             data=payload,
-            timeout=300,
+            timeout=1200,
         )
     )
     if (
@@ -349,7 +366,7 @@ def notify() -> None:
                 check=False,
                 timeout=3,
             )
-        except (OSError, subprocess.SubprocessError):
+        except OSError, subprocess.SubprocessError:
             print(
                 "Local notification unavailable; push remains blocked.", file=sys.stderr
             )

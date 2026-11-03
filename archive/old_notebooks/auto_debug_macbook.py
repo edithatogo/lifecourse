@@ -1,9 +1,12 @@
-import subprocess
-import traceback
-import google.generativeai as genai
+import logging  # Import the logging module
 import os
 import re  # For parsing Gemini's response
-import logging  # Import the logging module
+import subprocess
+import traceback
+
+import google.generativeai as genai
+
+archive_logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 # Supply GOOGLE_API_KEY through the environment.
@@ -65,6 +68,7 @@ def run_python_code_from_file(file_path):
     except subprocess.TimeoutExpired:
         return f"ERROR:\nScript timed out after {300} seconds. It might be hanging or running too long."
     except Exception as e:
+        archive_logger.exception("Archived prototype operation failed")
         return f"CRITICAL ERROR IN EXECUTION SCRIPT:\n{e}\n{traceback.format_exc()}"
 
 
@@ -104,6 +108,7 @@ def get_gemini_fix(code_content, error_message):
             )
             return f"Gemini could not extract a valid Python code block from its response. Please inspect the full response:\n{response.text}"
     except Exception as e:
+        archive_logger.exception("Archived prototype operation failed")
         logger.error(
             f"Error interacting with Gemini API or parsing response: {e}\nResponse text:\n{response.text}"
         )
@@ -151,8 +156,8 @@ def main():
             fixed_code = get_gemini_fix(current_code, error_message)
 
             if fixed_code.startswith(
-                "Gemini could not extract"
-            ) or fixed_code.startswith("Error interacting with"):
+                ("Gemini could not extract", "Error interacting with")
+            ):
                 logger.error(fixed_code)
                 logger.error("Could not get a valid code fix from Gemini. Aborting.")
                 break
@@ -164,7 +169,7 @@ def main():
                     with open(CODE_FILE_PATH, "w") as f:
                         f.write(current_code)
                     logger.info(f"\n✨ Code updated in {CODE_FILE_PATH}. Retrying...")
-                except IOError as e:
+                except OSError as e:
                     logger.error(f"Error writing updated code to file: {e}")
                     logger.error("Aborting as file cannot be updated.")
                     break

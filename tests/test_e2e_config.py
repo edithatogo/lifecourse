@@ -1,14 +1,15 @@
-import unittest
-import tempfile
 import os
 import sys
+import tempfile
+import unittest
+
 import yaml
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from config.config_loader import load_config
-from lifecourse.data_loader import load_scenarios_from_yaml, apply_scenario_overrides
+from lifecourse.data_loader import apply_scenario_overrides, load_scenarios_from_yaml
 
 
 class TestE2EConfig(unittest.TestCase):

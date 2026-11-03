@@ -40,7 +40,6 @@ class DiseaseModel(ABC):
         Returns:
             dd.DataFrame: The population DataFrame with updated diagnosis states.
         """
-        pass
 
     @abstractmethod
     def run_progression(self, population_df, year: int, sampled_params: dict):
@@ -56,7 +55,6 @@ class DiseaseModel(ABC):
         Returns:
             dd.DataFrame: The population DataFrame with updated health states.
         """
-        pass
 
     @abstractmethod
     def calculate_costs_and_qalys(self, population_df, year: int, sampled_params: dict):
@@ -71,4 +69,3 @@ class DiseaseModel(ABC):
         Returns:
             dd.DataFrame: The population DataFrame with all annual cost and QALY columns populated.
         """
-        pass

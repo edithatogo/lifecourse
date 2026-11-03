@@ -194,7 +194,7 @@ def plot_ses_equity(ses_vals, labels, year):
 
 def plot_psa_histograms(cost_list, qaly_list):
     """Plots the PSA histograms for dCost and dQALY."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    _fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
     ax1.hist(cost_list, bins=30, color="skyblue", edgecolor="black")
     ax1.set_title("PSA Distribution of Incremental Cost")
     ax1.set_xlabel("Delta Cost")
@@ -250,7 +250,7 @@ def plot_evppi_curves(evppi_results, wtp):
             plt.plot(
                 wtp,
                 evppi_curve_host,
-                label=f'EVPPI ({param.replace("_", " ").title()})',
+                label=f"EVPPI ({param.replace('_', ' ').title()})",
             )
         plt.title("Expected Value of Partial Perfect Information (EVPPI) Curves")
         plt.xlabel("Willingness-to-Pay per QALY")
@@ -339,7 +339,7 @@ def plot_evsi_vs_sample_size(evsi_results):
             xytext=(5, 5),
             textcoords="offset points",
             fontsize=9,
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7),
+            bbox={"boxstyle": "round,pad=0.3", "facecolor": "yellow", "alpha": 0.7},
         )
 
     plt.title("EVSI vs Sample Size\n(Diminishing Returns Analysis)")
@@ -384,7 +384,7 @@ def plot_concentration_indices(ci_results):
     plt.grid(True, alpha=0.3)
 
     # Add interpretation text
-    interpretation = ci_results.get("interpretation", {})
+    ci_results.get("interpretation", {})
     plt.figtext(
         0.02,
         0.02,
@@ -419,7 +419,7 @@ def plot_vbp_price_thresholds(price_thresholds_results):
         prob_ce.append(data["probability_cost_effective"])
 
     # Create dual y-axis plot
-    fig, ax1 = plt.subplots(figsize=(12, 8))
+    _fig, ax1 = plt.subplots(figsize=(12, 8))
 
     # Plot price thresholds
     color = "tab:blue"
@@ -549,7 +549,7 @@ def plot_vbp_reimbursement_scenarios(reimbursement_results):
     ]  # Convert to £M
 
     # Create subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))
+    _fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))
 
     # Plot 1: ICER comparison
     bars1 = ax1.bar(scenario_names, icers, color="skyblue", alpha=0.7)
@@ -744,8 +744,9 @@ def plot_mcda_radar(mcda_results, alternatives_to_plot=None):
     alternatives_to_plot : list, optional
         List of alternative names to include in radar plot. If None, plots top 3.
     """
-    import matplotlib.pyplot as plt
     from math import pi
+
+    import matplotlib.pyplot as plt
 
     weighted_matrix = mcda_results["weighted_matrix"]
 
@@ -766,7 +767,7 @@ def plot_mcda_radar(mcda_results, alternatives_to_plot=None):
     angles += angles[:1]  # Close the plot
 
     # Create figure
-    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw=dict(projection="polar"))
+    _fig, ax = plt.subplots(figsize=(10, 8), subplot_kw={"projection": "polar"})
 
     # Plot each alternative
     colors = ["red", "blue", "green", "orange", "purple"]
@@ -895,7 +896,7 @@ def plot_concentration_curves(distributional_results):
     n_obs = len(psa_results)
     ses_ranks = np.linspace(0.01, 0.99, n_obs)  # 0 = poorest, 1 = richest
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
+    _fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
 
     # Concentration curve for costs
     sorted_indices = np.argsort(ses_ranks)
@@ -958,7 +959,7 @@ def plot_concentration_curves(distributional_results):
 
     # Atkinson indices comparison
     atkinson_data = distributional_results["atkinson_indices"]
-    epsilon_values = [float(k.split("_")[1]) for k in atkinson_data.keys()]
+    epsilon_values = [float(k.split("_")[1]) for k in atkinson_data]
     cost_inequality = [v["cost_inequality"] for v in atkinson_data.values()]
     qaly_inequality = [v["qaly_inequality"] for v in atkinson_data.values()]
 
@@ -990,7 +991,7 @@ def plot_equity_efficiency_tradeoffs(distributional_results):
     """
     equity_efficiency = distributional_results["equity_efficiency"]
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
+    _fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
 
     # Efficiency vs Equity comparison
     efficiency_icers = [equity_efficiency["efficiency_metrics"]["mean_ic_er"]]
@@ -1046,9 +1047,7 @@ def plot_equity_efficiency_tradeoffs(distributional_results):
     tradeoff_metrics = list(equity_efficiency["tradeoff_analysis"].keys())
     tradeoff_values = list(equity_efficiency["tradeoff_analysis"].values())
 
-    bars3 = ax3.bar(
-        tradeoff_metrics, tradeoff_values, color=["coral", "orange"], alpha=0.7
-    )
+    ax3.bar(tradeoff_metrics, tradeoff_values, color=["coral", "orange"], alpha=0.7)
     ax3.set_title("Equity-Efficiency Trade-offs")
     ax3.set_ylabel("Ratio/Index")
     ax3.tick_params(axis="x", rotation=45)
@@ -1090,7 +1089,7 @@ def plot_distributional_uncertainty(distributional_results):
     """
     psa_results = distributional_results["psa_results"]
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
+    _fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
 
     # ICER distribution
     icers = psa_results["dCost"] / psa_results["dQALY"]
@@ -1144,7 +1143,7 @@ def plot_distributional_uncertainty(distributional_results):
             bins=30,
             alpha=0.5,
             color=color,
-            label=f"£{wtp//1000}k/QALY",
+            label=f"£{wtp // 1000}k/QALY",
             edgecolor="black",
         )
 

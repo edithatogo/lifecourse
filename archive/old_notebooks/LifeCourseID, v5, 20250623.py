@@ -1,14 +1,15 @@
-import cupy as cp
-import cudf
-import matplotlib.pyplot as plt
-import seaborn as sns
 import json
-import warnings
-import numpy as np
-from scipy.stats import beta, gamma, lognorm, norm, uniform
 import math
-from dask_cuda import LocalCUDACluster
+import warnings
+
+import cudf
+import cupy as cp
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 from dask.distributed import Client, progress
+from dask_cuda import LocalCUDACluster
+from scipy.stats import beta, gamma, lognorm, norm, uniform
 
 warnings.filterwarnings("ignore")
 cp.random.seed(42)
@@ -1216,7 +1217,7 @@ for u in uptakes:
     sub = budg_df[budg_df["uptake"] == u]
     yrs_h = sub["year"].to_arrow().to_pylist()
     vals = sub["budget_impact"].to_arrow().to_pylist()
-    plt.plot(yrs_h, vals, label=f"Uptake {int(u*100)}%", marker="o")
+    plt.plot(yrs_h, vals, label=f"Uptake {int(u * 100)}%", marker="o")
 plt.title("5-Year Budget Impact")
 plt.xlabel("Year")
 plt.ylabel("Incremental Budget Impact")
@@ -1239,7 +1240,7 @@ if YEARS[-1] in bas["year"].values:
     ses_cols = [f"ses_q{i}_pct" for i in range(5)]
     # Extract scalar values from the series by converting to cupy and then using .item()
     ses_vals = [float(row_series[col].to_cupy().item()) for col in ses_cols]
-    labels = [f"Quintile {i+1}" for i in range(5)]
+    labels = [f"Quintile {i + 1}" for i in range(5)]
 
     plt.figure()
     plt.bar(labels, ses_vals)
@@ -1557,7 +1558,7 @@ if evppi_results:
         plt.plot(
             wtp.get(),
             evppi_curve_host,
-            label=f'EVPPI ({param.replace("_", " ").title()})',
+            label=f"EVPPI ({param.replace('_', ' ').title()})",
         )
 
     plt.title("Expected Value of Partial Perfect Information (EVPPI) Curves")

@@ -5,8 +5,9 @@ It is part of a design exercise to refactor the model for multi-cohort support.
 """
 
 import unittest
-import pandas as pd
+
 import dask.dataframe as dd
+import pandas as pd
 
 # Assume the drafted models are available for import
 from drafts.disease_model import DiseaseModel

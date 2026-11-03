@@ -1,1 +1,131 @@
-{"schemaVersion":1,"approvals":[]}
+{
+  "schemaVersion": 1,
+  "approvals": [
+    {
+      "path": "archive/old_notebooks/Diagrams (Python) - v1 - 20250621.ipynb",
+      "sha256": "72de2727dea15a4309ba964a5380f4e802115fda98320431c91500be55fe683a",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 1 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/Diagrams (R) - v1 - 20250621.ipynb",
+      "sha256": "30f50a01a0ae27123f8e91a47ebb72fa8ae5e6e0f809881a68a97030f20a916f",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/Generic Microsimulation (NZ) - v1, 20250611.ipynb",
+      "sha256": "23ddd4e0152570a8a3f67ec8cf6070991eac2abbedfa79dd28da3e1716733f64",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 12 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/IDMOD (New Order) - v1, 20250615.ipynb",
+      "sha256": "69684a968b4d41afc6574b73172a7648405951c2f0fa9940a532c8bed81bbc92",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/IDMOD Port - v1, 20250619.ipynb",
+      "sha256": "f10928989fd51a7f94cf9e263d95bd42316ef788868a3608131dd78538597563",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 15 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/IDMOD Translation - v1, 20250611.ipynb",
+      "sha256": "fe7f65033024fc054e2ea2de4b7cffb0429eb9c98711fefa6ef751cacaf56e61",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID (Macbook Pro) - v7[dask]a, 20250627.ipynb",
+      "sha256": "91ba77edd41314422604b59065529453fc128337642c2299e51abc92e190c81b",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 18 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID (Macbook Pro) - v8[dask]a, 20250627.ipynb",
+      "sha256": "8242ff4ce1231afa1078ed261e3a41f2f15c8f183842b078cb0f4baf7e01ad9f",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID - v1, 20250620 2.ipynb",
+      "sha256": "a21b7f6cebfe7dcefe0209c6427146b24d49ce322d9544022eb3e85af003c5fc",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID - v1, 20250620.ipynb",
+      "sha256": "ad786337272354ec7e8c6994b8bba55e3db1fe91debc3e198637915f4d7d1d16",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID - v2a, 20250620.ipynb",
+      "sha256": "278b00cbe7b1139c7a5877c90b861d506c8ee90a6ec05c1c63472463c208ffda",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 1 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID - v3, 20250621.ipynb",
+      "sha256": "bc7476922fdc9771aef796f1d8eb9cea732f9b0eeb6808918f4eb8ae10726275",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID - v3a, 20250620.ipynb",
+      "sha256": "c3bb295ecace33a3add5c52d6b5745ecbcb3487961f844f7a7e4693d4250a282",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID - v4, 20250621.ipynb",
+      "sha256": "dbf6ffc206edbfcc2e27a6792d824873912b3784dd3538c39c3cac38374d11ce",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID - v4a, 20250621.ipynb",
+      "sha256": "44aebc650cafea2f1bc8d62bf6d851b43f57b835766332bd8a6f1d9d6865293d",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID - v7b, 20250624.ipynb",
+      "sha256": "461673406f7ca7be6c2f296806fc67efa3d38cd4344112c2361956131144a51a",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 2 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID, v5, 20250622.ipynb",
+      "sha256": "ca8d8c4136edb53031f37cd826fd1169ebdfb4c0aa53dfee9cda5a6ea13aadcd",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID, v5a, 20250622.ipynb",
+      "sha256": "70c51af7bc5f782d19aa467905246edc28ec44b15055958b3e04e15cc198ecd4",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 0 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID, v6, 20250623.ipynb",
+      "sha256": "229dca9238c8a9ddf1e5436eb8f693bf2a1f770188d55b13734960643762c8b5",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 16 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID, v6a, 20250622.ipynb",
+      "sha256": "33b21fef06ccd83a51fd3c61548acc7806b8232f4fc3bd26bf415da17bdd27c2",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 1 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    },
+    {
+      "path": "archive/old_notebooks/LifeCourseID, v7a, 20250624.ipynb",
+      "sha256": "9e6dcdd3088a00aa08b7809bfee96277e3e5fd2468e2c91b87a65f208b6f6d71",
+      "reason": "Exact historical microsimulation notebook reviewed as source, structured cached outputs and metadata; 1 unique cached diagrams/economic plots visually inspected in the local image review. No clinical identities or credentials identified. Workstation prefixes in cached traces redacted where present, private originals retained. Historical outputs are not revised-model execution proof. Presidio and secret checks remain required.",
+      "reviewer": "Codex content inspection 2026-11-03"
+    }
+  ]
+}

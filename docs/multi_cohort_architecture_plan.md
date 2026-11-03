@@ -92,12 +92,15 @@ distributions:
 """
 This file contains the draft of the DiseaseModel abstract base class.
 """
+
 from abc import ABC, abstractmethod
+
 
 class DiseaseModel(ABC):
     """
     An abstract base class that defines the interface for a cohort-specific disease model.
     """
+
     def __init__(self, cohort_params: dict):
         self.params = cohort_params
 
@@ -110,7 +113,9 @@ class DiseaseModel(ABC):
         pass
 
     @abstractmethod
-    def calculate_costs_and_qalys(self, population_df, year: int, sampled_params: dict, arm: str):
+    def calculate_costs_and_qalys(
+        self, population_df, year: int, sampled_params: dict, arm: str
+    ):
         pass
 ```
 
@@ -120,35 +125,45 @@ class DiseaseModel(ABC):
 """
 This file contains the draft of the IDDiseaseModel class.
 """
+
 import numpy as np
 # from drafts.disease_model import DiseaseModel
+
 
 class IDDiseaseModel(DiseaseModel):
     """
     A concrete implementation of DiseaseModel for the Intellectual Disability cohort.
     """
+
     def run_diagnosis(self, population_df, year: int, sampled_params: dict, arm: str):
-        if arm != 'prospective':
+        if arm != "prospective":
             return population_df
+
         def diagnosis_partition(df):
-            if df.empty: return df
-            min_test_age = sampled_params.get('min_test_age', 0)
-            yield_wgs = sampled_params.get('yield_wgs', 0)
-            mask = (~df['diagnosed']) & df['familial'] & (df['age'] >= min_test_age)
+            if df.empty:
+                return df
+            min_test_age = sampled_params.get("min_test_age", 0)
+            yield_wgs = sampled_params.get("yield_wgs", 0)
+            mask = (~df["diagnosed"]) & df["familial"] & (df["age"] >= min_test_age)
             cnt = int(mask.sum())
             if cnt > 0:
                 diag_outcomes = np.random.random(cnt) < yield_wgs
-                df.loc[mask, 'diagnosed'] = diag_outcomes
+                df.loc[mask, "diagnosed"] = diag_outcomes
             return df
-        return population_df.map_partitions(diagnosis_partition, meta=population_df._meta)
+
+        return population_df.map_partitions(
+            diagnosis_partition, meta=population_df._meta
+        )
 
     def run_progression(self, population_df, year: int, sampled_params: dict):
-        return population_df # No progression in this model
+        return population_df  # No progression in this model
 
-    def calculate_costs_and_qalys(self, population_df, year: int, sampled_params: dict, arm: str):
+    def calculate_costs_and_qalys(
+        self, population_df, year: int, sampled_params: dict, arm: str
+    ):
         # Full logic from original PopulationSystemDask._cost_qaly transposed here
         # ... (full implementation omitted for brevity in this design doc)
-        return population_df # Placeholder
+        return population_df  # Placeholder
 ```
 
 ### 3.4. Draft: Refactored `PopulationSystem` Engine (`drafts/population_system.py`)
@@ -157,20 +172,29 @@ class IDDiseaseModel(DiseaseModel):
 """
 This file contains the draft of the refactored PopulationSystem class.
 """
+
 import dask.dataframe as dd
 # from drafts.disease_model import DiseaseModel
 # from .cohort import gen_population
+
 
 class PopulationSystem:
     """
     A generalized microsimulation engine.
     """
-    def __init__(self, pop_size: int, cohort_params: dict, disease_model: DiseaseModel, arm: str = 'prospective'):
+
+    def __init__(
+        self,
+        pop_size: int,
+        cohort_params: dict,
+        disease_model: DiseaseModel,
+        arm: str = "prospective",
+    ):
         self.arm = arm
         self.params = cohort_params
         self.disease_model = disease_model
         # self.pop = gen_population(pop_size, self.params, self.arm).persist()
-        self.pop = None # Placeholder
+        self.pop = None  # Placeholder
 
     def _mortality(self):
         # Universal mortality logic from original implementation
@@ -181,16 +205,21 @@ class PopulationSystem:
         return None
 
     def step(self, year: int):
-        if self.pop is None: return
+        if self.pop is None:
+            return
         self._mortality()
         new_babies_dd = self._fertility()
-        self.pop = self.disease_model.run_diagnosis(self.pop, year, self.params, self.arm)
+        self.pop = self.disease_model.run_diagnosis(
+            self.pop, year, self.params, self.arm
+        )
         self.pop = self.disease_model.run_progression(self.pop, year, self.params)
         self.pop = self.pop.assign(age=self.pop.age + 1)
         if new_babies_dd is not None:
             self.pop = dd.concat([self.pop, new_babies_dd])
         self.pop = self.pop.persist()
-        self.pop = self.disease_model.calculate_costs_and_qalys(self.pop, year, self.params, self.arm)
+        self.pop = self.disease_model.calculate_costs_and_qalys(
+            self.pop, year, self.params, self.arm
+        )
 ```
 
 ---
@@ -205,17 +234,20 @@ This section provides drafted unit tests that define the contract for how the ne
 """
 Drafted unit tests for the drafted IDDiseaseModel class.
 """
+
 import unittest
 import pandas as pd
 import numpy as np
 # from drafts.disease_model import DiseaseModel
 # from drafts.id_model import IDDiseaseModel
 
+
 class TestIDDiseaseModel(unittest.TestCase):
     def setUp(self):
         # A mock parameter dictionary for testing
         self.mock_params = {
-            'min_test_age': 0, 'yield_wgs': 0.5,
+            "min_test_age": 0,
+            "yield_wgs": 0.5,
             # ... other necessary parameters ...
         }
         # self.id_model = IDDiseaseModel(cohort_params=self.mock_params)
@@ -237,15 +269,18 @@ class TestIDDiseaseModel(unittest.TestCase):
 """
 Drafted unit tests for the refactored PopulationSystem class.
 """
+
 import unittest
 from unittest.mock import MagicMock
 import pandas as pd
 # from drafts.disease_model import DiseaseModel
 # from drafts.population_system import PopulationSystem
 
+
 class MockDiseaseModel(DiseaseModel):
     # Mock implementation with a call log
     ...
+
 
 class TestRefactoredPopulationSystem(unittest.TestCase):
     def setUp(self):

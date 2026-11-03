@@ -40,7 +40,7 @@ This file contains concise, actionable guidance for AI coding agents working in 
    - Load scenarios and run deterministic scenarios (pattern used in `main.py`):
      ```py
      base_mean_params = get_mean_params(DISTRIBUTIONS)
-     scenarios_config = load_scenarios_from_yaml('config/scenarios.yaml')
+     scenarios_config = load_scenarios_from_yaml("config/scenarios.yaml")
      for name, overrides in scenarios_config.items():
          params = apply_scenario_overrides(base_mean_params, overrides)
          dc, dq = run_sim(params, pop_size=current_pop_size, years=YEARS)

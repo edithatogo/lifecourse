@@ -4,16 +4,23 @@
 Saves a CSV summarising timings and aggregate differences for each
 seed / population size / duration combination.
 """
+
 import argparse
 import csv
-import time
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.abspath("src"))
 
 import numpy as np
-from lifecourse.model.parameters import DISTRIBUTIONS, get_mean_params, prepare_dask_params, START_YEAR
+
+from lifecourse.model.parameters import (
+    DISTRIBUTIONS,
+    START_YEAR,
+    get_mean_params,
+    prepare_dask_params,
+)
 from lifecourse.model.population_system import PopulationSystemDask
 
 
@@ -76,10 +83,18 @@ def run_validation(seeds, pop_sizes, durations, out_path):
 
                     n_step = len(df_step)
                     n_fused = len(df_fused)
-                    cost_step = float(df_step["annual_cost"].sum()) if n_step > 0 else 0.0
-                    cost_fused = float(df_fused["annual_cost"].sum()) if n_fused > 0 else 0.0
-                    qaly_step = float(df_step["annual_qaly"].sum()) if n_step > 0 else 0.0
-                    qaly_fused = float(df_fused["annual_qaly"].sum()) if n_fused > 0 else 0.0
+                    cost_step = (
+                        float(df_step["annual_cost"].sum()) if n_step > 0 else 0.0
+                    )
+                    cost_fused = (
+                        float(df_fused["annual_cost"].sum()) if n_fused > 0 else 0.0
+                    )
+                    qaly_step = (
+                        float(df_step["annual_qaly"].sum()) if n_step > 0 else 0.0
+                    )
+                    qaly_fused = (
+                        float(df_fused["annual_qaly"].sum()) if n_fused > 0 else 0.0
+                    )
 
                     writer.writerow(
                         {
@@ -117,7 +132,14 @@ def main():
     pop_sizes = parse_list(args.pop_sizes)
     durations = parse_list(args.durations)
 
-    print("Running validation with seeds=", seeds, "pop_sizes=", pop_sizes, "durations=", durations)
+    print(
+        "Running validation with seeds=",
+        seeds,
+        "pop_sizes=",
+        pop_sizes,
+        "durations=",
+        durations,
+    )
     run_validation(seeds, pop_sizes, durations, args.out)
     print("Wrote results to", args.out)
 

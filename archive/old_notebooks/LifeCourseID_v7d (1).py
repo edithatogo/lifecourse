@@ -10,15 +10,20 @@ except ModuleNotFoundError:
     # JAX not installed; the rest of the code falls back to NumPy where needed
     pass
 # --------------------------------------------------
-import dask.dataframe as dd
-import pandas as pd
-import matplotlib.pyplot as plt
-import warnings
-import jax.numpy as jnp
-from jax import random, jit, config  # Import config for JAX settings
-from jax import device_get  # Import device_get for converting JAX arrays to NumPy
-from dask.distributed import LocalCluster, Client, progress
 import gc  # Import garbage collection module
+import warnings
+
+import dask.dataframe as dd
+import jax.numpy as jnp
+import matplotlib.pyplot as plt
+import pandas as pd
+from dask.distributed import Client, LocalCluster, progress
+from jax import (  # Import config for JAX settings
+    config,
+    device_get,  # Import device_get for converting JAX arrays to NumPy
+    jit,
+    random,
+)
 
 warnings.filterwarnings("ignore")
 
@@ -526,7 +531,7 @@ class PopulationSystemDask:
 
     def _mortality(self, current_pop):
         # Split the instance's main key for this operation
-        key, subkey_mort = random.split(self.key)
+        _key, subkey_mort = random.split(self.key)
         self.key = subkey_mort  # Update the instance's key for subsequent operations
 
         def mortality_partition(df, abs_mort, life_exp_np, mort_hr, subkey_mort_part):
@@ -560,7 +565,7 @@ class PopulationSystemDask:
 
     def _fertility(self, current_pop):
         # Split the instance's main key for this operation
-        key, subkey_fert = random.split(self.key)
+        _key, subkey_fert = random.split(self.key)
         self.key = subkey_fert  # Update the instance's key
 
         # Pass parameters explicitly to the partition function
@@ -706,7 +711,7 @@ class PopulationSystemDask:
             return current_pop
 
         # Split the instance's main key for this operation
-        key, subkey_diag = random.split(self.key)
+        _key, subkey_diag = random.split(self.key)
         self.key = subkey_diag  # Update the instance's key
 
         # Use map_partitions for updating 'diagnosed' status
@@ -771,7 +776,7 @@ class PopulationSystemDask:
         disc = 1 / ((1 + params["DISCOUNT"]) ** (year - START_YEAR))
 
         # Split the instance's main key for this operation
-        key, subkey_cost_qaly = random.split(self.key)
+        _key, subkey_cost_qaly = random.split(self.key)
         self.key = subkey_cost_qaly  # Update the instance's key
 
         def cost_qaly_partition(
@@ -910,7 +915,6 @@ class PopulationSystemDask:
 
     def step(self, year):
         # Current population reference for unpersisting later
-        old_pop_ref = self.pop
 
         # Chain lazy operations
         new_pop = self._mortality(self.pop)
@@ -1705,7 +1709,7 @@ plt.figure()
 for u in uptakes:
     sub = budg_df[budg_df["uptake"] == u]
     plt.plot(
-        sub["year"], sub["budget_impact"], label=f"Uptake {int(u*100)}%", marker="o"
+        sub["year"], sub["budget_impact"], label=f"Uptake {int(u * 100)}%", marker="o"
     )
     plt.title("5-Year Budget Impact")
 plt.xlabel("Year")
@@ -1724,7 +1728,7 @@ if YEARS[-1] in bas["year"].values:
     row_series = bas[bas["year"] == YEARS[-1]].iloc[0]
     ses_cols = [f"ses_q{i}_pct" for i in range(5)]
     ses_vals = [float(row_series[col]) for col in ses_cols]
-    labels = [f"Quintile {i+1}" for i in range(5)]
+    labels = [f"Quintile {i + 1}" for i in range(5)]
 
     plt.figure()
     plt.bar(labels, ses_vals)
@@ -1933,7 +1937,7 @@ if evppi_results:
         plt.plot(
             jnp.array(wtp),
             jnp.array(evppi_curve_host),
-            label=f'EVPPI ({param.replace("_", " ").title()})',
+            label=f"EVPPI ({param.replace('_', ' ').title()})",
         )
     plt.title("Expected Value of Partial Perfect Information (EVPPI) Curves")
     plt.xlabel("Willingness-to-Pay per QALY")

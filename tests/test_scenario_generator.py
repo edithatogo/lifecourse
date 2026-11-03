@@ -2,16 +2,16 @@
 Tests for Dynamic Scenario Generation functionality.
 """
 
-import tempfile
 import os
+import tempfile
 from unittest.mock import patch
 
 from lifecourse.analysis.scenario_generator import (
-    DynamicScenarioManager,
-    GridScenarioGenerator,
     DistributionScenarioGenerator,
-    TemplateScenarioGenerator,
+    DynamicScenarioManager,
     FamilyScenarioGenerator,
+    GridScenarioGenerator,
+    TemplateScenarioGenerator,
     get_scenario_manager,
 )
 from lifecourse.data_loader import load_scenarios_from_yaml
@@ -68,7 +68,7 @@ class TestDistributionScenarioGenerator:
         scenarios = generator.generate_scenarios(config)
 
         assert len(scenarios) == 2
-        for name, overrides in scenarios.items():
+        for overrides in scenarios.values():
             assert 0.0 <= overrides["param_a"] <= 1.0
 
 
@@ -112,7 +112,7 @@ class TestTemplateScenarioGenerator:
         scenarios = generator.generate_scenarios(config)
 
         assert len(scenarios) == 2
-        for name in scenarios.keys():
+        for name in scenarios:
             assert "random_template_sample_" in name
 
 

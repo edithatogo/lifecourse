@@ -710,16 +710,17 @@ def run_sim(
     pop_size: int,
     seed_idx: Optional[int] = None,
     years: Optional[List[int]] = None,
-    debug: bool = False
+    debug: bool = False,
 ) -> Tuple[float, float]:
     """Execute simulation and return incremental cost and QALY results"""
     pass
+
 
 def run_scenario(
     scenario_params: Dict[str, Any],
     pop_size: int,
     years: List[int],
-    debug: bool = False
+    debug: bool = False,
 ) -> Dict[str, Any]:
     """Execute scenario analysis with parameter overrides"""
     pass
@@ -766,7 +767,9 @@ class AnalysisModule(ABC):
 
 ```python
 class EVPIModule(AnalysisModule):
-    def execute(self, psa_results: pd.DataFrame, wtp_range: np.ndarray) -> Dict[str, Any]:
+    def execute(
+        self, psa_results: pd.DataFrame, wtp_range: np.ndarray
+    ) -> Dict[str, Any]:
         """Calculate Expected Value of Perfect Information"""
         # Implementation of EVPI calculation
         # ENMB = (QALYs * WTP) - Costs
@@ -789,7 +792,7 @@ class EVPPIModule(AnalysisModule):
         self,
         psa_results: pd.DataFrame,
         parameter_sets: List[List[str]],
-        wtp_range: np.ndarray
+        wtp_range: np.ndarray,
     ) -> Dict[str, Any]:
         """Calculate Expected Value of Partial Perfect Information"""
         # For each parameter subset:
@@ -812,7 +815,7 @@ class EVSIModule(AnalysisModule):
         self,
         psa_results: pd.DataFrame,
         proposed_studies: List[Dict],
-        wtp_range: np.ndarray
+        wtp_range: np.ndarray,
     ) -> Dict[str, Any]:
         """Calculate Expected Value of Sample Information"""
         # Implementation for different study designs
@@ -826,14 +829,18 @@ class EVSIModule(AnalysisModule):
 
 ```python
 class DistributiveCEAModule(AnalysisModule):
-    def execute(self, psa_results: pd.DataFrame, equity_dimensions: List[str]) -> Dict[str, Any]:
+    def execute(
+        self, psa_results: pd.DataFrame, equity_dimensions: List[str]
+    ) -> Dict[str, Any]:
         """Perform equity analysis across socioeconomic and demographic groups"""
         # Calculate concentration indices
         # Analyze distributional impacts
         # Generate equity plots
         pass
 
-    def calculate_concentration_index(self, outcomes: np.ndarray, rank: np.ndarray) -> float:
+    def calculate_concentration_index(
+        self, outcomes: np.ndarray, rank: np.ndarray
+    ) -> float:
         """Calculate concentration index for inequality measurement"""
         pass
 ```
@@ -859,7 +866,7 @@ class BudgetImpactModule(AnalysisModule):
         self,
         intervention_costs: Dict[str, float],
         adoption_curve: Dict[str, Any],
-        time_horizon: int = 5
+        time_horizon: int = 5,
     ) -> Dict[str, Any]:
         """Calculate budget impact over specified time horizon"""
         # Model adoption curves
@@ -885,7 +892,7 @@ class ValueBasedPricingModule(AnalysisModule):
         self,
         cost_effectiveness_results: pd.DataFrame,
         reimbursement_scenarios: List[Dict],
-        market_constraints: Dict[str, Any]
+        market_constraints: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Determine optimal value-based prices"""
         # Calculate price thresholds
@@ -893,7 +900,9 @@ class ValueBasedPricingModule(AnalysisModule):
         # Model market dynamics
         pass
 
-    def calculate_price_threshold(self, icer: float, wtp: float, utilization: float) -> float:
+    def calculate_price_threshold(
+        self, icer: float, wtp: float, utilization: float
+    ) -> float:
         """Calculate maximum cost-effective price"""
         pass
 ```
@@ -912,10 +921,7 @@ class ValueBasedPricingModule(AnalysisModule):
 ```python
 class PriceThresholdModule(AnalysisModule):
     def execute(
-        self,
-        psa_results: pd.DataFrame,
-        wtp_range: np.ndarray,
-        price_range: np.ndarray
+        self, psa_results: pd.DataFrame, wtp_range: np.ndarray, price_range: np.ndarray
     ) -> Dict[str, Any]:
         """Perform price threshold analysis"""
         # Generate threshold curves
@@ -944,7 +950,7 @@ class MCDAModule(AnalysisModule):
         self,
         alternatives: List[Dict],
         criteria_weights: Dict[str, float],
-        value_functions: Dict[str, callable]
+        value_functions: Dict[str, callable],
     ) -> Dict[str, Any]:
         """Perform MCDA evaluation"""
         # Normalize criteria scores
@@ -960,7 +966,7 @@ class MCDAModule(AnalysisModule):
             {"name": "equity", "direction": "maximize", "weight": 0.25},
             {"name": "budget_impact", "direction": "minimize", "weight": 0.2},
             {"name": "feasibility", "direction": "maximize", "weight": 0.15},
-            {"name": "innovation", "direction": "maximize", "weight": 0.1}
+            {"name": "innovation", "direction": "maximize", "weight": 0.1},
         ]
 ```
 
@@ -980,17 +986,17 @@ class MCDAModule(AnalysisModule):
 ```python
 # Dask DataFrame schema for population
 POPULATION_SCHEMA = {
-    'id': 'int64',
-    'age': 'int32',
-    'sex': 'int8',  # 0=female, 1=male
-    'severity': 'int8',  # 0=mild, 1=severe
-    'familial': 'bool',
-    'ses_quintile': 'int8',  # 1-5 socioeconomic quintile
-    'annual_cost': 'float64',
-    'annual_qaly': 'float64',
-    'cumulative_cost': 'float64',
-    'cumulative_qaly': 'float64',
-    'alive': 'bool'
+    "id": "int64",
+    "age": "int32",
+    "sex": "int8",  # 0=female, 1=male
+    "severity": "int8",  # 0=mild, 1=severe
+    "familial": "bool",
+    "ses_quintile": "int8",  # 1-5 socioeconomic quintile
+    "annual_cost": "float64",
+    "annual_qaly": "float64",
+    "cumulative_cost": "float64",
+    "cumulative_qaly": "float64",
+    "alive": "bool",
 }
 ```
 
@@ -999,13 +1005,13 @@ POPULATION_SCHEMA = {
 ```python
 # PSA Results DataFrame
 PSA_RESULTS_SCHEMA = {
-    'run': 'int32',
-    'dCost': 'float64',
-    'dQALY': 'float64',
-    'ICER': 'float64',
+    "run": "int32",
+    "dCost": "float64",
+    "dQALY": "float64",
+    "ICER": "float64",
     # Parameter columns...
-    'familial_prop': 'float64',
-    'yield_wgs': 'float64',
+    "familial_prop": "float64",
+    "yield_wgs": "float64",
     # ... additional parameters
 }
 ```
@@ -1046,13 +1052,11 @@ lifecourseid-main --config_file custom.yaml
 from lifecourseid import LifeCourseModel
 
 # Initialize model
-model = LifeCourseModel(config_file='config.yaml')
+model = LifeCourseModel(config_file="config.yaml")
 
 # Run analysis
 results = model.run_analysis(
-    analysis_type='psa',
-    n_iterations=1000,
-    scenarios=['base', 'intervention']
+    analysis_type="psa", n_iterations=1000, scenarios=["base", "intervention"]
 )
 
 # Access results
@@ -1072,9 +1076,7 @@ class ConfigLoader:
         self.validators = self._load_validators()
 
     def load_config(
-        self,
-        config_name: Optional[str] = None,
-        config_file_path: Optional[str] = None
+        self, config_name: Optional[str] = None, config_file_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """Load and validate configuration"""
         pass
@@ -1088,18 +1090,18 @@ class ConfigLoader:
 
 ```python
 class ScenarioManager:
-    def __init__(self, scenarios_file: str = 'config/scenarios.yaml'):
+    def __init__(self, scenarios_file: str = "config/scenarios.yaml"):
         self.scenarios = self._load_scenarios()
 
     def apply_scenario_overrides(
-        self,
-        base_params: Dict[str, float],
-        overrides: Dict[str, Any]
+        self, base_params: Dict[str, float], overrides: Dict[str, Any]
     ) -> Dict[str, float]:
         """Apply relative or absolute parameter modifications"""
         pass
 
-    def generate_scenario_grid(self, parameter_ranges: Dict[str, List[float]]) -> List[Dict]:
+    def generate_scenario_grid(
+        self, parameter_ranges: Dict[str, List[float]]
+    ) -> List[Dict]:
         """Generate parameter combinations for sensitivity analysis"""
         pass
 ```
@@ -1110,10 +1112,10 @@ class ScenarioManager:
 
 ```python
 PARAMETER_VALIDATION_RULES = {
-    'pop_size': {'type': 'int', 'min': 100, 'max': 100000},
-    'psa_n': {'type': 'int', 'min': 100, 'max': 10000},
-    'familial_prop': {'type': 'float', 'min': 0.0, 'max': 1.0},
-    'yield_wgs': {'type': 'float', 'min': 0.0, 'max': 1.0},
+    "pop_size": {"type": "int", "min": 100, "max": 100000},
+    "psa_n": {"type": "int", "min": 100, "max": 10000},
+    "familial_prop": {"type": "float", "min": 0.0, "max": 1.0},
+    "yield_wgs": {"type": "float", "min": 0.0, "max": 1.0},
     # ... additional parameters
 }
 ```
@@ -1139,10 +1141,12 @@ class EconomicPlot(ABC):
         """Set matplotlib style for publication-quality plots"""
         pass
 
+
 class CEPlanePlot(EconomicPlot):
     def plot(self, dcost: np.ndarray, dqaly: np.ndarray, wtp: np.ndarray) -> plt.Figure:
         """Generate cost-effectiveness plane"""
         pass
+
 
 class CEACPlot(EconomicPlot):
     def plot(self, wtp: np.ndarray, nb_matrix: np.ndarray) -> plt.Figure:
@@ -1157,12 +1161,16 @@ class VOIPlot(EconomicPlot):
     def plot_evpi(self, evpi_values: np.ndarray, wtp: np.ndarray) -> plt.Figure:
         pass
 
-    def plot_evppi(self, evppi_curves: Dict[str, np.ndarray], wtp: np.ndarray) -> plt.Figure:
+    def plot_evppi(
+        self, evppi_curves: Dict[str, np.ndarray], wtp: np.ndarray
+    ) -> plt.Figure:
         pass
+
 
 class BudgetImpactPlot(EconomicPlot):
     def plot_budget_curve(self, budget_projection: pd.DataFrame) -> plt.Figure:
         pass
+
 
 class MCDAVisualization(EconomicPlot):
     def plot_radar(self, criteria_scores: pd.DataFrame) -> plt.Figure:
@@ -1178,7 +1186,7 @@ class MCDAVisualization(EconomicPlot):
 
 ```python
 class ReportGenerator:
-    def __init__(self, results_dir: str = 'results'):
+    def __init__(self, results_dir: str = "results"):
         self.results_dir = results_dir
         self.template_engine = self._load_templates()
 
@@ -1186,7 +1194,7 @@ class ReportGenerator:
         self,
         analysis_results: Dict[str, Any],
         include_plots: bool = True,
-        format: str = 'html'
+        format: str = "html",
     ) -> str:
         """Generate comprehensive analysis report"""
         pass
@@ -1215,8 +1223,8 @@ class DaskManager:
             self.cluster = LocalCluster(
                 n_workers=1,
                 threads_per_worker=1,
-                memory_limit='2GB',
-                silence_logs=False
+                memory_limit="2GB",
+                silence_logs=False,
             )
         else:
             # Production configuration
@@ -1225,7 +1233,7 @@ class DaskManager:
                 n_workers=min(cpu_count, 8),
                 threads_per_worker=max(1, cpu_count // 8),
                 memory_limit=f"{max(1, memory_gb // 8)}GB",
-                silence_logs=True
+                silence_logs=True,
             )
 
         self.client = Client(self.cluster)
@@ -1248,7 +1256,9 @@ class DaskManager:
 #### 8.2.1 PSA Execution Pattern
 
 ```python
-def run_parallel_psa(psa_args: List[Tuple], client: Client) -> List[Tuple[float, float]]:
+def run_parallel_psa(
+    psa_args: List[Tuple], client: Client
+) -> List[Tuple[float, float]]:
     """Execute PSA iterations in parallel"""
     futures = client.map(run_sim, psa_args)
     return client.gather(futures)
@@ -1289,19 +1299,23 @@ def base_parameters():
     """Provide standard parameter set for testing"""
     return get_mean_params(DISTRIBUTIONS)
 
+
 @pytest.fixture
 def small_population():
     """Generate small test population"""
     return gen_population_dask(100, base_parameters(), "prospective")
 
+
 @pytest.fixture
 def mock_psa_results():
     """Generate mock PSA results for analysis testing"""
     np.random.seed(42)
-    return pd.DataFrame({
-        'dCost': np.random.normal(10000, 2000, 100),
-        'dQALY': np.random.normal(0.5, 0.1, 100)
-    })
+    return pd.DataFrame(
+        {
+            "dCost": np.random.normal(10000, 2000, 100),
+            "dQALY": np.random.normal(0.5, 0.1, 100),
+        }
+    )
 ```
 
 ### 9.2 Integration Testing
@@ -1312,20 +1326,21 @@ def mock_psa_results():
 def test_full_analysis_workflow():
     """Test complete analysis pipeline"""
     # Setup
-    config = load_config('MINIMAL_TEST_CONFIG')
+    config = load_config("MINIMAL_TEST_CONFIG")
 
     # Execute
     results = run_full_analysis(config)
 
     # Validate
-    assert 'deterministic_results' in results
-    assert 'psa_results' in results
-    assert 'plots' in results
-    assert len(results['psa_results']) == config['PSA_N']
+    assert "deterministic_results" in results
+    assert "psa_results" in results
+    assert "plots" in results
+    assert len(results["psa_results"]) == config["PSA_N"]
+
 
 def test_scenario_analysis():
     """Test scenario comparison functionality"""
-    scenarios = load_scenarios_from_yaml('config/scenarios.yaml')
+    scenarios = load_scenarios_from_yaml("config/scenarios.yaml")
     results = {}
 
     for name, overrides in scenarios.items():
@@ -1333,7 +1348,7 @@ def test_scenario_analysis():
         results[name] = run_sim(params, pop_size=1000, years=range(2024, 2034))
 
     # Validate scenario differences
-    assert results['high_yield']['dQALY'] > results['low_yield']['dQALY']
+    assert results["high_yield"]["dQALY"] > results["low_yield"]["dQALY"]
 ```
 
 ### 9.3 Performance Testing
@@ -1354,12 +1369,14 @@ def benchmark_psa_performance(pop_sizes: List[int], psa_iterations: List[int]):
 
             execution_time = time.time() - start_time
 
-            results.append({
-                'pop_size': pop_size,
-                'psa_iterations': n_psa,
-                'execution_time': execution_time,
-                'memory_peak': get_memory_usage()
-            })
+            results.append(
+                {
+                    "pop_size": pop_size,
+                    "psa_iterations": n_psa,
+                    "execution_time": execution_time,
+                    "memory_peak": get_memory_usage(),
+                }
+            )
 
     return pd.DataFrame(results)
 ```

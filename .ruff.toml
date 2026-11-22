@@ -1,0 +1,2 @@
+# Historical reference notebooks are preserved, not maintained package code.
+extend-exclude = ["archive/old_notebooks"]

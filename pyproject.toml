@@ -46,3 +46,7 @@ lifecourse-main = "lifecourse.main:main"
 [project.urls]
 "Homepage" = "https://github.com/edithatogo/lifecourse"
 "Bug Tracker" = "https://github.com/edithatogo/lifecourse/issues"
+
+[tool.ruff]
+# Historical notebooks are preserved as source evidence, not maintained package code.
+extend-exclude = ["archive/old_notebooks"]
